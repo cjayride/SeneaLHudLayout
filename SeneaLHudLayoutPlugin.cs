@@ -8,12 +8,13 @@ namespace SeneaLHudLayout
     [BepInPlugin(GUID, NAME, VERSION)]
     [BepInDependency("seneaL.valheim.ui")]
     [BepInDependency("org.bepinex.plugins.passivepowers", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("com.grillspett.itemdrawers", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInProcess("valheim.exe")]
     public class SeneaLHudLayoutPlugin : BaseUnityPlugin
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.3";
+        public const string VERSION = "1.1.8";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -29,8 +30,14 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> CenterMessageGap;
         public static ConfigEntry<bool> HideSenealPower;
         public static ConfigEntry<float> PowersGap;
+        public static ConfigEntry<float> PowersScale;
         public static ConfigEntry<float> PowersOffsetX;
         public static ConfigEntry<float> PowersOffsetY;
+        public static ConfigEntry<bool> CollapseDrawerPreview;
+        public static ConfigEntry<bool> ShowWorldHealthNumbers;
+        public static ConfigEntry<bool> AlwaysShowStamina;
+        public static ConfigEntry<bool> AlwaysShowEitr;
+        public static ConfigEntry<bool> AlwaysShowAdrenaline;
 
         void Awake()
         {
@@ -78,6 +85,9 @@ namespace SeneaLHudLayout
             PowersGap = Config.Bind("Powers", "Gap", 12f,
                 new ConfigDescription("Pixels between the food column and the first Passive Powers icon, and between the two icons.",
                     new AcceptableValueRange<float>(0f, 200f)));
+            PowersScale = Config.Bind("Powers", "Scale", 1f,
+                new ConfigDescription("Size of the Passive Powers icons, their key labels, and the shared cooldown. 1 is the current size. Smaller than 1 shrinks them.",
+                    new AcceptableValueRange<float>(0.5f, 1.5f)));
             PowersOffsetX = Config.Bind("Powers", "OffsetX", 0f,
                 new ConfigDescription("Extra nudge for the Passive Powers icons. Positive moves right.",
                     new AcceptableValueRange<float>(-2000f, 2000f)));
@@ -85,12 +95,27 @@ namespace SeneaLHudLayout
                 new ConfigDescription("Extra nudge for the Passive Powers icons. Positive moves up.",
                     new AcceptableValueRange<float>(-2000f, 2000f)));
 
-            CompassPin.Apply(new Harmony(GUID));
+            CollapseDrawerPreview = Config.Bind("Hover", "CollapseItemDrawerStacks", true,
+                "When hovering a Grillspett Item Drawer, show one preview slot for the stored item instead of every stack.");
+            ShowWorldHealthNumbers = Config.Bind("WorldHud", "ShowHealthNumbers", true,
+                "Show current/max health just above creature and player health bars.");
+            AlwaysShowStamina = Config.Bind("Vitals", "AlwaysShowStamina", false,
+                "Keep the stamina bar visible when it is full. Off leaves SeneaL UI's normal fade.");
+            AlwaysShowEitr = Config.Bind("Vitals", "AlwaysShowEitr", false,
+                "Keep the eitr bar visible when it is full. Off leaves SeneaL UI's normal fade.");
+            AlwaysShowAdrenaline = Config.Bind("Vitals", "AlwaysShowAdrenaline", false,
+                "Keep the adrenaline bar visible when it is empty. Off leaves SeneaL UI's normal fade.");
+
+            Harmony harmony = new Harmony(GUID);
+            CompassPin.Apply(harmony);
+            DrawerPreview.Apply(harmony);
+            WorldHealthText.Apply(harmony);
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
         }
 
         void LateUpdate()
         {
+            ResourceBars.Apply();
             if (Enabled == null || !Enabled.Value)
             {
                 HudLayout.Restore();

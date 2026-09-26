@@ -20,6 +20,10 @@ Install on **clients only**. Dedicated servers do not need it.
 - Boss bars nudged down a bit; slain/biome banners sit under the compass or boss bar
 - Minimap cluster nudged left
 - SeneaL's unused guardian-power circle and F hint can be hidden; Passive Powers sit beside the food column
+- `[Powers] Scale` shrinks or grows those Passive Powers icons (0.5 to 1.5, default 1)
+- Item Drawer hover preview collapses to one slot (total count) instead of every stack
+- Creature and player world health bars show `current/max` just above the bar (`[WorldHud] ShowHealthNumbers`, on by default)
+- Optional always-visible stamina, eitr, and adrenaline bars (`[Vitals]`, all off by default)
 
 Turn `[General] Enabled` off to restore SeneaL's own placement.
 

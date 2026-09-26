@@ -53,6 +53,7 @@ namespace SeneaLHudLayout
         public static void Restore(RectTransform senealRoot)
         {
             ShowSenealSlot();
+            ResetScale();
         }
 
         static void HideSenealSlot(RectTransform senealRoot)
@@ -110,6 +111,7 @@ namespace SeneaLHudLayout
             }
 
             float gap = SeneaLHudLayoutPlugin.PowersGap.Value;
+            float scale = SeneaLHudLayoutPlugin.PowersScale.Value;
             float x = HudLayout.EdgeX(food, left: false) + gap + SeneaLHudLayoutPlugin.PowersOffsetX.Value;
             float y = HudLayout.EdgeY(food, bottom: true) + SeneaLHudLayoutPlugin.PowersOffsetY.Value;
             float shared = SharedCooldown();
@@ -120,6 +122,7 @@ namespace SeneaLHudLayout
             for (int i = 0; i < shown.Count; i++)
             {
                 int slot = SlotIndex(shown[i]);
+                shown[i].localScale = new Vector3(scale, scale, 1f);
                 if (!TryBounds(shown[i], out float minX, out float minY, out float maxX, out _))
                 {
                     continue;
@@ -144,7 +147,34 @@ namespace SeneaLHudLayout
                 x += (maxX - minX) + gap;
             }
 
-            PlaceSharedCooldown(hud, rightIcon, shared);
+            PlaceSharedCooldown(hud, rightIcon, shared, scale);
+        }
+
+        static void ResetScale()
+        {
+            Hud hud = Hud.instance;
+            if (hud == null)
+            {
+                return;
+            }
+
+            if (hud.m_gpRoot != null)
+            {
+                Transform root = hud.m_gpRoot.transform;
+                for (int i = 0; i < root.childCount; i++)
+                {
+                    Transform child = root.GetChild(i);
+                    if (child.name.StartsWith("powerContainer"))
+                    {
+                        child.localScale = Vector3.one;
+                    }
+                }
+            }
+
+            if (hud.m_gpCooldown != null)
+            {
+                hud.m_gpCooldown.transform.localScale = Vector3.one;
+            }
         }
 
         static float SharedCooldown()
@@ -209,7 +239,7 @@ namespace SeneaLHudLayout
         /// One shared activation cooldown for every boss power. Sit it to the
         /// right of the last icon, centered on that icon, and hide it when ready.
         /// </summary>
-        static void PlaceSharedCooldown(Hud hud, RectTransform icon, float seconds)
+        static void PlaceSharedCooldown(Hud hud, RectTransform icon, float seconds, float scale)
         {
             if (hud.m_gpCooldown == null)
             {
@@ -223,6 +253,7 @@ namespace SeneaLHudLayout
             }
 
             hud.m_gpCooldown.gameObject.SetActive(true);
+            cooldown.localScale = new Vector3(scale, scale, 1f);
             float iconMid = (HudLayout.EdgeY(icon, bottom: true) + HudLayout.EdgeY(icon, bottom: false)) * 0.5f;
             float iconRight = HudLayout.EdgeX(icon, left: false);
             float cooldownMid = (HudLayout.EdgeY(cooldown, bottom: true) + HudLayout.EdgeY(cooldown, bottom: false)) * 0.5f;

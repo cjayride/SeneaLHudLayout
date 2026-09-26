@@ -4,6 +4,13 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.8
+
+- `[Powers] Scale` sizes the Passive Powers icons (0.5 to 1.5, default 1).
+- Creature and player bars show `current/max` just above the bar. `[WorldHud] ShowHealthNumbers` defaults on.
+- `[Vitals] AlwaysShowStamina`, `AlwaysShowEitr`, and `AlwaysShowAdrenaline` default off, so SeneaL UI still fades those bars.
+- Item Drawer hover shows one slot and the total count.
+
 Config: `BepInEx/config/cjayride.SeneaLHudLayout.cfg`  
 `[General] Enabled = false` restores SeneaL's own placement.
 
