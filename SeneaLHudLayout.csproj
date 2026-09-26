@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>1.1.3</Version>
+    <AssemblyVersion>1.1.3</AssemblyVersion>
+    <FileVersion>1.1.3</FileVersion>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)valheim.targets" />
+</Project>

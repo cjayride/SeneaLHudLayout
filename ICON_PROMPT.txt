@@ -1,0 +1,17 @@
+Create a 256x256 PNG game-mod icon for a Valheim HUD layout plugin named "SeneaL HUD Layout".
+
+Square canvas, exactly 256 by 256 pixels, no extra margin, no rounded-corner mask (the store will clip it).
+
+Style: clean flat vector, high contrast, readable at 32px. Nordic / Viking UI, not photoreal, not cluttered.
+
+Composition:
+- Dark slate-blue (#1b2433) background.
+- A thin gold (#d4a84b) rectangular HUD frame suggesting a game interface, slightly isometric or front-on.
+- Bottom-left: a short row of 3–4 small square hotbar slots in warm gold, to show the hotbar was moved down-left.
+- Top center: a tiny compass rose or N marker.
+- Top-right: a small circular minimap disc.
+- Left side, above the hotbar: a small red health pip and a green stamina pip, stacked.
+
+No readable words. No logos of other mods. No photoreal faces. No busy particles.
+
+Export as a sharp PNG, 256x256, sRGB, no transparency (or a fully opaque background).
