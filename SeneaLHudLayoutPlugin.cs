@@ -14,7 +14,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.15";
+        public const string VERSION = "1.1.16";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -40,6 +40,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> AlwaysShowAdrenaline;
         public static ConfigEntry<float> SelectionGlow;
         public static ConfigEntry<bool> ShowEquipCue;
+        public static ConfigEntry<bool> HideServerRules;
 
         void Awake()
         {
@@ -112,12 +113,15 @@ namespace SeneaLHudLayout
                     new AcceptableValueRange<float>(0f, 3f)));
             ShowEquipCue = Config.Bind("Slots", "ShowEquipCue", true,
                 "Show a white seconds countdown on the icon while an item is equipping, unequipping, or reloading.");
+            HideServerRules = Config.Bind("Notices", "HideServerRules", true,
+                "Never show SeneaL UI's server-rules window when you enter a world.");
 
             Harmony harmony = new Harmony(GUID);
             CompassPin.Apply(harmony);
             DrawerPreview.Apply(harmony);
             WorldHealthText.Apply(harmony);
             SlotCue.Apply(harmony);
+            RulesNotice.Apply(harmony);
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
         }
 

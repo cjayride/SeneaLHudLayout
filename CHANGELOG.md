@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.16
+
+- SeneaL UI's login server-rules window is hidden. The server limits still apply. Config: `[Notices] HideServerRules` (on by default).
+
 ## 1.1.15
 
 - Equipped and selected weapons, tools, and armor get a brighter blue frame. Config: `[Slots] SelectionGlow` (0 to 3, default 1.4). `0` leaves SeneaL's own glow.

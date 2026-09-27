@@ -26,6 +26,7 @@ Install on **clients only**. Dedicated servers do not need it.
 - Optional always-visible stamina, eitr, and adrenaline bars (`[Vitals]`, all off by default)
 - Equipped items get a brighter blue frame (`[Slots] SelectionGlow`)
 - Equipping or unequipping shows a white seconds countdown on the item (`[Slots] ShowEquipCue`)
+- The login server-rules window is hidden (`[Notices] HideServerRules`, on by default). Server limits still apply.
 
 Turn `[General] Enabled` off to restore SeneaL's own placement.
 
