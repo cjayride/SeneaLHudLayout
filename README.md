@@ -24,6 +24,8 @@ Install on **clients only**. Dedicated servers do not need it.
 - Item Drawer hover preview collapses to one slot (total count) instead of every stack
 - Creature and player world health bars show `current/max` just above the bar (`[WorldHud] ShowHealthNumbers`, on by default)
 - Optional always-visible stamina, eitr, and adrenaline bars (`[Vitals]`, all off by default)
+- Equipped items get a brighter blue frame (`[Slots] SelectionGlow`)
+- Equipping or unequipping shows a white seconds countdown on the item (`[Slots] ShowEquipCue`)
 
 Turn `[General] Enabled` off to restore SeneaL's own placement.
 

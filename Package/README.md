@@ -4,6 +4,11 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.15
+
+- Equipped items get a brighter blue frame. `[Slots] SelectionGlow` is 0 to 3, default 1.4.
+- Equipping or unequipping shows a white seconds countdown on the item. `[Slots] ShowEquipCue` defaults on.
+
 ## 1.1.8
 
 - `[Powers] Scale` sizes the Passive Powers icons (0.5 to 1.5, default 1).

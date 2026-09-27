@@ -14,7 +14,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.8";
+        public const string VERSION = "1.1.15";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -38,6 +38,8 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> AlwaysShowStamina;
         public static ConfigEntry<bool> AlwaysShowEitr;
         public static ConfigEntry<bool> AlwaysShowAdrenaline;
+        public static ConfigEntry<float> SelectionGlow;
+        public static ConfigEntry<bool> ShowEquipCue;
 
         void Awake()
         {
@@ -105,17 +107,24 @@ namespace SeneaLHudLayout
                 "Keep the eitr bar visible when it is full. Off leaves SeneaL UI's normal fade.");
             AlwaysShowAdrenaline = Config.Bind("Vitals", "AlwaysShowAdrenaline", false,
                 "Keep the adrenaline bar visible when it is empty. Off leaves SeneaL UI's normal fade.");
+            SelectionGlow = Config.Bind("Slots", "SelectionGlow", 1.4f,
+                new ConfigDescription("Extra brightness on the frame around the selected hotbar item and equipped gear. 0 leaves SeneaL's soft glow.",
+                    new AcceptableValueRange<float>(0f, 3f)));
+            ShowEquipCue = Config.Bind("Slots", "ShowEquipCue", true,
+                "Show a white seconds countdown on the icon while an item is equipping, unequipping, or reloading.");
 
             Harmony harmony = new Harmony(GUID);
             CompassPin.Apply(harmony);
             DrawerPreview.Apply(harmony);
             WorldHealthText.Apply(harmony);
+            SlotCue.Apply(harmony);
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
         }
 
         void LateUpdate()
         {
             ResourceBars.Apply();
+            SlotCue.Tick();
             if (Enabled == null || !Enabled.Value)
             {
                 HudLayout.Restore();
