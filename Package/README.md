@@ -4,6 +4,11 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.31
+
+- Highlight and check color or size changes apply to items that are already selected.
+- Turning Highlight or CornerPip on or off updates marks already on screen.
+
 ## 1.1.30
 
 - Selected and equipped items get a soft gold glow. `[Slots] Highlight` defaults on. Color is `[Slots] HighlightColor`, size is `[Slots] HighlightSize`.

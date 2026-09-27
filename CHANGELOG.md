@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.31
+
+- Changing highlight or check color and size updates marks that are already on screen. You do not have to reselect the item.
+- Turning Highlight or CornerPip on marks whatever is already selected, including at login. Turning them off clears those marks.
+
 ## 1.1.30
 
 - Selected hotbar items and equipped gear get a soft gold glow around the button's own edge. `[Slots] Highlight` is on by default. `[Slots] HighlightColor` defaults to gold (`FFD700`). `[Slots] HighlightSize` is how far it spreads, default 4.

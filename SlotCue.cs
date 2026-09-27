@@ -45,6 +45,10 @@ namespace SeneaLHudLayout
         static bool _logged;
         static bool _highlightWas;
         static bool _pipWas;
+        static Color _colorWas;
+        static Color _checkWas;
+        static float _sizeWas = -1f;
+        static float _pipSizeWas = -1f;
         static float _scanUntil;
 
         class Tracked
@@ -193,7 +197,16 @@ namespace SeneaLHudLayout
         {
             bool highlight = SeneaLHudLayoutPlugin.Highlight != null && SeneaLHudLayoutPlugin.Highlight.Value;
             bool pip = SeneaLHudLayoutPlugin.CornerPip != null && SeneaLHudLayoutPlugin.CornerPip.Value;
-            bool changed = highlight != _highlightWas || pip != _pipWas;
+            Color color = SeneaLHudLayoutPlugin.HighlightColor != null ? SeneaLHudLayoutPlugin.HighlightColor.Value : Color.white;
+            Color check = SeneaLHudLayoutPlugin.CheckColor != null ? SeneaLHudLayoutPlugin.CheckColor.Value : Color.green;
+            float size = SeneaLHudLayoutPlugin.HighlightSize != null ? SeneaLHudLayoutPlugin.HighlightSize.Value : 0f;
+            float pipSize = SeneaLHudLayoutPlugin.CornerPipSize != null ? SeneaLHudLayoutPlugin.CornerPipSize.Value : 0f;
+            bool changed = highlight != _highlightWas
+                || pip != _pipWas
+                || color != _colorWas
+                || check != _checkWas
+                || !Mathf.Approximately(size, _sizeWas)
+                || !Mathf.Approximately(pipSize, _pipSizeWas);
             if (highlight && !_highlightWas)
             {
                 _scanUntil = Time.time + 8f;
@@ -202,6 +215,10 @@ namespace SeneaLHudLayout
             bool scan = changed || (highlight && Time.time <= _scanUntil && Time.frameCount % 20 == 0);
             _highlightWas = highlight;
             _pipWas = pip;
+            _colorWas = color;
+            _checkWas = check;
+            _sizeWas = size;
+            _pipSizeWas = pipSize;
             if (!scan)
             {
                 return;
