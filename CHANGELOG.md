@@ -1,8 +1,13 @@
 # Changelog
 
-## 1.1.16
+## 1.1.30
 
-- SeneaL UI's login server-rules window is hidden. The server limits still apply. Config: `[Notices] HideServerRules` (on by default).
+- Selected hotbar items and equipped gear get a soft gold glow around the button's own edge. `[Slots] Highlight` is on by default. `[Slots] HighlightColor` defaults to gold (`FFD700`). `[Slots] HighlightSize` is how far it spreads, default 4.
+- A green check sits on top of the item border for the selected hotbar item and equipped gear. `[Slots] CornerPip` is on by default. `[Slots] CornerPipSize` defaults to 18. `[Slots] CheckColor` is the check color.
+- Turning Highlight or CornerPip off clears marks that are already on screen. Turning them on marks whatever is already selected.
+- Equip countdown stays in the inventory window (`[Slots] ShowEquipCue`). `[Slots] ShowGearBarCue` also shows it on the hotbar, only while worn gear is being equipped or unequipped. Weapon and tool swaps do not show it.
+- Health numbers sit just below the bar, so the name stays above it.
+- SeneaL UI's login server-rules window stays hidden. `[Notices] HideServerRules` is on by default. Server limits still apply.
 
 ## 1.1.15
 

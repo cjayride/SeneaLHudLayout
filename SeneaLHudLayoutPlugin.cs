@@ -14,7 +14,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.16";
+        public const string VERSION = "1.1.30";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -38,8 +38,14 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> AlwaysShowStamina;
         public static ConfigEntry<bool> AlwaysShowEitr;
         public static ConfigEntry<bool> AlwaysShowAdrenaline;
-        public static ConfigEntry<float> SelectionGlow;
+        public static ConfigEntry<bool> Highlight;
+        public static ConfigEntry<Color> HighlightColor;
+        public static ConfigEntry<float> HighlightSize;
+        public static ConfigEntry<bool> CornerPip;
+        public static ConfigEntry<float> CornerPipSize;
+        public static ConfigEntry<Color> CheckColor;
         public static ConfigEntry<bool> ShowEquipCue;
+        public static ConfigEntry<bool> ShowGearBarCue;
         public static ConfigEntry<bool> HideServerRules;
 
         void Awake()
@@ -101,18 +107,31 @@ namespace SeneaLHudLayout
             CollapseDrawerPreview = Config.Bind("Hover", "CollapseItemDrawerStacks", true,
                 "When hovering a Grillspett Item Drawer, show one preview slot for the stored item instead of every stack.");
             ShowWorldHealthNumbers = Config.Bind("WorldHud", "ShowHealthNumbers", true,
-                "Show current/max health just above creature and player health bars.");
+                "Show current/max health just below creature and player health bars. The name stays above the bar.");
             AlwaysShowStamina = Config.Bind("Vitals", "AlwaysShowStamina", false,
                 "Keep the stamina bar visible when it is full. Off leaves SeneaL UI's normal fade.");
             AlwaysShowEitr = Config.Bind("Vitals", "AlwaysShowEitr", false,
                 "Keep the eitr bar visible when it is full. Off leaves SeneaL UI's normal fade.");
             AlwaysShowAdrenaline = Config.Bind("Vitals", "AlwaysShowAdrenaline", false,
                 "Keep the adrenaline bar visible when it is empty. Off leaves SeneaL UI's normal fade.");
-            SelectionGlow = Config.Bind("Slots", "SelectionGlow", 1.4f,
-                new ConfigDescription("Extra brightness on the frame around the selected hotbar item and equipped gear. 0 leaves SeneaL's soft glow.",
-                    new AcceptableValueRange<float>(0f, 3f)));
+            Highlight = Config.Bind("Slots", "Highlight", true,
+                "Add a soft glow around the button's own edge on the selected hotbar item and on gear equipped in the inventory window.");
+            HighlightColor = Config.Bind("Slots", "HighlightColor", new Color(1f, 0.843137f, 0f, 1f),
+                "Color of that extra glow. Default is gold, FFD700.");
+            HighlightSize = Config.Bind("Slots", "HighlightSize", 4f,
+                new ConfigDescription("How far that glow spreads past the button's own edge, in pixels. 0 hides it. This does not change the check mark.",
+                    new AcceptableValueRange<float>(0f, 12f)));
+            CornerPip = Config.Bind("Slots", "CornerPip", true,
+                "Show a check mark on the selected hotbar item and on gear equipped in the inventory window.");
+            CornerPipSize = Config.Bind("Slots", "CornerPipSize", 18f,
+                new ConfigDescription("Size of that check mark, in pixels.",
+                    new AcceptableValueRange<float>(8f, 40f)));
+            CheckColor = Config.Bind("Slots", "CheckColor", new Color(0.15f, 0.92f, 0.28f, 1f),
+                "Color of that check mark. Default is a bright green.");
             ShowEquipCue = Config.Bind("Slots", "ShowEquipCue", true,
-                "Show a white seconds countdown on the icon while an item is equipping, unequipping, or reloading.");
+                "Show a white seconds countdown on an item in the inventory window while it is being equipped or unequipped.");
+            ShowGearBarCue = Config.Bind("Slots", "ShowGearBarCue", true,
+                "Also show that countdown on the hotbar or action bar, but only while armor or other worn gear is being equipped or unequipped. Switching weapons or tools does not show it.");
             HideServerRules = Config.Bind("Notices", "HideServerRules", true,
                 "Never show SeneaL UI's server-rules window when you enter a world.");
 

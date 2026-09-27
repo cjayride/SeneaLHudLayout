@@ -11,6 +11,7 @@ namespace SeneaLHudLayout
     static class SlotCue
     {
         const string GlowName = "SeneaLHudLayout_Glow";
+        const string MarkName = "SeneaLHudLayout_Mark";
         const string WashName = "SeneaLHudLayout_Equip";
         const string TimeName = "SeneaLHudLayout_EquipTime";
         const int EquippedState = 2;
@@ -32,6 +33,7 @@ namespace SeneaLHudLayout
         static FieldInfo _containerGrid;
         static FieldInfo _elements;
         static Sprite _white;
+        static Sprite _check;
         static TMP_FontAsset _font;
         static Material _fontMat;
         static readonly List<TextMeshProUGUI> Labels = new List<TextMeshProUGUI>();
@@ -41,11 +43,15 @@ namespace SeneaLHudLayout
         static TextMeshProUGUI _overlayText;
         static bool _ready;
         static bool _logged;
+        static bool _highlightWas;
+        static bool _pipWas;
+        static float _scanUntil;
 
         class Tracked
         {
             public object Slot;
             public ItemDrop.ItemData Item;
+            public int Seen = -1;
         }
 
         public static void Apply(Harmony harmony)
@@ -112,14 +118,13 @@ namespace SeneaLHudLayout
             ItemDrop.ItemData busy = null;
             int kind = -1;
             float left = 0f;
-            if (SeneaLHudLayoutPlugin.ShowEquipCue != null
-                && SeneaLHudLayoutPlugin.ShowEquipCue.Value
-                && Player.m_localPlayer != null)
+            bool cue = SeneaLHudLayoutPlugin.ShowEquipCue != null && SeneaLHudLayoutPlugin.ShowEquipCue.Value;
+            if (cue && Player.m_localPlayer != null)
             {
                 TryAction(Player.m_localPlayer, out busy, out kind, out left);
             }
 
-            if ((busy == null || left <= 0.05f) && _trackedItem != null && Time.time < _trackedEnd)
+            if (cue && (busy == null || left <= 0.05f) && _trackedItem != null && Time.time < _trackedEnd)
             {
                 busy = _trackedItem;
                 left = _trackedEnd - Time.time;
@@ -131,11 +136,32 @@ namespace SeneaLHudLayout
             }
 
             PlaceOverlay(busy, left);
+            WatchHighlight();
+            for (int i = 0; i < Slots.Count; i++)
+            {
+                object slot = Slots[i].Slot;
+                if (slot == null || _state == null)
+                {
+                    continue;
+                }
+
+                int state = _state.GetValue(slot) is int n ? n : 0;
+                if (Slots[i].Seen == state)
+                {
+                    continue;
+                }
+
+                Slots[i].Seen = state;
+                Paint(slot);
+            }
         }
 
         static void AfterQueued(ItemDrop.ItemData item)
         {
-            if (item == null || item.m_shared == null)
+            if (SeneaLHudLayoutPlugin.ShowEquipCue == null
+                || !SeneaLHudLayoutPlugin.ShowEquipCue.Value
+                || item == null
+                || item.m_shared == null)
             {
                 return;
             }
@@ -163,6 +189,79 @@ namespace SeneaLHudLayout
             Slots.Add(new Tracked { Slot = __instance, Item = item });
         }
 
+        static void WatchHighlight()
+        {
+            bool highlight = SeneaLHudLayoutPlugin.Highlight != null && SeneaLHudLayoutPlugin.Highlight.Value;
+            bool pip = SeneaLHudLayoutPlugin.CornerPip != null && SeneaLHudLayoutPlugin.CornerPip.Value;
+            bool changed = highlight != _highlightWas || pip != _pipWas;
+            if (highlight && !_highlightWas)
+            {
+                _scanUntil = Time.time + 8f;
+            }
+
+            bool scan = changed || (highlight && Time.time <= _scanUntil && Time.frameCount % 20 == 0);
+            _highlightWas = highlight;
+            _pipWas = pip;
+            if (!scan)
+            {
+                return;
+            }
+
+            CollectSlots();
+            for (int i = 0; i < Slots.Count; i++)
+            {
+                Slots[i].Seen = -1;
+            }
+        }
+
+        static void CollectSlots()
+        {
+            Type rootType = AccessTools.TypeByName("SeneaLUI.Hud.HudRoot");
+            FieldInfo hotbarField = AccessTools.Field(rootType, "_hotbar");
+            object hotbar = hotbarField != null ? hotbarField.GetValue(null) : null;
+            if (hotbar == null)
+            {
+                return;
+            }
+
+            Type hotbarType = hotbar.GetType();
+            RememberArray(hotbar, AccessTools.Field(hotbarType, "_slots"));
+            RememberArray(hotbar, AccessTools.Field(hotbarType, "_act"));
+            RememberArray(hotbar, AccessTools.Field(hotbarType, "_quick"));
+        }
+
+        static void RememberArray(object owner, FieldInfo field)
+        {
+            Array items = field != null ? field.GetValue(owner) as Array : null;
+            if (items == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < items.Length; i++)
+            {
+                Remember(items.GetValue(i));
+            }
+        }
+
+        static void Remember(object slot)
+        {
+            if (slot == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < Slots.Count; i++)
+            {
+                if (ReferenceEquals(Slots[i].Slot, slot))
+                {
+                    return;
+                }
+            }
+
+            Slots.Add(new Tracked { Slot = slot, Item = null });
+        }
+
         static void AfterRefresh(object __instance)
         {
             if (__instance == null || _state == null || _bg == null)
@@ -176,10 +275,78 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            int state = _state.GetValue(__instance) is int n ? n : 0;
-            float extra = SeneaLHudLayoutPlugin.SelectionGlow == null ? 0f : SeneaLHudLayoutPlugin.SelectionGlow.Value;
-            bool on = state == EquippedState && extra > 0.01f;
+            Remember(__instance);
+            for (int i = 0; i < Slots.Count; i++)
+            {
+                if (ReferenceEquals(Slots[i].Slot, __instance))
+                {
+                    Slots[i].Seen = _state.GetValue(__instance) is int n ? n : 0;
+                    break;
+                }
+            }
+
+            Paint(__instance);
+        }
+
+        static void Paint(object slot)
+        {
+            if (slot == null || _state == null || _bg == null)
+            {
+                return;
+            }
+
+            Image bg = _bg.GetValue(slot) as Image;
+            if (!bg)
+            {
+                return;
+            }
+
+            int state = _state.GetValue(slot) is int n ? n : 0;
+            bool selected = state == EquippedState;
+            float spread = SeneaLHudLayoutPlugin.HighlightSize == null ? 0f : SeneaLHudLayoutPlugin.HighlightSize.Value;
+            bool glowOn = selected
+                && spread > 0.01f
+                && SeneaLHudLayoutPlugin.Highlight != null
+                && SeneaLHudLayoutPlugin.Highlight.Value;
+            bool pip = selected
+                && SeneaLHudLayoutPlugin.CornerPip != null
+                && SeneaLHudLayoutPlugin.CornerPip.Value;
+            Color border = SeneaLHudLayoutPlugin.HighlightColor != null
+                ? SeneaLHudLayoutPlugin.HighlightColor.Value
+                : Color.white;
+            PlaceGlow(bg, glowOn, border, spread);
+
+            RectTransform host = EnsureHost(bg.transform.parent, bg.rectTransform);
+            host.gameObject.SetActive(pip);
+            if (!pip)
+            {
+                return;
+            }
+
+            Color check = SeneaLHudLayoutPlugin.CheckColor != null
+                ? SeneaLHudLayoutPlugin.CheckColor.Value
+                : new Color(0.15f, 0.92f, 0.28f, 1f);
+            Rect rect = bg.rectTransform.rect;
+            float w = Mathf.Max(8f, rect.width);
+            float h = Mathf.Max(8f, rect.height);
+            float pipSize = SeneaLHudLayoutPlugin.CornerPipSize == null ? 18f : SeneaLHudLayoutPlugin.CornerPipSize.Value;
+            Image mark = PlaceBar(host, "Check", true, check, new Vector2(w * 0.5f - pipSize * 0.55f, h * 0.5f - pipSize * 0.55f), new Vector2(pipSize, pipSize));
+            if (mark)
+            {
+                mark.sprite = CheckSprite();
+                mark.rectTransform.localRotation = Quaternion.identity;
+            }
+        }
+
+        static void PlaceGlow(Image bg, bool on, Color color, float spread)
+        {
             Image glow = EnsureImage(bg.transform.parent, GlowName, bg.rectTransform);
+            Transform extra = bg.transform.parent.Find(GlowName + "Soft");
+            if (extra)
+            {
+                extra.gameObject.SetActive(false);
+            }
+
             glow.gameObject.SetActive(on);
             if (!on)
             {
@@ -188,12 +355,128 @@ namespace SeneaLHudLayout
 
             glow.sprite = bg.sprite;
             glow.type = Image.Type.Simple;
-            glow.color = new Color(0.28f, 0.62f, 1f, Mathf.Clamp01(0.4f + extra * 0.35f));
+            glow.color = new Color(color.r, color.g, color.b, Mathf.Clamp01(color.a * 0.8f));
             RectTransform rt = glow.rectTransform;
-            float grow = 1f + extra * 1.5f;
-            rt.anchoredPosition = bg.rectTransform.anchoredPosition;
-            rt.sizeDelta = bg.rectTransform.sizeDelta + new Vector2(grow, grow) * 2f;
-            rt.SetSiblingIndex(bg.transform.GetSiblingIndex() + 1);
+            RectTransform source = bg.rectTransform;
+            rt.anchorMin = source.anchorMin;
+            rt.anchorMax = source.anchorMax;
+            rt.pivot = source.pivot;
+            rt.anchoredPosition = source.anchoredPosition;
+            rt.offsetMin = source.offsetMin - new Vector2(spread, spread);
+            rt.offsetMax = source.offsetMax + new Vector2(spread, spread);
+            int behind = source.GetSiblingIndex();
+            if (rt.GetSiblingIndex() != behind - 1)
+            {
+                rt.SetSiblingIndex(behind);
+            }
+        }
+
+        static void HideMark(RectTransform host, string name)
+        {
+            Transform mark = host.Find(name);
+            if (mark && mark.gameObject.activeSelf)
+            {
+                mark.gameObject.SetActive(false);
+            }
+        }
+
+        static RectTransform EnsureHost(Transform parent, RectTransform match)
+        {
+            Transform existing = parent.Find(MarkName);
+            RectTransform host = existing as RectTransform;
+            if (!host)
+            {
+                var go = new GameObject(MarkName, typeof(RectTransform));
+                go.transform.SetParent(parent, false);
+                host = go.GetComponent<RectTransform>();
+            }
+
+            host.anchorMin = match.anchorMin;
+            host.anchorMax = match.anchorMax;
+            host.pivot = match.pivot;
+            host.anchoredPosition = match.anchoredPosition;
+            host.sizeDelta = match.sizeDelta;
+            host.localScale = Vector3.one;
+            host.localRotation = Quaternion.identity;
+            if (host.GetSiblingIndex() != host.parent.childCount - 1)
+            {
+                host.SetAsLastSibling();
+            }
+
+            return host;
+        }
+
+        static Image PlaceBar(RectTransform host, string name, bool on, Color color, Vector2 position, Vector2 size, float angle = 0f)
+        {
+            Transform existing = host.Find(name);
+            Image image = existing ? existing.GetComponent<Image>() : null;
+            if (!image)
+            {
+                var go = new GameObject(name, typeof(RectTransform));
+                go.transform.SetParent(host, false);
+                image = go.AddComponent<Image>();
+                image.raycastTarget = false;
+                image.sprite = White();
+            }
+
+            image.gameObject.SetActive(on);
+            if (!on)
+            {
+                return image;
+            }
+
+            image.color = color;
+            RectTransform rt = image.rectTransform;
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = position;
+            rt.sizeDelta = size;
+            rt.localScale = Vector3.one;
+            rt.localRotation = Quaternion.Euler(0f, 0f, angle);
+            return image;
+        }
+
+        static Sprite CheckSprite()
+        {
+            if (_check != null)
+            {
+                return _check;
+            }
+
+            const int n = 64;
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false);
+            tex.wrapMode = TextureWrapMode.Clamp;
+            tex.filterMode = FilterMode.Bilinear;
+            var pixels = new Color[n * n];
+            Vector2 start = new Vector2(16f, 30f);
+            Vector2 corner = new Vector2(27f, 18f);
+            Vector2 end = new Vector2(50f, 46f);
+            const float radius = 5.4f;
+            for (int y = 0; y < n; y++)
+            {
+                for (int x = 0; x < n; x++)
+                {
+                    Vector2 p = new Vector2(x + 0.5f, y + 0.5f);
+                    float dist = Mathf.Min(SegmentDistance(p, start, corner), SegmentDistance(p, corner, end));
+                    float edge = Mathf.InverseLerp(radius + 1.6f, radius - 1.4f, dist);
+                    float alpha = edge * edge * (3f - 2f * edge);
+                    pixels[y * n + x] = new Color(1f, 1f, 1f, alpha);
+                }
+            }
+
+            tex.SetPixels(pixels);
+            tex.Apply();
+            _check = Sprite.Create(tex, new Rect(0f, 0f, n, n), new Vector2(0.5f, 0.5f), n);
+            return _check;
+        }
+
+        static float SegmentDistance(Vector2 p, Vector2 a, Vector2 b)
+        {
+            Vector2 ab = b - a;
+            float t = Vector2.Dot(p - a, ab) / Vector2.Dot(ab, ab);
+            t = Mathf.Clamp01(t);
+            return Vector2.Distance(p, a + ab * t);
         }
 
         static void PlaceOverlay(ItemDrop.ItemData item, float left)
@@ -223,12 +506,22 @@ namespace SeneaLHudLayout
                 }
             }
 
-            Vector2 screen = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
-            Image icon = FindIcon(item.GetIcon());
-            if (icon)
+            Image icon = FindInventoryIcon(item.GetIcon());
+            if (!icon
+                && SeneaLHudLayoutPlugin.ShowGearBarCue != null
+                && SeneaLHudLayoutPlugin.ShowGearBarCue.Value
+                && IsWornGear(item))
             {
-                screen = ScreenOf(icon.rectTransform);
+                icon = FindBarIcon(item.GetIcon());
             }
+
+            if (!icon)
+            {
+                _overlayText.gameObject.SetActive(false);
+                return;
+            }
+
+            Vector2 screen = ScreenOf(icon.rectTransform);
 
             RectTransform rt = _overlayText.rectTransform;
             rt.anchorMin = new Vector2(0.5f, 0.5f);
@@ -238,13 +531,35 @@ namespace SeneaLHudLayout
             rt.anchoredPosition = screen - new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
         }
 
-        static Image FindIcon(Sprite sprite)
+        static bool IsWornGear(ItemDrop.ItemData item)
+        {
+            if (item == null || item.m_shared == null)
+            {
+                return false;
+            }
+
+            switch (item.m_shared.m_itemType)
+            {
+                case ItemDrop.ItemData.ItemType.Helmet:
+                case ItemDrop.ItemData.ItemType.Chest:
+                case ItemDrop.ItemData.ItemType.Legs:
+                case ItemDrop.ItemData.ItemType.Hands:
+                case ItemDrop.ItemData.ItemType.Shoulder:
+                case ItemDrop.ItemData.ItemType.Utility:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        static Image FindBarIcon(Sprite sprite)
         {
             if (!sprite)
             {
                 return null;
             }
 
+            InventoryGui gui = InventoryGui.instance;
             Image best = null;
             float bestArea = 0f;
             Image[] images = UnityEngine.Object.FindObjectsOfType<Image>();
@@ -256,7 +571,50 @@ namespace SeneaLHudLayout
                     continue;
                 }
 
-                if (image.transform.IsChildOf(_overlay.transform))
+                if (_overlay && image.transform.IsChildOf(_overlay.transform))
+                {
+                    continue;
+                }
+
+                if (gui && image.transform.IsChildOf(gui.transform))
+                {
+                    continue;
+                }
+
+                Rect rect = image.rectTransform.rect;
+                float area = rect.width * rect.height;
+                if (area < 24f * 24f || area <= bestArea)
+                {
+                    continue;
+                }
+
+                best = image;
+                bestArea = area;
+            }
+
+            return best;
+        }
+
+        static Image FindInventoryIcon(Sprite sprite)
+        {
+            InventoryGui gui = InventoryGui.instance;
+            if (!sprite || !gui || !InventoryGui.IsVisible())
+            {
+                return null;
+            }
+
+            Image best = null;
+            float bestArea = 0f;
+            Image[] images = gui.GetComponentsInChildren<Image>(false);
+            for (int i = 0; i < images.Length; i++)
+            {
+                Image image = images[i];
+                if (!image || !image.isActiveAndEnabled || image.sprite != sprite)
+                {
+                    continue;
+                }
+
+                if (_overlay && image.transform.IsChildOf(_overlay.transform))
                 {
                     continue;
                 }

@@ -4,6 +4,13 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.30
+
+- Selected and equipped items get a soft gold glow. `[Slots] Highlight` defaults on. Color is `[Slots] HighlightColor`, size is `[Slots] HighlightSize`.
+- A green check marks the selected hotbar item and equipped gear. `[Slots] CornerPip` defaults on. Size is `[Slots] CornerPipSize`.
+- Inventory equip countdown: `[Slots] ShowEquipCue`. Hotbar countdown for worn gear only: `[Slots] ShowGearBarCue`.
+- Health numbers sit just below the bar. The login server-rules window stays hidden.
+
 ## 1.1.15
 
 - Equipped items get a brighter blue frame. `[Slots] SelectionGlow` is 0 to 3, default 1.4.
