@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.64
+
+- The VNEI button on the crafting panel sits 7 pixels higher so it no longer covers the crafting station stars.
+- `[Minimap] HideWindAndServerDay` replaces `HideStatusPills` and defaults to off, so the wind and day/time pills under the minimap stay visible.
+- `[Status Effects] MoveToCorner` can place SeneaL's status list in a screen corner, with `Corner`, `OffsetX`, and `OffsetY`. It is off by default. Compact Status Squares still owns that list when it is enabled.
+- Looking up the SkillsReworked level no longer scans every loaded mod, so a missing EpicLoot reference in VNEI does not throw.
+
 ## 1.1.63
 
 - After opening a crafting material, Back sits at the top right of the item details and returns to the previous recipe.

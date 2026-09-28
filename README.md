@@ -31,7 +31,8 @@ Install on **clients only**. Dedicated servers do not need it.
 - Equipping or unequipping shows a white seconds countdown in the inventory window (`[Slots] ShowEquipCue`). The hotbar only counts down worn gear (`[Slots] ShowGearBarCue`)
 - The login server-rules window is hidden (`[Notices] HideServerRules`, on by default). Server limits still apply.
 - SkillsReworked level appears in the top left of the character window (`[Character] ShowLevel`, on by default)
-- Wind and day/time pills under the minimap are hidden (`[Minimap] HideStatusPills`, on by default). The biome name stays
+- Wind and day/time pills under the minimap can be hidden with `[Minimap] HideWindAndServerDay` (off by default). The biome name stays
+- SeneaL's status effect list can move to a screen corner with `[Status Effects] MoveToCorner` (off by default), `Corner`, `OffsetX`, and `OffsetY`. Compact Status Squares still replaces that list when it is enabled
 - SkillsReworked level also sits under the food timers, beside the health number (`[Character] ShowLevel`)
 - The crafting panel has an Items button that opens VNEI's item search. The same button says Close while it is open (`[Crafting] ShowItemSearch`, on by default)
 - A crafting requirement made at the same station can be clicked to open its recipe. Back returns to the previous recipe (`[Crafting] ClickMaterials`, on by default)

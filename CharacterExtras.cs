@@ -333,7 +333,7 @@ namespace SeneaLHudLayout
             if (!_levelLookup)
             {
                 _levelLookup = true;
-                Type type = AccessTools.TypeByName("SkillsReworked.Systems.Progression.LevelSkillService");
+                Type type = ModTypes.Find("SkillsReworked", "SkillsReworked.Systems.Progression.LevelSkillService");
                 _getLevel = type == null ? null : AccessTools.Method(type, "GetLevel", new[] { typeof(Player) });
                 if (_getLevel == null && !_loggedLevel)
                 {

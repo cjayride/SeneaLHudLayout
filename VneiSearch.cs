@@ -332,7 +332,7 @@ namespace SeneaLHudLayout
             rt.anchorMin = new Vector2(1f, 1f);
             rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot = new Vector2(1f, 1f);
-            rt.anchoredPosition = new Vector2(-16f, -14f);
+            rt.anchoredPosition = new Vector2(-16f, -7f);
             rt.localScale = Vector3.one;
             rt.localRotation = Quaternion.identity;
             return true;

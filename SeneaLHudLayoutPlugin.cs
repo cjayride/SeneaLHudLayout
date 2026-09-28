@@ -12,12 +12,13 @@ namespace SeneaLHudLayout
     [BepInDependency("M2Valheim.SkillsReworked", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.maxsch.valheim.vnei", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("org.bepinex.plugins.creaturelevelcontrol", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("cjayride.CompactStatusSquares", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInProcess("valheim.exe")]
     public class SeneaLHudLayoutPlugin : BaseUnityPlugin
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.63";
+        public const string VERSION = "1.1.64";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -65,6 +66,10 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> ShowLevelFoodBarOffsetX;
         public static ConfigEntry<float> ShowLevelFoodBarOffsetY;
         public static ConfigEntry<bool> HideMinimapStats;
+        public static ConfigEntry<bool> StatusMove;
+        public static ConfigEntry<StatusCorner> StatusCornerSetting;
+        public static ConfigEntry<float> StatusOffsetX;
+        public static ConfigEntry<float> StatusOffsetY;
         public static ConfigEntry<bool> ShowItemSearch;
         public static ConfigEntry<bool> ClickMaterials;
         public static ConfigEntry<bool> SplitWalletForChest;
@@ -192,8 +197,18 @@ namespace SeneaLHudLayout
             ShowLevelFoodBarOffsetY = Config.Bind("Character", "ShowLevelFoodBarOffsetY", -20.4f,
                 new ConfigDescription("Vertical nudge for that food-bar level, in pixels. Positive moves up.",
                     new AcceptableValueRange<float>(-200f, 200f)));
-            HideMinimapStats = Config.Bind("Minimap", "HideStatusPills", true,
+            HideMinimapStats = Config.Bind("Minimap", "HideWindAndServerDay", false,
                 "Hide the wind and day/time pills under the minimap. The biome name on the map stays.");
+            StatusMove = Config.Bind("Status Effects", "MoveToCorner", false,
+                "Move SeneaL UI's status effect list to a screen corner. Off leaves SeneaL's own placement. Compact Status Squares still replaces this list when that mod is enabled.");
+            StatusCornerSetting = Config.Bind("Status Effects", "Corner", StatusCorner.TopLeft,
+                "Screen corner for that list. The list grows away from the corner.");
+            StatusOffsetX = Config.Bind("Status Effects", "OffsetX", 32f,
+                new ConfigDescription("Horizontal distance from that corner, in pixels. Positive moves right.",
+                    new AcceptableValueRange<float>(-2000f, 2000f)));
+            StatusOffsetY = Config.Bind("Status Effects", "OffsetY", -96f,
+                new ConfigDescription("Vertical distance from that corner, in pixels. Positive moves up.",
+                    new AcceptableValueRange<float>(-2000f, 2000f)));
             ShowItemSearch = Config.Bind("Crafting", "ShowItemSearch", true,
                 "Show an Items button on the crafting panel. It opens VNEI's full item search. The same button then says Close.");
             ClickMaterials = Config.Bind("Crafting", "ClickMaterials", true,
@@ -217,6 +232,7 @@ namespace SeneaLHudLayout
             BuildSearchMemory.Apply(harmony);
             StatValues.Apply(harmony);
             CraftMaterials.Apply(harmony);
+            StatusEffectsPlace.Apply(harmony);
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
         }
 

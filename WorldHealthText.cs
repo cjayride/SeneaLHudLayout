@@ -219,7 +219,7 @@ namespace SeneaLHudLayout
             if (!_extraEffectLookup)
             {
                 _extraEffectLookup = true;
-                Type api = AccessTools.TypeByName("CreatureLevelControl.API");
+                Type api = ModTypes.Find("CreatureLevelControl", "CreatureLevelControl.API");
                 _extraEffect = api != null ? AccessTools.Method(api, "GetExtraEffectCreature") : null;
             }
 
