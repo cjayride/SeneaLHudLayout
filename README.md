@@ -22,7 +22,8 @@ Install on **clients only**. Dedicated servers do not need it.
 - SeneaL's unused guardian-power circle and F hint can be hidden; Passive Powers sit beside the food column
 - `[Powers] Scale` shrinks or grows those Passive Powers icons (0.5 to 1.5, default 1)
 - Item Drawer hover preview collapses to one slot (total count) instead of every stack
-- Creature and player world health bars show `current/max` just below the bar (`[WorldHud] ShowHealthNumbers`, on by default)
+- Creature and player world health bars show `current/max` just below the bar (`[Creature/Player HUD] ShowHealthNumbers`, on by default). `NameTextScale` (default 0.75) and `HealthTextScale` (default 0.94) size the name and the health numbers. 1 is SeneaL's size. `BarWidth` widens those bars and their health fill. Boss bars stay the same width
+- Level stars stay gold. A glow behind them matches the creature's Creature Level and Loot Control effect: green Regenerating, red Aggressive, blue Armored, cyan Curious, magenta Quick, white Splitting
 - Optional always-visible stamina, eitr, and adrenaline bars (`[Vitals]`, all off by default)
 - Selected and equipped items get a soft gold glow (`[Slots] Highlight`, on by default)
 - A green check marks the selected hotbar item and equipped gear (`[Slots] CornerPip`, on by default)
@@ -33,8 +34,11 @@ Install on **clients only**. Dedicated servers do not need it.
 - Wind and day/time pills under the minimap are hidden (`[Minimap] HideStatusPills`, on by default). The biome name stays
 - SkillsReworked level also sits under the food timers, beside the health number (`[Character] ShowLevel`)
 - The crafting panel has an Items button that opens VNEI's item search. The same button says Close while it is open (`[Crafting] ShowItemSearch`, on by default)
+- A crafting requirement made at the same station can be clicked to open its recipe. Back returns to the previous recipe (`[Crafting] ClickMaterials`, on by default)
 - SeneaL's chat window is hidden (`[Chat] HideChat`, on by default) so another chat mod can draw the messages
-- Depositing a coin purse larger than 999 splits off only the stacks the chest can hold (`[Wallet] SplitForChest`, on by default). The rest stays in the purse
+- Chest deposits leave the coin purse alone (`[Wallet] SplitForChest`, on by default). Move coins into your inventory before they can go into a chest
+- The hammer's piece search keeps what you typed when you close it to place a piece and open it again
+- Stat numbers sit beside their names, such as pierce 8 (`[Stats] ValuesBesideLabels`, on by default)
 
 Turn `[General] Enabled` off to restore SeneaL's own placement.
 

@@ -35,8 +35,8 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            bool show = SeneaLHudLayoutPlugin.ShowWorldHealthNumbers != null
-                && SeneaLHudLayoutPlugin.ShowWorldHealthNumbers.Value;
+            bool show = SeneaLHudLayoutPlugin.ShowHealthNumbers != null
+                && SeneaLHudLayoutPlugin.ShowHealthNumbers.Value;
 
             IDictionary huds = HudsField.GetValue(__instance) as IDictionary;
             if (huds == null)
@@ -59,8 +59,10 @@ namespace SeneaLHudLayout
                     continue;
                 }
 
+                TMP_Text plateName = NameField?.GetValue(data) as TMP_Text;
                 if (!show)
                 {
+                    SizeName(plateName);
                     Transform ours = gui.transform.Find(LabelName);
                     if (!ours)
                     {
@@ -85,7 +87,7 @@ namespace SeneaLHudLayout
                 TMP_Text label = HealthTextField?.GetValue(data) as TMP_Text;
                 if (!label)
                 {
-                    label = EnsureLabel(gui.transform, NameField?.GetValue(data) as TMP_Text);
+                    label = EnsureLabel(gui.transform, plateName);
                     HealthTextField?.SetValue(data, label);
                 }
 
@@ -98,7 +100,9 @@ namespace SeneaLHudLayout
                 int hp = Mathf.CeilToInt(character.GetHealth());
                 int max = Mathf.Max(1, Mathf.CeilToInt(character.GetMaxHealth()));
                 label.text = hp + "/" + max;
-                Layout(character, gui.transform, label, NameField?.GetValue(data) as TMP_Text);
+                SizeName(plateName);
+                SizeHealth(label, plateName);
+                Layout(character, gui.transform, label, plateName);
                 label.gameObject.SetActive(true);
             }
         }
@@ -152,14 +156,106 @@ namespace SeneaLHudLayout
             }
 
             tmp.color = new Color(0.96f, 0.93f, 0.86f);
-            tmp.fontSize = name != null ? Mathf.Max(12f, name.fontSize * 0.8f) : 14f;
+            tmp.fontSize = name != null ? Mathf.Max(12f, BaseSize(name) * 0.8f) : 14f;
             return tmp;
         }
 
+        static readonly Dictionary<int, float> _nameSizes = new Dictionary<int, float>();
+
+        static void SizeName(TMP_Text name)
+        {
+            if (name == null)
+            {
+                return;
+            }
+
+            float scale = SeneaLHudLayoutPlugin.NameTextScale != null ? SeneaLHudLayoutPlugin.NameTextScale.Value : 0.75f;
+            name.enableAutoSizing = false;
+            name.fontSize = BaseSize(name) * scale;
+        }
+
+        static void SizeHealth(TMP_Text label, TMP_Text name)
+        {
+            if (label == null)
+            {
+                return;
+            }
+
+            float scale = SeneaLHudLayoutPlugin.HealthTextScale != null ? SeneaLHudLayoutPlugin.HealthTextScale.Value : 0.94f;
+            float basis = name != null ? Mathf.Max(12f, BaseSize(name) * 0.8f) : 14f;
+            label.enableAutoSizing = false;
+            label.fontSize = basis * scale;
+        }
+
+        static float BaseSize(TMP_Text text)
+        {
+            int id = text.GetInstanceID();
+            if (_nameSizes.TryGetValue(id, out float size) && size > 1f)
+            {
+                return size;
+            }
+
+            size = text.fontSize > 1f ? text.fontSize : 15f;
+            _nameSizes[id] = size;
+            return size;
+        }
+
         static readonly Dictionary<int, float> _barWidths = new Dictionary<int, float>();
+        static readonly Dictionary<int, float> _fillWidths = new Dictionary<int, float>();
+        static Type _guiBarType;
+        static FieldInfo _guiBarWidth;
+        static MethodInfo _setWidth;
         const string StarRowName = "SeneaLHudLayout_Stars";
+        const string GlowName = "SeneaLHudLayout_StarGlow";
+        const string GlowInnerName = "SeneaLHudLayout_StarGlowInner";
         const string LevelName = "SeneaLHudLayout_EnemyLevel";
         static readonly Color StarGold = new Color(1f, 0.843f, 0.2f, 1f);
+        static readonly Color NoGlow = new Color(0f, 0f, 0f, 0f);
+        static MethodInfo _extraEffect;
+        static bool _extraEffectLookup;
+
+        static Color EffectGlow(Character character)
+        {
+            if (!_extraEffectLookup)
+            {
+                _extraEffectLookup = true;
+                Type api = AccessTools.TypeByName("CreatureLevelControl.API");
+                _extraEffect = api != null ? AccessTools.Method(api, "GetExtraEffectCreature") : null;
+            }
+
+            if (_extraEffect == null || !character)
+            {
+                return NoGlow;
+            }
+
+            object effect;
+            try
+            {
+                effect = _extraEffect.Invoke(null, new object[] { character });
+            }
+            catch (Exception)
+            {
+                return NoGlow;
+            }
+
+            switch (effect != null ? effect.ToString() : "")
+            {
+                case "Regenerating":
+                    return Color.green;
+                case "Aggressive":
+                    return Color.red;
+                case "Armored":
+                    return Color.blue;
+                case "Curious":
+                    return Color.cyan;
+                case "Quick":
+                    return Color.magenta;
+                case "Splitting":
+                    return Color.white;
+                default:
+                    return NoGlow;
+            }
+        }
 
         static void Layout(Character character, Transform gui, TMP_Text label, TMP_Text name)
         {
@@ -201,7 +297,7 @@ namespace SeneaLHudLayout
             HideMarker(gui, "Aware");
 
             int stars = Mathf.Max(0, character.GetLevel() - 1);
-            RectTransform row = EnsureStars(gui, character.GetLevel(), stars);
+            RectTransform row = EnsureStars(gui, character.GetLevel(), stars, EffectGlow(character));
             if (row != null)
             {
                 MoveRect(row, barBottom - up * gap, bottom: false, mid);
@@ -211,7 +307,7 @@ namespace SeneaLHudLayout
 
         static void Widen(RectTransform bar)
         {
-            float scale = SeneaLHudLayoutPlugin.EnemyBarWidth != null ? SeneaLHudLayoutPlugin.EnemyBarWidth.Value : 1.5f;
+            float scale = SeneaLHudLayoutPlugin.BarWidth != null ? SeneaLHudLayoutPlugin.BarWidth.Value : 1f;
             int id = bar.GetInstanceID();
             if (!_barWidths.TryGetValue(id, out float width) || width < 8f)
             {
@@ -220,6 +316,47 @@ namespace SeneaLHudLayout
             }
 
             bar.sizeDelta = new Vector2(Mathf.Max(8f, width * scale), bar.sizeDelta.y);
+            FitFills(bar, scale);
+        }
+
+        static void FitFills(RectTransform host, float scale)
+        {
+            if (_guiBarType == null)
+            {
+                _guiBarType = AccessTools.TypeByName("GuiBar");
+                if (_guiBarType == null)
+                {
+                    return;
+                }
+
+                _guiBarWidth = AccessTools.Field(_guiBarType, "m_width");
+                _setWidth = AccessTools.Method(_guiBarType, "SetWidth");
+            }
+
+            if (_guiBarWidth == null || _setWidth == null)
+            {
+                return;
+            }
+
+            Component[] fills = host.GetComponentsInChildren(_guiBarType, true);
+            for (int i = 0; i < fills.Length; i++)
+            {
+                Component fill = fills[i];
+                int id = fill.GetInstanceID();
+                if (!_fillWidths.TryGetValue(id, out float width) || width < 1f)
+                {
+                    object raw = _guiBarWidth.GetValue(fill);
+                    width = raw is float value ? value : 0f;
+                    if (width < 1f)
+                    {
+                        continue;
+                    }
+
+                    _fillWidths[id] = width;
+                }
+
+                _setWidth.Invoke(fill, new object[] { width * scale });
+            }
         }
 
         static void MoveRect(RectTransform rt, Vector3 worldTarget, bool bottom, Vector3 mid)
@@ -317,7 +454,7 @@ namespace SeneaLHudLayout
             return (corners[0] + corners[2]) * 0.5f;
         }
 
-        static RectTransform EnsureStars(Transform gui, int level, int stars)
+        static RectTransform EnsureStars(Transform gui, int level, int stars, Color glow)
         {
             Transform custom = gui.Find(StarRowName);
             if (stars <= 0)
@@ -343,7 +480,7 @@ namespace SeneaLHudLayout
                     vanilla.gameObject.SetActive(true);
                 }
 
-                PackStars(vanillaRow, StarSprite(gui));
+                PackStars(vanillaRow, StarSprite(gui), glow);
                 return vanillaRow;
             }
 
@@ -390,7 +527,7 @@ namespace SeneaLHudLayout
                 }
             }
 
-            PackStars(row, sprite);
+            PackStars(row, sprite, glow);
             return row;
         }
 
@@ -411,7 +548,7 @@ namespace SeneaLHudLayout
             return image != null ? image.sprite : null;
         }
 
-        static void PackStars(RectTransform row, Sprite sprite)
+        static void PackStars(RectTransform row, Sprite sprite, Color glow)
         {
             int count = 0;
             for (int i = 0; i < row.childCount; i++)
@@ -463,27 +600,134 @@ namespace SeneaLHudLayout
                     childRect.localScale = Vector3.one;
                 }
 
+                LiftStarFace(child);
+                PaintGlow(child, sprite, glow);
                 Image[] images = child.GetComponentsInChildren<Image>(true);
                 for (int n = 0; n < images.Length; n++)
                 {
+                    if (IsGlow(images[n]))
+                    {
+                        continue;
+                    }
+
                     images[n].enabled = true;
                     if (images[n].sprite == null && sprite != null)
                     {
                         images[n].sprite = sprite;
                     }
 
-                    if (images[n].color.a < 0.2f)
+                    if (images[n].color.a < 0.2f || images[n].gameObject.name == "face")
                     {
                         images[n].color = StarGold;
                     }
 
                     images[n].preserveAspect = true;
+                    images[n].transform.SetAsLastSibling();
                 }
 
                 shown++;
             }
 
             row.sizeDelta = new Vector2(Mathf.Max(16f, count * 14f + 4f), 13f);
+        }
+
+        static void LiftStarFace(Transform star)
+        {
+            Image root = star.GetComponent<Image>();
+            if (root == null)
+            {
+                return;
+            }
+
+            GameObject face = new GameObject("face");
+            face.transform.SetParent(star, false);
+            Image image = face.AddComponent<Image>();
+            image.sprite = root.sprite;
+            image.color = StarGold;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            RectTransform rect = face.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            UnityEngine.Object.DestroyImmediate(root);
+        }
+
+        static void PaintGlow(Transform star, Sprite sprite, Color tint)
+        {
+            bool on = tint.a > 0f;
+            PaintGlowLayer(star, GlowInnerName, sprite, tint, 20f, 0.78f, on);
+            PaintGlowLayer(star, GlowName, sprite, tint, 34f, 0.32f, on);
+        }
+
+        static void PaintGlowLayer(Transform star, string name, Sprite sprite, Color tint, float size, float alpha, bool on)
+        {
+            Transform existing = NamedChild(star, name);
+            if (!on)
+            {
+                if (existing != null && existing.gameObject.activeSelf)
+                {
+                    existing.gameObject.SetActive(false);
+                }
+
+                return;
+            }
+
+            Image image = existing != null ? existing.GetComponent<Image>() : null;
+            if (image == null)
+            {
+                GameObject go = new GameObject(name);
+                go.transform.SetParent(star, false);
+                image = go.AddComponent<Image>();
+                image.raycastTarget = false;
+                image.preserveAspect = true;
+                RectTransform created = go.GetComponent<RectTransform>();
+                created.anchorMin = new Vector2(0.5f, 0.5f);
+                created.anchorMax = new Vector2(0.5f, 0.5f);
+                created.pivot = new Vector2(0.5f, 0.5f);
+                created.anchoredPosition = Vector2.zero;
+                existing = go.transform;
+            }
+
+            if (!existing.gameObject.activeSelf)
+            {
+                existing.gameObject.SetActive(true);
+            }
+
+            existing.SetAsFirstSibling();
+            RectTransform rect = existing as RectTransform;
+            if (rect != null)
+            {
+                rect.sizeDelta = new Vector2(size, size);
+            }
+
+            if (sprite != null)
+            {
+                image.sprite = sprite;
+            }
+
+            image.color = new Color(tint.r, tint.g, tint.b, alpha);
+        }
+
+        static Transform NamedChild(Transform parent, string name)
+        {
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                Transform child = parent.GetChild(i);
+                if (child.name == name)
+                {
+                    return child;
+                }
+            }
+
+            return null;
+        }
+
+        static bool IsGlow(Image image)
+        {
+            string name = image.gameObject.name;
+            return name == GlowName || name == GlowInnerName;
         }
 
     }

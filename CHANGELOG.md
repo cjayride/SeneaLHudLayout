@@ -1,5 +1,53 @@
 # Changelog
 
+## 1.1.63
+
+- After opening a crafting material, Back sits at the top right of the item details and returns to the previous recipe.
+
+## 1.1.62
+
+- Creature and player nameplates use `[Creature/Player HUD] NameTextScale` (default 0.75) and `HealthTextScale` (default 0.94). 1 is SeneaL's size.
+- `[CenterMessage] SendToNotices` defaults to off. The large middle message stays on the banner.
+
+## 1.1.61
+
+- Crafting-window stat numbers sit just after the stat name. A value such as 13 no longer covers the word Slash.
+- Clicking a material that this station can craft opens that recipe, and Back returns to the recipe you came from.
+
+## 1.1.60
+
+- Nameplate stars keep their gold color, and a glow behind them uses the creature's Creature Level and Loot Control effect color. Regenerating is green, Aggressive is red, Armored is blue, Curious is cyan, Quick is magenta, and Splitting is white. Stars with no effect stay plain gold.
+
+## 1.1.59
+
+- Creature and player nameplates have `[Creature/Player HUD] NameScale` and `HealthScale`. 1 keeps the current size.
+
+## 1.1.58
+
+- In the crafting window, a requirement that is crafted at the same station can be clicked to open its recipe. Back returns to the recipe you came from. `[Crafting] ClickMaterials` turns this off.
+
+## 1.1.57
+
+- Stat numbers sit directly beside their names in item tooltips and the item window. `[Stats] ValuesBesideLabels` turns that off and restores the right-aligned numbers.
+
+## 1.1.56
+
+- The hammer build search keeps the last text when you leave to place a piece and open the hammer again.
+
+## 1.1.55
+
+- Deposit All, Deposit Similar, and Stack All never take coins out of the coin purse. Move coins into your inventory first.
+- Deposit Similar no longer errors when the chest has no coins.
+
+## 1.1.54
+
+- The repair list stays under the repair button as items are repaired. It no longer jumps above the button when the list gets short.
+
+## 1.1.53
+
+- Creature and player nameplate settings live under `[Creature/Player HUD]`: `BarWidth`, `LevelSize`, `ShowEnemyLevel`, and `ShowHealthNumbers`.
+- `BarWidth` defaults to 1. A wider bar keeps a full health value filled to the end of the bar.
+
 ## 1.1.52
 
 - Coin purse deposits split only as many stacks as the chest can hold. A full chest no longer dumps stacks of 999 into the inventory.

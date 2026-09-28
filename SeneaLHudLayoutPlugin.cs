@@ -11,12 +11,13 @@ namespace SeneaLHudLayout
     [BepInDependency("com.grillspett.itemdrawers", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("M2Valheim.SkillsReworked", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.maxsch.valheim.vnei", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("org.bepinex.plugins.creaturelevelcontrol", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInProcess("valheim.exe")]
     public class SeneaLHudLayoutPlugin : BaseUnityPlugin
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.52";
+        public const string VERSION = "1.1.63";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -38,10 +39,12 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> PowersOffsetX;
         public static ConfigEntry<float> PowersOffsetY;
         public static ConfigEntry<bool> CollapseDrawerPreview;
-        public static ConfigEntry<bool> ShowWorldHealthNumbers;
-        public static ConfigEntry<float> EnemyBarWidth;
+        public static ConfigEntry<bool> ShowHealthNumbers;
+        public static ConfigEntry<float> NameTextScale;
+        public static ConfigEntry<float> HealthTextScale;
+        public static ConfigEntry<float> BarWidth;
         public static ConfigEntry<bool> ShowEnemyLevel;
-        public static ConfigEntry<float> EnemyLevelSize;
+        public static ConfigEntry<float> LevelSize;
         public static ConfigEntry<bool> AlwaysShowStamina;
         public static ConfigEntry<bool> AlwaysShowEitr;
         public static ConfigEntry<bool> AlwaysShowAdrenaline;
@@ -63,7 +66,9 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> ShowLevelFoodBarOffsetY;
         public static ConfigEntry<bool> HideMinimapStats;
         public static ConfigEntry<bool> ShowItemSearch;
+        public static ConfigEntry<bool> ClickMaterials;
         public static ConfigEntry<bool> SplitWalletForChest;
+        public static ConfigEntry<bool> StatValuesBesideLabels;
 
         void Awake()
         {
@@ -108,7 +113,7 @@ namespace SeneaLHudLayout
             CenterMessageScale = Config.Bind("CenterMessage", "Scale", 0.5f,
                 new ConfigDescription("Size of the large middle-of-screen message. 1 is SeneaL's size.",
                     new AcceptableValueRange<float>(0.4f, 2.5f)));
-            CenterMessageToNotices = Config.Bind("CenterMessage", "SendToNotices", true,
+            CenterMessageToNotices = Config.Bind("CenterMessage", "SendToNotices", false,
                 "Send that large middle message into SeneaL's notification feed or capsules instead of the banner. Uses whatever [Notifications] Style is set to in SeneaL UI.");
 
             HideSenealPower = Config.Bind("Powers", "HideSenealSlot", true,
@@ -128,14 +133,20 @@ namespace SeneaLHudLayout
 
             CollapseDrawerPreview = Config.Bind("Hover", "CollapseItemDrawerStacks", true,
                 "When hovering a Grillspett Item Drawer, show one preview slot for the stored item instead of every stack.");
-            ShowWorldHealthNumbers = Config.Bind("WorldHud", "ShowHealthNumbers", true,
+            ShowHealthNumbers = Config.Bind("Creature/Player HUD", "ShowHealthNumbers", true,
                 "Show current/max health on creature and player nameplates. Order is name, health numbers, health bar, then stars.");
-            EnemyBarWidth = Config.Bind("WorldHud", "EnemyBarWidth", 1.5f,
-                new ConfigDescription("Width of creature and player health bars. 1 is SeneaL's width. Boss bars are left alone.",
+            NameTextScale = Config.Bind("Creature/Player HUD", "NameTextScale", 0.75f,
+                new ConfigDescription("Size of the creature or player name above the health bar. 1 is SeneaL's size.",
+                    new AcceptableValueRange<float>(0.5f, 2.5f)));
+            HealthTextScale = Config.Bind("Creature/Player HUD", "HealthTextScale", 0.94f,
+                new ConfigDescription("Size of the current/max health numbers. 1 is SeneaL's size.",
+                    new AcceptableValueRange<float>(0.5f, 2.5f)));
+            BarWidth = Config.Bind("Creature/Player HUD", "BarWidth", 1f,
+                new ConfigDescription("Width of creature and player health bars. 1 is SeneaL's width. Boss bars stay the same. The health fill uses this width too.",
                     new AcceptableValueRange<float>(0.5f, 3f)));
-            ShowEnemyLevel = Config.Bind("WorldHud", "ShowEnemyLevel", false,
+            ShowEnemyLevel = Config.Bind("Creature/Player HUD", "ShowEnemyLevel", false,
                 "Unused. The level label beside creature and boss names stays hidden.");
-            EnemyLevelSize = Config.Bind("WorldHud", "EnemyLevelSize", 14f,
+            LevelSize = Config.Bind("Creature/Player HUD", "LevelSize", 14f,
                 new ConfigDescription("Font size of that level label.",
                     new AcceptableValueRange<float>(8f, 32f)));
             AlwaysShowStamina = Config.Bind("Vitals", "AlwaysShowStamina", false,
@@ -185,8 +196,12 @@ namespace SeneaLHudLayout
                 "Hide the wind and day/time pills under the minimap. The biome name on the map stays.");
             ShowItemSearch = Config.Bind("Crafting", "ShowItemSearch", true,
                 "Show an Items button on the crafting panel. It opens VNEI's full item search. The same button then says Close.");
+            ClickMaterials = Config.Bind("Crafting", "ClickMaterials", true,
+                "In the crafting window, click a requirement that is crafted at this same station to open its recipe. Back returns to the recipe you came from.");
+            StatValuesBesideLabels = Config.Bind("Stats", "ValuesBesideLabels", true,
+                "Place stat numbers directly beside their names, such as pierce 8. Covers item tooltips and the item window. Off keeps SeneaL's right-aligned numbers.");
             SplitWalletForChest = Config.Bind("Wallet", "SplitForChest", true,
-                "When depositing into a chest, split a coin purse larger than 999 into stacks the chest can hold. A full chest is left alone, and anything that does not fit stays in the purse. Turn this off to leave the purse untouched.");
+                "Keep the coin purse out of chest deposits. Deposit All, Deposit Similar, and Stack All never take coins from the purse. Move coins into your inventory first if you want them in a chest. Turn this off to let those buttons take the purse.");
 
             Harmony harmony = new Harmony(GUID);
             CompassPin.Apply(harmony);
@@ -198,6 +213,10 @@ namespace SeneaLHudLayout
             ChatHide.Apply(harmony);
             CenterMessageRoute.Apply(harmony);
             WalletStacks.Apply(harmony);
+            RepairTipPlace.Apply(harmony);
+            BuildSearchMemory.Apply(harmony);
+            StatValues.Apply(harmony);
+            CraftMaterials.Apply(harmony);
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
         }
 
@@ -207,6 +226,7 @@ namespace SeneaLHudLayout
             SlotCue.Tick();
             CharacterExtras.Tick();
             VneiSearch.Tick();
+            CraftMaterials.Tick();
             ChatHide.Tick();
             WorldHealthText.Tick();
             if (Enabled == null || !Enabled.Value)
