@@ -16,7 +16,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.51";
+        public const string VERSION = "1.1.52";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -63,6 +63,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> ShowLevelFoodBarOffsetY;
         public static ConfigEntry<bool> HideMinimapStats;
         public static ConfigEntry<bool> ShowItemSearch;
+        public static ConfigEntry<bool> SplitWalletForChest;
 
         void Awake()
         {
@@ -184,6 +185,8 @@ namespace SeneaLHudLayout
                 "Hide the wind and day/time pills under the minimap. The biome name on the map stays.");
             ShowItemSearch = Config.Bind("Crafting", "ShowItemSearch", true,
                 "Show an Items button on the crafting panel. It opens VNEI's full item search. The same button then says Close.");
+            SplitWalletForChest = Config.Bind("Wallet", "SplitForChest", true,
+                "When depositing into a chest, split a coin purse larger than 999 into stacks the chest can hold. A full chest is left alone, and anything that does not fit stays in the purse. Turn this off to leave the purse untouched.");
 
             Harmony harmony = new Harmony(GUID);
             CompassPin.Apply(harmony);

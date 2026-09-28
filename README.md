@@ -34,6 +34,7 @@ Install on **clients only**. Dedicated servers do not need it.
 - SkillsReworked level also sits under the food timers, beside the health number (`[Character] ShowLevel`)
 - The crafting panel has an Items button that opens VNEI's item search. The same button says Close while it is open (`[Crafting] ShowItemSearch`, on by default)
 - SeneaL's chat window is hidden (`[Chat] HideChat`, on by default) so another chat mod can draw the messages
+- Depositing a coin purse larger than 999 splits off only the stacks the chest can hold (`[Wallet] SplitForChest`, on by default). The rest stays in the purse
 
 Turn `[General] Enabled` off to restore SeneaL's own placement.
 

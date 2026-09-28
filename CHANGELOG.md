@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.52
+
+- Coin purse deposits split only as many stacks as the chest can hold. A full chest no longer dumps stacks of 999 into the inventory.
+- `[Wallet] SplitForChest` turns that deposit split on or off. It is on by default.
+
 ## 1.1.51
 
 - Rarity fill default strength is 0.10.
