@@ -37,6 +37,9 @@ namespace SeneaLHudLayout
             PlaceMinimap(root);
             PlaceBossBars();
             PinCompass(root);
+            ClearBossFromCompass(root);
+            LiftBossWithoutCompass(root);
+            ClearRaidFromBoss(root);
             PlaceCenterMessage(root);
             PowersLayout.Apply(hud, root);
             _applied = true;
@@ -232,6 +235,121 @@ namespace SeneaLHudLayout
             }
         }
 
+        static void ClearBossFromCompass(RectTransform root)
+        {
+            if (!(root.Find("menuFade/Compass/compass") is RectTransform compass)
+                || !compass.gameObject.activeInHierarchy)
+            {
+                return;
+            }
+
+            EnemyHud enemyHud = EnemyHud.instance;
+            if (enemyHud == null || enemyHud.m_hudRoot == null)
+            {
+                return;
+            }
+
+            float limit = EdgeY(compass, bottom: true) - SeneaLHudLayoutPlugin.CenterMessageGap.Value;
+            Transform hudRoot = enemyHud.m_hudRoot.transform;
+            for (int i = 0; i < hudRoot.childCount; i++)
+            {
+                Transform child = hudRoot.GetChild(i);
+                if (!child.gameObject.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                if (child.name.IndexOf("Boss", System.StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    continue;
+                }
+
+                if (!(child is RectTransform bar))
+                {
+                    continue;
+                }
+
+                float top = EdgeY(bar, bottom: false);
+                if (top > limit)
+                {
+                    Move(bar, 0f, limit - top);
+                }
+            }
+        }
+
+        static float _compassTopY;
+        static bool _compassTopKnown;
+
+        static void LiftBossWithoutCompass(RectTransform root)
+        {
+            if (!(root.Find("menuFade/Compass/compass") is RectTransform compass))
+            {
+                return;
+            }
+
+            if (compass.gameObject.activeInHierarchy)
+            {
+                _compassTopY = EdgeY(compass, bottom: false);
+                _compassTopKnown = true;
+                return;
+            }
+
+            float desiredTop = _compassTopY;
+            if (!_compassTopKnown && compass.parent is RectTransform parent)
+            {
+                desiredTop = EdgeY(parent, bottom: false) - SeneaLHudLayoutPlugin.CompassTop.Value;
+            }
+            else if (!_compassTopKnown)
+            {
+                return;
+            }
+            if (float.IsNaN(desiredTop) || float.IsInfinity(desiredTop))
+            {
+                return;
+            }
+
+            EnemyHud enemyHud = EnemyHud.instance;
+            if (enemyHud == null || enemyHud.m_hudRoot == null)
+            {
+                return;
+            }
+
+            Transform hudRoot = enemyHud.m_hudRoot.transform;
+            for (int i = 0; i < hudRoot.childCount; i++)
+            {
+                Transform child = hudRoot.GetChild(i);
+                if (!child.gameObject.activeInHierarchy
+                    || child.name.IndexOf("Boss", System.StringComparison.OrdinalIgnoreCase) < 0
+                    || !(child is RectTransform bar))
+                {
+                    continue;
+                }
+
+                float top = EdgeY(bar, bottom: false);
+                if (top < desiredTop - 0.5f)
+                {
+                    Move(bar, 0f, desiredTop - top);
+                }
+            }
+        }
+
+        static void ClearRaidFromBoss(RectTransform root)
+        {
+            if (!(root.Find("menuFade/Compass/event") is RectTransform raid)
+                || !raid.gameObject.activeInHierarchy
+                || !TryBossBottom(out float bossBottom))
+            {
+                return;
+            }
+
+            float top = EdgeY(raid, bottom: false);
+            float limit = bossBottom - 8f;
+            if (top > limit)
+            {
+                Move(raid, 0f, limit - top);
+            }
+        }
+
         static void RestoreBossBars()
         {
             EnemyHud enemyHud = EnemyHud.instance;
@@ -326,6 +444,9 @@ namespace SeneaLHudLayout
                 _bannerKnown = true;
             }
 
+            float scale = SeneaLHudLayoutPlugin.CenterMessageScale != null ? SeneaLHudLayoutPlugin.CenterMessageScale.Value : 1f;
+            banner.localScale = new Vector3(scale, scale, 1f);
+
             float ceiling = float.PositiveInfinity;
             if (root.Find("menuFade/Compass/compass") is RectTransform compass
                 && compass.gameObject.activeInHierarchy)
@@ -351,6 +472,7 @@ namespace SeneaLHudLayout
         {
             if (_bannerKnown && _banner != null)
             {
+                _banner.localScale = Vector3.one;
                 _banner.anchoredPosition = _bannerBase;
             }
         }

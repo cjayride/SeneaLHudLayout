@@ -11,6 +11,7 @@ namespace SeneaLHudLayout
     static class SlotCue
     {
         const string GlowName = "SeneaLHudLayout_Glow";
+        const string RarityName = "SeneaLHudLayout_Rarity";
         const string MarkName = "SeneaLHudLayout_Mark";
         const string WashName = "SeneaLHudLayout_Equip";
         const string TimeName = "SeneaLHudLayout_EquipTime";
@@ -19,6 +20,7 @@ namespace SeneaLHudLayout
         static readonly List<Tracked> Slots = new List<Tracked>();
         static Type _slotType;
         static FieldInfo _state;
+        static FieldInfo _rar;
         static FieldInfo _bg;
         static FieldInfo _icon;
         static FieldInfo _actionType;
@@ -45,6 +47,8 @@ namespace SeneaLHudLayout
         static bool _logged;
         static bool _highlightWas;
         static bool _pipWas;
+        static bool _rarityWas;
+        static float _rarityStrengthWas = -1f;
         static Color _colorWas;
         static Color _checkWas;
         static float _sizeWas = -1f;
@@ -67,6 +71,7 @@ namespace SeneaLHudLayout
             }
 
             _state = AccessTools.Field(_slotType, "_state");
+            _rar = AccessTools.Field(_slotType, "_rar");
             _bg = AccessTools.Field(_slotType, "_bg");
             _icon = AccessTools.Field(_slotType, "_icon");
             _root = AccessTools.Field(_slotType, "Root");
@@ -150,7 +155,7 @@ namespace SeneaLHudLayout
                 }
 
                 int state = _state.GetValue(slot) is int n ? n : 0;
-                if (Slots[i].Seen == state)
+                if (Slots[i].Seen == state && !RarityPending(slot))
                 {
                     continue;
                 }
@@ -197,12 +202,16 @@ namespace SeneaLHudLayout
         {
             bool highlight = SeneaLHudLayoutPlugin.Highlight != null && SeneaLHudLayoutPlugin.Highlight.Value;
             bool pip = SeneaLHudLayoutPlugin.CornerPip != null && SeneaLHudLayoutPlugin.CornerPip.Value;
+            bool rarity = SeneaLHudLayoutPlugin.RarityFill != null && SeneaLHudLayoutPlugin.RarityFill.Value;
+            float rarityStrength = SeneaLHudLayoutPlugin.RarityFillStrength != null ? SeneaLHudLayoutPlugin.RarityFillStrength.Value : 0.5f;
             Color color = SeneaLHudLayoutPlugin.HighlightColor != null ? SeneaLHudLayoutPlugin.HighlightColor.Value : Color.white;
             Color check = SeneaLHudLayoutPlugin.CheckColor != null ? SeneaLHudLayoutPlugin.CheckColor.Value : Color.green;
             float size = SeneaLHudLayoutPlugin.HighlightSize != null ? SeneaLHudLayoutPlugin.HighlightSize.Value : 0f;
             float pipSize = SeneaLHudLayoutPlugin.CornerPipSize != null ? SeneaLHudLayoutPlugin.CornerPipSize.Value : 0f;
             bool changed = highlight != _highlightWas
                 || pip != _pipWas
+                || rarity != _rarityWas
+                || !Mathf.Approximately(rarityStrength, _rarityStrengthWas)
                 || color != _colorWas
                 || check != _checkWas
                 || !Mathf.Approximately(size, _sizeWas)
@@ -215,6 +224,8 @@ namespace SeneaLHudLayout
             bool scan = changed || (highlight && Time.time <= _scanUntil && Time.frameCount % 20 == 0);
             _highlightWas = highlight;
             _pipWas = pip;
+            _rarityWas = rarity;
+            _rarityStrengthWas = rarityStrength;
             _colorWas = color;
             _checkWas = check;
             _sizeWas = size;
@@ -332,6 +343,7 @@ namespace SeneaLHudLayout
                 ? SeneaLHudLayoutPlugin.HighlightColor.Value
                 : Color.white;
             PlaceGlow(bg, glowOn, border, spread);
+            PlaceRarity(slot, bg);
 
             RectTransform host = EnsureHost(bg.transform.parent, bg.rectTransform);
             host.gameObject.SetActive(pip);
@@ -353,6 +365,125 @@ namespace SeneaLHudLayout
                 mark.sprite = CheckSprite();
                 mark.rectTransform.localRotation = Quaternion.identity;
             }
+        }
+
+        static bool RarityPending(object slot)
+        {
+            if (SeneaLHudLayoutPlugin.RarityFill == null || !SeneaLHudLayoutPlugin.RarityFill.Value || _bg == null)
+            {
+                return false;
+            }
+
+            Image bg = _bg.GetValue(slot) as Image;
+            if (!bg)
+            {
+                return false;
+            }
+
+            Transform plate = bg.transform.parent.Find(RarityName);
+            bool plateOn = plate != null && plate.gameObject.activeSelf;
+            bool shouldFill = RarityVisible(slot);
+            return shouldFill != plateOn;
+        }
+
+        static bool RarityVisible(object slot)
+        {
+            if (SeneaLHudLayoutPlugin.RarityFill == null || !SeneaLHudLayoutPlugin.RarityFill.Value || _rar == null)
+            {
+                return false;
+            }
+
+            float strength = SeneaLHudLayoutPlugin.RarityFillStrength != null
+                ? SeneaLHudLayoutPlugin.RarityFillStrength.Value
+                : 0.10f;
+            if (strength <= 0.001f)
+            {
+                return false;
+            }
+
+            Image icon = _icon != null ? _icon.GetValue(slot) as Image : null;
+            if (icon != null && !icon.enabled)
+            {
+                return false;
+            }
+
+            Image rar = _rar.GetValue(slot) as Image;
+            return rar != null && rar.enabled && !NearlyWhite(rar.color);
+        }
+
+        static void PlaceRarity(object slot, Image bg)
+        {
+            bool fill = SeneaLHudLayoutPlugin.RarityFill != null && SeneaLHudLayoutPlugin.RarityFill.Value;
+            float strength = SeneaLHudLayoutPlugin.RarityFillStrength != null
+                ? SeneaLHudLayoutPlugin.RarityFillStrength.Value
+                : 0.10f;
+            Image rar = _rar != null ? _rar.GetValue(slot) as Image : null;
+            Transform existing = bg.transform.parent.Find(RarityName);
+            Image plate = existing ? existing.GetComponent<Image>() : null;
+            bool magic = RarityVisible(slot);
+            Color source = magic ? rar.color : Color.white;
+
+            if (!fill || !magic || strength <= 0.001f)
+            {
+                if (plate && plate.gameObject.activeSelf)
+                {
+                    plate.gameObject.SetActive(false);
+                }
+
+                if (rar != null && !rar.gameObject.activeSelf)
+                {
+                    rar.gameObject.SetActive(true);
+                }
+
+                return;
+            }
+
+            if (rar.gameObject.activeSelf)
+            {
+                rar.gameObject.SetActive(false);
+            }
+
+            if (!plate)
+            {
+                var go = new GameObject(RarityName, typeof(RectTransform));
+                go.transform.SetParent(bg.transform.parent, false);
+                plate = go.AddComponent<Image>();
+                plate.raycastTarget = false;
+                plate.sprite = White();
+            }
+
+            Color tint = new Color(source.r, source.g, source.b, strength);
+            if (plate.color != tint)
+            {
+                plate.color = tint;
+            }
+
+            if (!plate.gameObject.activeSelf)
+            {
+                plate.gameObject.SetActive(true);
+            }
+
+            RectTransform rt = plate.rectTransform;
+            RectTransform sourceRect = bg.rectTransform;
+            rt.anchorMin = sourceRect.anchorMin;
+            rt.anchorMax = sourceRect.anchorMax;
+            rt.pivot = sourceRect.pivot;
+            rt.anchoredPosition = sourceRect.anchoredPosition;
+            float inset = Mathf.Clamp(Mathf.Min(sourceRect.rect.width, sourceRect.rect.height) * 0.14f, 4f, 10f);
+            rt.offsetMin = sourceRect.offsetMin + new Vector2(inset, inset);
+            rt.offsetMax = sourceRect.offsetMax - new Vector2(inset, inset);
+            rt.localScale = Vector3.one;
+            rt.localRotation = Quaternion.identity;
+            int after = sourceRect.GetSiblingIndex() + 1;
+            if (rt.parent == sourceRect.parent && rt.GetSiblingIndex() != after)
+            {
+                rt.SetSiblingIndex(after);
+            }
+        }
+
+        static bool NearlyWhite(Color color)
+        {
+            return color.r >= 0.98f && color.g >= 0.98f && color.b >= 0.98f;
         }
 
         static void PlaceGlow(Image bg, bool on, Color color, float spread)
@@ -708,7 +839,7 @@ namespace SeneaLHudLayout
                         continue;
                     }
 
-                    if (image.name == GlowName || image.name == WashName)
+                    if (image.name == GlowName || image.name == WashName || image.name == RarityName)
                     {
                         continue;
                     }

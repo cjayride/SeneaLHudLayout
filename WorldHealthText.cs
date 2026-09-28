@@ -1,8 +1,11 @@
+﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace SeneaLHudLayout
 {
@@ -24,6 +27,7 @@ namespace SeneaLHudLayout
             }
         }
 
+        [HarmonyPriority(Priority.Last)]
         static void AfterUpdateHuds(EnemyHud __instance)
         {
             if (__instance == null || HudsField == null)
@@ -94,8 +98,17 @@ namespace SeneaLHudLayout
                 int hp = Mathf.CeilToInt(character.GetHealth());
                 int max = Mathf.Max(1, Mathf.CeilToInt(character.GetMaxHealth()));
                 label.text = hp + "/" + max;
-                PlaceAbove(label, gui.transform.Find("Health"));
+                Layout(character, gui.transform, label, NameField?.GetValue(data) as TMP_Text);
                 label.gameObject.SetActive(true);
+            }
+        }
+
+        public static void Tick()
+        {
+            EnemyHud hud = EnemyHud.instance;
+            if (hud != null)
+            {
+                AfterUpdateHuds(hud);
             }
         }
 
@@ -143,34 +156,335 @@ namespace SeneaLHudLayout
             return tmp;
         }
 
-        static void PlaceAbove(TMP_Text label, Transform health)
+        static readonly Dictionary<int, float> _barWidths = new Dictionary<int, float>();
+        const string StarRowName = "SeneaLHudLayout_Stars";
+        const string LevelName = "SeneaLHudLayout_EnemyLevel";
+        static readonly Color StarGold = new Color(1f, 0.843f, 0.2f, 1f);
+
+        static void Layout(Character character, Transform gui, TMP_Text label, TMP_Text name)
         {
-            if (!health)
+            RectTransform bar = gui.Find("Health") as RectTransform;
+            if (bar == null || label == null)
             {
                 return;
             }
 
-            RectTransform bar = health as RectTransform;
-            RectTransform rt = label.rectTransform;
-            Transform parent = bar != null ? bar.parent : health.parent;
-            if (parent && rt.parent != parent)
+            bool boss = character.IsBoss() || gui.name.IndexOf("Boss", System.StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!boss)
             {
-                rt.SetParent(parent, false);
+                Widen(bar);
             }
 
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0f);
-            rt.localScale = Vector3.one;
-            rt.localRotation = Quaternion.identity;
-            if (bar != null)
+            float gapPx = 0f;
+            Vector3 up = bar.TransformVector(Vector3.up);
+            float unit = up.magnitude;
+            if (unit < 0.0001f)
             {
-                float top = bar.anchoredPosition.y + bar.rect.height * (1f - bar.pivot.y);
-                rt.anchoredPosition = new Vector2(bar.anchoredPosition.x, top + 1f);
-                rt.sizeDelta = new Vector2(Mathf.Max(64f, bar.rect.width + 8f), 18f);
+                return;
             }
 
-            rt.SetAsLastSibling();
+            up /= unit;
+            float gap = gapPx * unit;
+            Vector3 barTop = Edge(bar, top: true);
+            Vector3 barBottom = Edge(bar, top: false);
+            Vector3 mid = Center(bar);
+
+            MoveGlyph(label, barTop + up * gap, bottom: true, mid);
+            if (name != null)
+            {
+                Vector3 hpTop = GlyphEdge(label, top: true);
+                MoveGlyph(name, hpTop + up * gap, bottom: true, mid);
+            }
+
+            HideLevel(gui);
+            HideMarker(gui, "Alerted");
+            HideMarker(gui, "Aware");
+
+            int stars = Mathf.Max(0, character.GetLevel() - 1);
+            RectTransform row = EnsureStars(gui, character.GetLevel(), stars);
+            if (row != null)
+            {
+                MoveRect(row, barBottom - up * gap, bottom: false, mid);
+                row.SetAsLastSibling();
+            }
         }
+
+        static void Widen(RectTransform bar)
+        {
+            float scale = SeneaLHudLayoutPlugin.EnemyBarWidth != null ? SeneaLHudLayoutPlugin.EnemyBarWidth.Value : 1.5f;
+            int id = bar.GetInstanceID();
+            if (!_barWidths.TryGetValue(id, out float width) || width < 8f)
+            {
+                width = bar.sizeDelta.x > 8f ? bar.sizeDelta.x : bar.rect.width;
+                _barWidths[id] = width;
+            }
+
+            bar.sizeDelta = new Vector2(Mathf.Max(8f, width * scale), bar.sizeDelta.y);
+        }
+
+        static void MoveRect(RectTransform rt, Vector3 worldTarget, bool bottom, Vector3 mid)
+        {
+            Vector3 edge = Edge(rt, top: !bottom);
+            Vector3 center = Center(rt);
+            Vector3 delta = worldTarget - edge;
+            delta.x = mid.x - center.x;
+            rt.position += delta;
+        }
+
+        static void MoveGlyph(TMP_Text text, Vector3 worldTarget, bool bottom, Vector3 mid)
+        {
+            Vector3 edge = GlyphEdge(text, top: !bottom);
+            Vector3 center = Center(text.rectTransform);
+            Vector3 delta = worldTarget - edge;
+            delta.x = mid.x - center.x;
+            text.rectTransform.position += delta;
+        }
+
+        static Vector3 GlyphEdge(TMP_Text text, bool top)
+        {
+            text.ForceMeshUpdate();
+            float min = float.MaxValue;
+            float max = float.MinValue;
+            TMP_TextInfo info = text.textInfo;
+            int count = info != null ? info.characterCount : 0;
+            for (int i = 0; i < count; i++)
+            {
+                TMP_CharacterInfo character = info.characterInfo[i];
+                if (!character.isVisible)
+                {
+                    continue;
+                }
+
+                Vector3[] verts = info.meshInfo[character.materialReferenceIndex].vertices;
+                int index = character.vertexIndex;
+                if (verts == null || index + 3 >= verts.Length)
+                {
+                    continue;
+                }
+
+                for (int corner = 0; corner < 4; corner++)
+                {
+                    float y = verts[index + corner].y;
+                    if (y < min)
+                    {
+                        min = y;
+                    }
+
+                    if (y > max)
+                    {
+                        max = y;
+                    }
+                }
+            }
+
+            if (max <= min)
+            {
+                return Edge(text.rectTransform, top);
+            }
+
+            return text.rectTransform.TransformPoint(new Vector3(0f, top ? max : min, 0f));
+        }
+
+        static void HideMarker(Transform gui, string name)
+        {
+            Transform marker = gui.Find(name);
+            if (marker != null && marker.gameObject.activeSelf)
+            {
+                marker.gameObject.SetActive(false);
+            }
+        }
+
+        static void HideLevel(Transform gui)
+        {
+            Transform existing = gui.Find(LevelName);
+            if (existing != null && existing.gameObject.activeSelf)
+            {
+                existing.gameObject.SetActive(false);
+            }
+        }
+
+        static Vector3 Edge(RectTransform rt, bool top)
+        {
+            Vector3[] corners = new Vector3[4];
+            rt.GetWorldCorners(corners);
+            return top ? (corners[1] + corners[2]) * 0.5f : (corners[0] + corners[3]) * 0.5f;
+        }
+
+        static Vector3 Center(RectTransform rt)
+        {
+            Vector3[] corners = new Vector3[4];
+            rt.GetWorldCorners(corners);
+            return (corners[0] + corners[2]) * 0.5f;
+        }
+
+        static RectTransform EnsureStars(Transform gui, int level, int stars)
+        {
+            Transform custom = gui.Find(StarRowName);
+            if (stars <= 0)
+            {
+                if (custom != null)
+                {
+                    custom.gameObject.SetActive(false);
+                }
+
+                return null;
+            }
+
+            Transform vanilla = gui.Find("level_" + level);
+            if (level <= 3 && vanilla is RectTransform vanillaRow)
+            {
+                if (custom != null)
+                {
+                    custom.gameObject.SetActive(false);
+                }
+
+                if (!vanilla.gameObject.activeSelf)
+                {
+                    vanilla.gameObject.SetActive(true);
+                }
+
+                PackStars(vanillaRow, StarSprite(gui));
+                return vanillaRow;
+            }
+
+            for (int i = 0; i < gui.childCount; i++)
+            {
+                Transform child = gui.GetChild(i);
+                if (child.name.StartsWith("level_"))
+                {
+                    child.gameObject.SetActive(false);
+                }
+            }
+
+            RectTransform row = custom as RectTransform;
+            if (row == null)
+            {
+                GameObject go = new GameObject(StarRowName);
+                go.transform.SetParent(gui, false);
+                row = go.AddComponent<RectTransform>();
+            }
+
+            if (!row.gameObject.activeSelf)
+            {
+                row.gameObject.SetActive(true);
+            }
+
+            Sprite sprite = StarSprite(gui);
+            while (row.childCount < stars)
+            {
+                GameObject star = new GameObject("star");
+                star.transform.SetParent(row, false);
+                Image image = star.AddComponent<Image>();
+                image.raycastTarget = false;
+                image.sprite = sprite;
+                image.color = StarGold;
+                image.preserveAspect = true;
+            }
+
+            for (int i = 0; i < row.childCount; i++)
+            {
+                bool on = i < stars;
+                if (row.GetChild(i).gameObject.activeSelf != on)
+                {
+                    row.GetChild(i).gameObject.SetActive(on);
+                }
+            }
+
+            PackStars(row, sprite);
+            return row;
+        }
+
+        static Sprite StarSprite(Transform gui)
+        {
+            Transform sample = gui.Find("level_3");
+            if (sample == null)
+            {
+                sample = gui.Find("level_2");
+            }
+
+            if (sample == null)
+            {
+                return null;
+            }
+
+            Image image = sample.GetComponentInChildren<Image>(true);
+            return image != null ? image.sprite : null;
+        }
+
+        static void PackStars(RectTransform row, Sprite sprite)
+        {
+            int count = 0;
+            for (int i = 0; i < row.childCount; i++)
+            {
+                Transform child = row.GetChild(i);
+                if (!child.gameObject.activeSelf)
+                {
+                    continue;
+                }
+
+                if (child.name.StartsWith("star") || child.GetComponentInChildren<Image>(true) != null)
+                {
+                    count++;
+                }
+            }
+
+            if (count == 0)
+            {
+                return;
+            }
+
+            row.anchorMin = new Vector2(0.5f, 0.5f);
+            row.anchorMax = new Vector2(0.5f, 0.5f);
+            row.pivot = new Vector2(0.5f, 1f);
+            row.localScale = Vector3.one;
+            int shown = 0;
+            for (int i = 0; i < row.childCount; i++)
+            {
+                Transform child = row.GetChild(i);
+                if (!child.gameObject.activeSelf)
+                {
+                    continue;
+                }
+
+                bool star = child.name.StartsWith("star") || child.GetComponentInChildren<Image>(true) != null;
+                if (!star)
+                {
+                    continue;
+                }
+
+                float x = -(count - 1) * 7f + shown * 14f;
+                if (child is RectTransform childRect)
+                {
+                    childRect.anchorMin = new Vector2(0.5f, 1f);
+                    childRect.anchorMax = new Vector2(0.5f, 1f);
+                    childRect.pivot = new Vector2(0.5f, 1f);
+                    childRect.sizeDelta = new Vector2(12f, 12f);
+                    childRect.anchoredPosition = new Vector2(x, 0f);
+                    childRect.localScale = Vector3.one;
+                }
+
+                Image[] images = child.GetComponentsInChildren<Image>(true);
+                for (int n = 0; n < images.Length; n++)
+                {
+                    images[n].enabled = true;
+                    if (images[n].sprite == null && sprite != null)
+                    {
+                        images[n].sprite = sprite;
+                    }
+
+                    if (images[n].color.a < 0.2f)
+                    {
+                        images[n].color = StarGold;
+                    }
+
+                    images[n].preserveAspect = true;
+                }
+
+                shown++;
+            }
+
+            row.sizeDelta = new Vector2(Mathf.Max(16f, count * 14f + 4f), 13f);
+        }
+
     }
 }

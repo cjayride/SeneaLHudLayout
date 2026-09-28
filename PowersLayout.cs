@@ -218,7 +218,12 @@ namespace SeneaLHudLayout
         static string PowerName(int slot)
         {
             Player player = Player.m_localPlayer;
-            string equipped = GuardianPowerField?.GetValue(player) as string;
+            if (player == null || GuardianPowerField == null)
+            {
+                return null;
+            }
+
+            string equipped = GuardianPowerField.GetValue(player) as string;
             if (string.IsNullOrEmpty(equipped))
             {
                 return null;

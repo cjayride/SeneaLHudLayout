@@ -26,8 +26,14 @@ Install on **clients only**. Dedicated servers do not need it.
 - Optional always-visible stamina, eitr, and adrenaline bars (`[Vitals]`, all off by default)
 - Selected and equipped items get a soft gold glow (`[Slots] Highlight`, on by default)
 - A green check marks the selected hotbar item and equipped gear (`[Slots] CornerPip`, on by default)
+- Magic items fill the slot interior with their EpicLoot color, and SeneaL's rarity border is hidden (`[Slots] RarityFill`, on by default). `[Slots] RarityFillStrength` defaults to 0.10
 - Equipping or unequipping shows a white seconds countdown in the inventory window (`[Slots] ShowEquipCue`). The hotbar only counts down worn gear (`[Slots] ShowGearBarCue`)
 - The login server-rules window is hidden (`[Notices] HideServerRules`, on by default). Server limits still apply.
+- SkillsReworked level appears in the top left of the character window (`[Character] ShowLevel`, on by default)
+- Wind and day/time pills under the minimap are hidden (`[Minimap] HideStatusPills`, on by default). The biome name stays
+- SkillsReworked level also sits under the food timers, beside the health number (`[Character] ShowLevel`)
+- The crafting panel has an Items button that opens VNEI's item search. The same button says Close while it is open (`[Crafting] ShowItemSearch`, on by default)
+- SeneaL's chat window is hidden (`[Chat] HideChat`, on by default) so another chat mod can draw the messages
 
 Turn `[General] Enabled` off to restore SeneaL's own placement.
 

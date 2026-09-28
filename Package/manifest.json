@@ -1,6 +1,6 @@
 {
     "name": "SeneaLHudLayout",
-    "version_number": "1.1.31",
+    "version_number": "1.1.51",
     "website_url": "https://discord.gg/cjayride",
     "description": "Moves SeneaL UI's hotbar to the bottom left and keeps compass, health, boss bars, and Passive Powers readable.",
     "dependencies": [
