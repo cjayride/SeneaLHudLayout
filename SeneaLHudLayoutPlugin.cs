@@ -18,7 +18,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.64";
+        public const string VERSION = "1.1.72";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -44,11 +44,13 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> NameTextScale;
         public static ConfigEntry<float> HealthTextScale;
         public static ConfigEntry<float> BarWidth;
+        public static ConfigEntry<float> StarSize;
         public static ConfigEntry<bool> ShowEnemyLevel;
         public static ConfigEntry<float> LevelSize;
         public static ConfigEntry<bool> AlwaysShowStamina;
         public static ConfigEntry<bool> AlwaysShowEitr;
         public static ConfigEntry<bool> AlwaysShowAdrenaline;
+        public static ConfigEntry<float> VitalsNumberBold;
         public static ConfigEntry<bool> Highlight;
         public static ConfigEntry<Color> HighlightColor;
         public static ConfigEntry<float> HighlightSize;
@@ -149,6 +151,9 @@ namespace SeneaLHudLayout
             BarWidth = Config.Bind("Creature/Player HUD", "BarWidth", 1f,
                 new ConfigDescription("Width of creature and player health bars. 1 is SeneaL's width. Boss bars stay the same. The health fill uses this width too.",
                     new AcceptableValueRange<float>(0.5f, 3f)));
+            StarSize = Config.Bind("Creature/Player HUD", "StarSize", 10f,
+                new ConfigDescription("Size of each creature level star, in pixels. Every star uses this size, and it stays matched to the health bar when you move closer or farther.",
+                    new AcceptableValueRange<float>(4f, 24f)));
             ShowEnemyLevel = Config.Bind("Creature/Player HUD", "ShowEnemyLevel", false,
                 "Unused. The level label beside creature and boss names stays hidden.");
             LevelSize = Config.Bind("Creature/Player HUD", "LevelSize", 14f,
@@ -160,6 +165,9 @@ namespace SeneaLHudLayout
                 "Keep the eitr bar visible when it is full. Off leaves SeneaL UI's normal fade.");
             AlwaysShowAdrenaline = Config.Bind("Vitals", "AlwaysShowAdrenaline", false,
                 "Keep the adrenaline bar visible when it is empty. Off leaves SeneaL UI's normal fade.");
+            VitalsNumberBold = Config.Bind("Vitals", "NumberBold", 0.8f,
+                new ConfigDescription("How heavy the stamina, eitr, and adrenaline numbers look. 0 is SeneaL's own weight. 1 thickens the digits (face dilate + outline). Change it in F1 and you should see it immediately.",
+                    new AcceptableValueRange<float>(0f, 1f)));
             Highlight = Config.Bind("Slots", "Highlight", true,
                 "Add a soft glow around the button's own edge on the selected hotbar item and on gear equipped in the inventory window.");
             HighlightColor = Config.Bind("Slots", "HighlightColor", new Color(1f, 0.843137f, 0f, 1f),
@@ -243,6 +251,7 @@ namespace SeneaLHudLayout
             CharacterExtras.Tick();
             VneiSearch.Tick();
             CraftMaterials.Tick();
+            StatValues.Tick();
             ChatHide.Tick();
             WorldHealthText.Tick();
             if (Enabled == null || !Enabled.Value)

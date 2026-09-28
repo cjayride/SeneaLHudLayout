@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using TMPro;
@@ -12,6 +13,17 @@ namespace SeneaLHudLayout
         const float Gap = 4f;
 
         static FieldInfo _cmp;
+        static readonly List<Job> _jobs = new List<Job>();
+
+        sealed class Job
+        {
+            public TMP_Text Label;
+            public TMP_Text A;
+            public TMP_Text B;
+            public TMP_Text C;
+            public TMP_Text D;
+            public int Frames;
+        }
 
         public static void Apply(Harmony harmony)
         {
@@ -42,6 +54,7 @@ namespace SeneaLHudLayout
             get { return SeneaLHudLayoutPlugin.StatValuesBesideLabels == null || SeneaLHudLayoutPlugin.StatValuesBesideLabels.Value; }
         }
 
+        [HarmonyPriority(Priority.Last)]
         static void AfterLayRow(object __1)
         {
             if (!On || __1 == null)
@@ -52,6 +65,7 @@ namespace SeneaLHudLayout
             Beside(Text(__1, "Label"), Text(__1, "Value"), Text(__1, "Small"));
         }
 
+        [HarmonyPriority(Priority.Last)]
         static void AfterPlaceStat(object __0)
         {
             if (!On || __0 == null)
@@ -59,9 +73,10 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            Beside(Text(__0, "Label"), Text(__0, "Value"), Text(__0, "Small"));
+            Queue(Text(__0, "Label"), Text(__0, "Value"), Text(__0, "Small"), null, null);
         }
 
+        [HarmonyPriority(Priority.Last)]
         static void AfterCompare(object __instance)
         {
             if (!On || __instance == null || _cmp == null)
@@ -78,7 +93,7 @@ namespace SeneaLHudLayout
             for (int i = 0; i < rows.Count; i++)
             {
                 object row = rows[i];
-                Beside(Text(row, "Label"), Text(row, "Cur"), Text(row, "Arrow"), Text(row, "Value"), Text(row, "Delta"));
+                Queue(Text(row, "Label"), Text(row, "Cur"), Text(row, "Arrow"), Text(row, "Value"), Text(row, "Delta"));
             }
         }
 
@@ -106,10 +121,11 @@ namespace SeneaLHudLayout
                 break;
             }
 
-            float cursor = Edge(label, !wrapped);
+            RectTransform labelRect = label.rectTransform;
+            float cursor = labelRect.anchoredPosition.x - labelRect.pivot.x * ShownWidth(labelRect);
             if (!wrapped)
             {
-                cursor += Gap;
+                cursor += Width(label) + Gap;
             }
 
             for (int i = 0; i < parts.Length; i++)
@@ -122,58 +138,161 @@ namespace SeneaLHudLayout
 
                 float width = Width(part);
                 RectTransform rect = part.rectTransform;
+                rect.anchorMin = new Vector2(labelRect.anchorMin.x, rect.anchorMin.y);
+                rect.anchorMax = new Vector2(labelRect.anchorMin.x, rect.anchorMax.y);
+                rect.pivot = new Vector2(0f, rect.pivot.y);
                 part.alignment = TextAlignmentOptions.TopLeft;
                 part.textWrappingMode = TextWrappingModes.NoWrap;
                 part.overflowMode = TextOverflowModes.Overflow;
                 rect.sizeDelta = new Vector2(width + 2f, rect.sizeDelta.y);
-                float current = Edge(part, false);
-                rect.anchoredPosition += new Vector2(cursor - current, 0f);
+                Vector2 pos = rect.anchoredPosition;
+                pos.x = cursor;
+                rect.anchoredPosition = pos;
                 cursor += width + Gap;
             }
         }
 
-        static float Edge(TMP_Text text, bool right)
+        public static void Tick()
         {
-            RectTransform rect = text.rectTransform;
-            text.ForceMeshUpdate(true);
-            Bounds bounds = text.textBounds;
-            float local;
-            if (bounds.size.x >= 0.5f)
+            for (int i = _jobs.Count - 1; i >= 0; i--)
             {
-                local = right ? bounds.max.x : bounds.min.x;
-            }
-            else
-            {
-                float width = Width(text);
-                float rectWidth = rect.rect.width > 1f ? rect.rect.width : rect.sizeDelta.x;
-                float textLeft = (0f - rect.pivot.x) * rectWidth + Mathf.Max(0f, rectWidth - width) * Align(text);
-                local = right ? textLeft + width : textLeft;
-            }
+                Job job = _jobs[i];
+                if (job.Label == null)
+                {
+                    _jobs.RemoveAt(i);
+                    continue;
+                }
 
-            RectTransform parent = rect.parent as RectTransform;
-            if (parent == null)
-            {
-                return local;
+                PlaceCraft(job.Label, job.A, job.B, job.C, job.D);
+                job.Frames++;
+                if (job.Frames >= 8 || Settled(job.Label))
+                {
+                    _jobs.RemoveAt(i);
+                }
             }
-
-            Vector3 world = rect.TransformPoint(new Vector3(local, 0f, 0f));
-            return parent.InverseTransformPoint(world).x;
         }
 
-        static float Align(TMP_Text text)
+        static void Queue(TMP_Text label, TMP_Text a, TMP_Text b, TMP_Text c, TMP_Text d)
         {
-            int horizontal = (int)text.alignment & 0xFF;
-            if (horizontal == 2)
+            PlaceCraft(label, a, b, c, d);
+            if (label == null)
             {
-                return 0.5f;
+                return;
             }
 
-            if (horizontal == 4 || horizontal == 8 || horizontal == 16)
+            for (int i = 0; i < _jobs.Count; i++)
             {
-                return 1f;
+                if (_jobs[i].Label == label)
+                {
+                    _jobs[i].A = a;
+                    _jobs[i].B = b;
+                    _jobs[i].C = c;
+                    _jobs[i].D = d;
+                    _jobs[i].Frames = 0;
+                    return;
+                }
             }
 
-            return 0f;
+            _jobs.Add(new Job { Label = label, A = a, B = b, C = c, D = d });
+        }
+
+        static void PlaceCraft(TMP_Text label, TMP_Text a, TMP_Text b, TMP_Text c, TMP_Text d)
+        {
+            if (label == null)
+            {
+                return;
+            }
+
+            TMP_Text[] parts = { a, b, c, d };
+            bool wrapped = false;
+            for (int i = 0; i < parts.Length; i++)
+            {
+                TMP_Text part = parts[i];
+                if (!Shown(part))
+                {
+                    continue;
+                }
+
+                if (Mathf.Abs(part.rectTransform.anchoredPosition.y - label.rectTransform.anchoredPosition.y) > 8f)
+                {
+                    wrapped = true;
+                }
+
+                break;
+            }
+
+            RectTransform labelRect = label.rectTransform;
+            float rectWidth = labelRect.rect.width > 1f ? labelRect.rect.width : Mathf.Max(0f, labelRect.sizeDelta.x);
+            float cursor = labelRect.anchoredPosition.x - labelRect.pivot.x * rectWidth;
+            if (!wrapped)
+            {
+                int horizontal = (int)label.alignment & 0xFF;
+                bool leftAlign = horizontal == 0 || horizontal == 1;
+                float textWidth = Preferred(label);
+                if (!leftAlign)
+                {
+                    cursor += Mathf.Max(0f, rectWidth - textWidth);
+                }
+
+                cursor += textWidth + Gap;
+            }
+
+            for (int i = 0; i < parts.Length; i++)
+            {
+                TMP_Text part = parts[i];
+                if (!Shown(part))
+                {
+                    continue;
+                }
+
+                float width = Preferred(part);
+                RectTransform rect = part.rectTransform;
+                rect.anchorMin = new Vector2(labelRect.anchorMin.x, rect.anchorMin.y);
+                rect.anchorMax = new Vector2(labelRect.anchorMin.x, rect.anchorMax.y);
+                rect.pivot = new Vector2(0f, rect.pivot.y);
+                part.alignment = TextAlignmentOptions.TopLeft;
+                part.textWrappingMode = TextWrappingModes.NoWrap;
+                part.overflowMode = TextOverflowModes.Overflow;
+                rect.sizeDelta = new Vector2(width + 2f, rect.sizeDelta.y);
+                Vector2 pos = rect.anchoredPosition;
+                pos.x = cursor;
+                rect.anchoredPosition = pos;
+                cursor += width + Gap;
+            }
+        }
+
+        static bool Settled(TMP_Text label)
+        {
+            if (!Shown(label) || label.font == null || label.fontSize < 1f)
+            {
+                return false;
+            }
+
+            float expect = Mathf.Max(6f, label.text.Length * label.fontSize * 0.28f);
+            return Preferred(label) >= expect;
+        }
+
+        static float Preferred(TMP_Text text)
+        {
+            float width = text.GetPreferredValues(text.text).x;
+            if (width < 0.5f)
+            {
+                text.ForceMeshUpdate();
+                width = text.preferredWidth;
+            }
+
+            return Mathf.Max(0f, width);
+        }
+
+        static float ShownWidth(RectTransform rect)
+        {
+            float width = rect.rect.width;
+            if (width > 1f)
+            {
+                return width;
+            }
+
+            return Mathf.Max(0f, rect.sizeDelta.x);
         }
 
         static float Width(TMP_Text text)

@@ -268,6 +268,14 @@ namespace SeneaLHudLayout
             bool boss = character.IsBoss() || gui.name.IndexOf("Boss", System.StringComparison.OrdinalIgnoreCase) >= 0;
             if (!boss)
             {
+                SteadyScale(gui);
+                bar.localScale = Vector3.one;
+                label.rectTransform.localScale = Vector3.one;
+                if (name != null)
+                {
+                    name.rectTransform.localScale = Vector3.one;
+                }
+
                 Widen(bar);
             }
 
@@ -297,25 +305,55 @@ namespace SeneaLHudLayout
             HideMarker(gui, "Aware");
 
             int stars = Mathf.Max(0, character.GetLevel() - 1);
-            RectTransform row = EnsureStars(gui, character.GetLevel(), stars, EffectGlow(character));
+            Color glow = EffectGlow(character);
+            RectTransform row = EnsureStars(gui, character.GetLevel(), stars, glow);
             if (row != null)
             {
-                MoveRect(row, barBottom - up * gap, bottom: false, mid);
+                FitStars(row, bar, glow);
+                Vector3 starTop = ImageEdge(row, top: true);
+                Vector3 delta = barBottom - up * unit - starTop;
+                delta.x = mid.x - ImageMid(row).x;
+                row.position += delta;
                 row.SetAsLastSibling();
             }
+        }
+
+        static void SteadyScale(Transform gui)
+        {
+            if (gui.parent == null)
+            {
+                return;
+            }
+
+            float want = gui.parent.lossyScale.y;
+            float have = gui.lossyScale.y;
+            if (want < 0.0001f || have < 0.0001f)
+            {
+                return;
+            }
+
+            float fix = want / have;
+            if (Mathf.Abs(fix - 1f) < 0.02f)
+            {
+                return;
+            }
+
+            Vector3 scale = gui.localScale;
+            gui.localScale = new Vector3(scale.x * fix, scale.y * fix, scale.z == 0f ? 1f : scale.z);
         }
 
         static void Widen(RectTransform bar)
         {
             float scale = SeneaLHudLayoutPlugin.BarWidth != null ? SeneaLHudLayoutPlugin.BarWidth.Value : 1f;
             int id = bar.GetInstanceID();
-            if (!_barWidths.TryGetValue(id, out float width) || width < 8f)
+            if (!_barWidths.TryGetValue(id, out float width) || width < 30f || width > 200f)
             {
-                width = bar.sizeDelta.x > 8f ? bar.sizeDelta.x : bar.rect.width;
+                float raw = bar.sizeDelta.x;
+                width = raw >= 30f && raw <= 200f ? raw : 100f;
                 _barWidths[id] = width;
             }
 
-            bar.sizeDelta = new Vector2(Mathf.Max(8f, width * scale), bar.sizeDelta.y);
+            bar.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, Mathf.Max(30f, width * scale));
             FitFills(bar, scale);
         }
 
@@ -343,13 +381,13 @@ namespace SeneaLHudLayout
             {
                 Component fill = fills[i];
                 int id = fill.GetInstanceID();
-                if (!_fillWidths.TryGetValue(id, out float width) || width < 1f)
+                if (!_fillWidths.TryGetValue(id, out float width) || width < 20f || width > 200f)
                 {
                     object raw = _guiBarWidth.GetValue(fill);
                     width = raw is float value ? value : 0f;
-                    if (width < 1f)
+                    if (width < 20f || width > 200f)
                     {
-                        continue;
+                        width = 100f;
                     }
 
                     _fillWidths[id] = width;
@@ -480,7 +518,6 @@ namespace SeneaLHudLayout
                     vanilla.gameObject.SetActive(true);
                 }
 
-                PackStars(vanillaRow, StarSprite(gui), glow);
                 return vanillaRow;
             }
 
@@ -516,6 +553,11 @@ namespace SeneaLHudLayout
                 image.sprite = sprite;
                 image.color = StarGold;
                 image.preserveAspect = true;
+                RectTransform starRect = star.GetComponent<RectTransform>();
+                starRect.sizeDelta = new Vector2(12f, 12f);
+                starRect.anchorMin = new Vector2(0.5f, 0.5f);
+                starRect.anchorMax = new Vector2(0.5f, 0.5f);
+                starRect.pivot = new Vector2(0.5f, 0.5f);
             }
 
             for (int i = 0; i < row.childCount; i++)
@@ -527,7 +569,6 @@ namespace SeneaLHudLayout
                 }
             }
 
-            PackStars(row, sprite, glow);
             return row;
         }
 
@@ -548,18 +589,32 @@ namespace SeneaLHudLayout
             return image != null ? image.sprite : null;
         }
 
-        static void PackStars(RectTransform row, Sprite sprite, Color glow)
+        static float StarPixels()
         {
+            float size = SeneaLHudLayoutPlugin.StarSize != null ? SeneaLHudLayoutPlugin.StarSize.Value : 10f;
+            return Mathf.Clamp(size, 4f, 24f);
+        }
+
+        static void FitStars(RectTransform row, RectTransform bar, Color tint)
+        {
+            float size = StarPixels();
+            float barScale = bar.lossyScale.y;
+            if (barScale < 0.0001f)
+            {
+                barScale = 0.0001f;
+            }
+
+            HorizontalLayoutGroup layout = row.GetComponent<HorizontalLayoutGroup>();
+            if (layout != null && layout.enabled)
+            {
+                layout.enabled = false;
+            }
+
+            row.localScale = Vector3.one;
             int count = 0;
             for (int i = 0; i < row.childCount; i++)
             {
-                Transform child = row.GetChild(i);
-                if (!child.gameObject.activeSelf)
-                {
-                    continue;
-                }
-
-                if (child.name.StartsWith("star") || child.GetComponentInChildren<Image>(true) != null)
+                if (row.GetChild(i).gameObject.activeSelf)
                 {
                     count++;
                 }
@@ -570,164 +625,165 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            row.anchorMin = new Vector2(0.5f, 0.5f);
-            row.anchorMax = new Vector2(0.5f, 0.5f);
-            row.pivot = new Vector2(0.5f, 1f);
-            row.localScale = Vector3.one;
-            int shown = 0;
+            float step = size + 1f;
+            float x = -(count - 1) * step * 0.5f;
+            Color color = FadeStar(tint.a > 0.01f ? tint : StarGold);
             for (int i = 0; i < row.childCount; i++)
             {
                 Transform child = row.GetChild(i);
-                if (!child.gameObject.activeSelf)
+                if (!child.gameObject.activeSelf || !(child is RectTransform slot))
                 {
                     continue;
                 }
 
-                bool star = child.name.StartsWith("star") || child.GetComponentInChildren<Image>(true) != null;
-                if (!star)
+                Image face = PickFace(child);
+                if (face == null)
                 {
                     continue;
                 }
 
-                float x = -(count - 1) * 7f + shown * 14f;
-                if (child is RectTransform childRect)
+                face.color = color;
+                face.preserveAspect = true;
+                Transform walk = face.transform;
+                while (walk != null && walk != slot)
                 {
-                    childRect.anchorMin = new Vector2(0.5f, 1f);
-                    childRect.anchorMax = new Vector2(0.5f, 1f);
-                    childRect.pivot = new Vector2(0.5f, 1f);
-                    childRect.sizeDelta = new Vector2(12f, 12f);
-                    childRect.anchoredPosition = new Vector2(x, 0f);
-                    childRect.localScale = Vector3.one;
+                    walk.localScale = Vector3.one;
+                    walk = walk.parent;
                 }
 
-                LiftStarFace(child);
-                PaintGlow(child, sprite, glow);
-                Image[] images = child.GetComponentsInChildren<Image>(true);
-                for (int n = 0; n < images.Length; n++)
+                float parentScale = slot.parent != null ? slot.parent.lossyScale.y : barScale;
+                if (parentScale < 0.0001f)
                 {
-                    if (IsGlow(images[n]))
+                    parentScale = barScale;
+                }
+
+                float match = barScale / parentScale;
+                slot.localScale = new Vector3(match, match, 1f);
+                slot.anchorMin = new Vector2(0.5f, 0.5f);
+                slot.anchorMax = new Vector2(0.5f, 0.5f);
+                slot.pivot = new Vector2(0.5f, 0.5f);
+                slot.sizeDelta = new Vector2(size, size);
+                slot.anchoredPosition = new Vector2(x, 0f);
+                if (face.rectTransform != slot)
+                {
+                    RectTransform graphic = face.rectTransform;
+                    graphic.anchorMin = Vector2.zero;
+                    graphic.anchorMax = Vector2.one;
+                    graphic.offsetMin = Vector2.zero;
+                    graphic.offsetMax = Vector2.zero;
+                    graphic.localScale = Vector3.one;
+                }
+
+                x += step;
+            }
+        }
+
+        static Image PickFace(Transform slot)
+        {
+            Image[] images = slot.GetComponentsInChildren<Image>(true);
+            Image face = null;
+            int depth = -1;
+            for (int i = 0; i < images.Length; i++)
+            {
+                Image image = images[i];
+                string name = image.gameObject.name;
+                if (name == GlowName || name == GlowInnerName || name == "face")
+                {
+                    image.gameObject.SetActive(false);
+                    continue;
+                }
+
+                int here = 0;
+                Transform walk = image.transform;
+                while (walk != null && walk != slot)
+                {
+                    here++;
+                    walk = walk.parent;
+                }
+
+                if (face == null || here > depth)
+                {
+                    if (face != null)
                     {
-                        continue;
+                        face.enabled = false;
                     }
 
-                    images[n].enabled = true;
-                    if (images[n].sprite == null && sprite != null)
-                    {
-                        images[n].sprite = sprite;
-                    }
-
-                    if (images[n].color.a < 0.2f || images[n].gameObject.name == "face")
-                    {
-                        images[n].color = StarGold;
-                    }
-
-                    images[n].preserveAspect = true;
-                    images[n].transform.SetAsLastSibling();
+                    face = image;
+                    depth = here;
+                    face.enabled = true;
                 }
-
-                shown++;
-            }
-
-            row.sizeDelta = new Vector2(Mathf.Max(16f, count * 14f + 4f), 13f);
-        }
-
-        static void LiftStarFace(Transform star)
-        {
-            Image root = star.GetComponent<Image>();
-            if (root == null)
-            {
-                return;
-            }
-
-            GameObject face = new GameObject("face");
-            face.transform.SetParent(star, false);
-            Image image = face.AddComponent<Image>();
-            image.sprite = root.sprite;
-            image.color = StarGold;
-            image.preserveAspect = true;
-            image.raycastTarget = false;
-            RectTransform rect = face.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-            UnityEngine.Object.DestroyImmediate(root);
-        }
-
-        static void PaintGlow(Transform star, Sprite sprite, Color tint)
-        {
-            bool on = tint.a > 0f;
-            PaintGlowLayer(star, GlowInnerName, sprite, tint, 20f, 0.78f, on);
-            PaintGlowLayer(star, GlowName, sprite, tint, 34f, 0.32f, on);
-        }
-
-        static void PaintGlowLayer(Transform star, string name, Sprite sprite, Color tint, float size, float alpha, bool on)
-        {
-            Transform existing = NamedChild(star, name);
-            if (!on)
-            {
-                if (existing != null && existing.gameObject.activeSelf)
+                else
                 {
-                    existing.gameObject.SetActive(false);
+                    image.enabled = false;
                 }
-
-                return;
             }
 
-            Image image = existing != null ? existing.GetComponent<Image>() : null;
-            if (image == null)
-            {
-                GameObject go = new GameObject(name);
-                go.transform.SetParent(star, false);
-                image = go.AddComponent<Image>();
-                image.raycastTarget = false;
-                image.preserveAspect = true;
-                RectTransform created = go.GetComponent<RectTransform>();
-                created.anchorMin = new Vector2(0.5f, 0.5f);
-                created.anchorMax = new Vector2(0.5f, 0.5f);
-                created.pivot = new Vector2(0.5f, 0.5f);
-                created.anchoredPosition = Vector2.zero;
-                existing = go.transform;
-            }
-
-            if (!existing.gameObject.activeSelf)
-            {
-                existing.gameObject.SetActive(true);
-            }
-
-            existing.SetAsFirstSibling();
-            RectTransform rect = existing as RectTransform;
-            if (rect != null)
-            {
-                rect.sizeDelta = new Vector2(size, size);
-            }
-
-            if (sprite != null)
-            {
-                image.sprite = sprite;
-            }
-
-            image.color = new Color(tint.r, tint.g, tint.b, alpha);
+            return face;
         }
 
-        static Transform NamedChild(Transform parent, string name)
+        static Vector3 ImageEdge(RectTransform row, bool top)
         {
-            for (int i = 0; i < parent.childCount; i++)
+            Vector3 point = Edge(row, top);
+            bool found = false;
+            float best = top ? float.MinValue : float.MaxValue;
+            Image[] images = row.GetComponentsInChildren<Image>(true);
+            for (int i = 0; i < images.Length; i++)
             {
-                Transform child = parent.GetChild(i);
-                if (child.name == name)
+                Image image = images[i];
+                if (!StarFace(image))
                 {
-                    return child;
+                    continue;
+                }
+
+                Vector3 edge = Edge(image.rectTransform, top);
+                if (!found || (top ? edge.y > best : edge.y < best))
+                {
+                    best = edge.y;
+                    point = edge;
+                    found = true;
                 }
             }
 
-            return null;
+            return point;
         }
 
-        static bool IsGlow(Image image)
+        static Vector3 ImageMid(RectTransform row)
         {
+            Vector3 sum = Vector3.zero;
+            int count = 0;
+            Image[] images = row.GetComponentsInChildren<Image>(true);
+            for (int i = 0; i < images.Length; i++)
+            {
+                if (!StarFace(images[i]))
+                {
+                    continue;
+                }
+
+                sum += Center(images[i].rectTransform);
+                count++;
+            }
+
+            return count > 0 ? sum / count : Center(row);
+        }
+
+        static bool StarFace(Image image)
+        {
+            if (image == null || !image.enabled || !image.gameObject.activeInHierarchy)
+            {
+                return false;
+            }
+
             string name = image.gameObject.name;
-            return name == GlowName || name == GlowInnerName;
+            return name != GlowName && name != GlowInnerName && name != "face";
+        }
+
+        static Color FadeStar(Color color)
+        {
+            color.r *= 0.7f;
+            color.g *= 0.7f;
+            color.b *= 0.7f;
+            color.a = 0.75f;
+            return color;
         }
 
     }

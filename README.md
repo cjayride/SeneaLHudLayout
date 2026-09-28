@@ -23,8 +23,9 @@ Install on **clients only**. Dedicated servers do not need it.
 - `[Powers] Scale` shrinks or grows those Passive Powers icons (0.5 to 1.5, default 1)
 - Item Drawer hover preview collapses to one slot (total count) instead of every stack
 - Creature and player world health bars show `current/max` just below the bar (`[Creature/Player HUD] ShowHealthNumbers`, on by default). `NameTextScale` (default 0.75) and `HealthTextScale` (default 0.94) size the name and the health numbers. 1 is SeneaL's size. `BarWidth` widens those bars and their health fill. Boss bars stay the same width
-- Level stars stay gold. A glow behind them matches the creature's Creature Level and Loot Control effect: green Regenerating, red Aggressive, blue Armored, cyan Curious, magenta Quick, white Splitting
+- Level stars stay the same size at any distance. `[Creature/Player HUD] StarSize` defaults to 10. Their color matches the creature's Creature Level and Loot Control effect: green Regenerating, red Aggressive, blue Armored, cyan Curious, magenta Quick, white Splitting. No effect stays gold
 - Optional always-visible stamina, eitr, and adrenaline bars (`[Vitals]`, all off by default)
+- `[Vitals] NumberBold` (default 0.8) makes those bar numbers heavier. 0 is SeneaL's weight. 1 is extra bold
 - Selected and equipped items get a soft gold glow (`[Slots] Highlight`, on by default)
 - A green check marks the selected hotbar item and equipped gear (`[Slots] CornerPip`, on by default)
 - Magic items fill the slot interior with their EpicLoot color, and SeneaL's rarity border is hidden (`[Slots] RarityFill`, on by default). `[Slots] RarityFillStrength` defaults to 0.10

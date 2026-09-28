@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.1.72
+
+- `[Vitals] NumberBold` defaults to 0.8.
+
+## 1.1.71
+
+- Vitals numbers use a much heavier stroke at high `[Vitals] NumberBold`, and the style is reapplied after SeneaL redraws the labels so 1.0 is visible in game.
+
+## 1.1.70
+
+- Stamina, eitr, and adrenaline numbers can be made heavier with `[Vitals] NumberBold` (0 is SeneaL's weight, 1 is extra bold). Default 0.4. Changing the slider restyles three labels; it does not add per-frame work.
+
+## 1.1.69
+
+- Creature health bars and names keep one size when you move closer or farther. A far nameplate no longer stretches the bar or swells the name.
+
+## 1.1.68
+
+- Crafting stat numbers sit beside their labels the first time the window opens, without waiting for the text to finish measuring.
+
+## 1.1.67
+
+- Creature stars use one size, `[Creature/Player HUD] StarSize` (default 10), and stay matched to the health bar when you move closer or farther.
+
+## 1.1.66
+
+- Crafting stat numbers sit beside their labels again.
+- Creature stars sit against the health bar and use a softer effect color.
+
+## 1.1.65
+
+- Tooltip and crafting stat numbers sit beside their labels, including on wide EpicLoot item panels.
+- Creature stars stay the normal small size and take their Creature Level and Loot Control effect color. The extra glow behind them is gone.
+
 ## 1.1.64
 
 - The VNEI button on the crafting panel sits 7 pixels higher so it no longer covers the crafting station stars.
