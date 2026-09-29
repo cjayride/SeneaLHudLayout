@@ -7,6 +7,7 @@ namespace SeneaLHudLayout
 {
     [BepInPlugin(GUID, NAME, VERSION)]
     [BepInDependency("seneaL.valheim.ui")]
+    [BepInDependency("_shudnal.ConfigurationManager", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("org.bepinex.plugins.passivepowers", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.grillspett.itemdrawers", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("M2Valheim.SkillsReworked", BepInDependency.DependencyFlags.SoftDependency)]
@@ -18,7 +19,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.72";
+        public const string VERSION = "1.1.81";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -41,12 +42,17 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> PowersOffsetY;
         public static ConfigEntry<bool> CollapseDrawerPreview;
         public static ConfigEntry<bool> ShowHealthNumbers;
+        public static ConfigEntry<bool> ShowThreatIcons;
+        public static ConfigEntry<float> ThreatIconSize;
+        public static ConfigEntry<float> ThreatIconLift;
+        public static ConfigEntry<float> ThreatIconOpacity;
         public static ConfigEntry<float> NameTextScale;
         public static ConfigEntry<float> HealthTextScale;
         public static ConfigEntry<float> BarWidth;
         public static ConfigEntry<float> StarSize;
         public static ConfigEntry<bool> ShowEnemyLevel;
         public static ConfigEntry<float> LevelSize;
+        public static ConfigEntry<bool> HideNameplateExtras;
         public static ConfigEntry<bool> AlwaysShowStamina;
         public static ConfigEntry<bool> AlwaysShowEitr;
         public static ConfigEntry<bool> AlwaysShowAdrenaline;
@@ -142,6 +148,17 @@ namespace SeneaLHudLayout
                 "When hovering a Grillspett Item Drawer, show one preview slot for the stored item instead of every stack.");
             ShowHealthNumbers = Config.Bind("Creature/Player HUD", "ShowHealthNumbers", true,
                 "Show current/max health on creature and player nameplates. Order is name, health numbers, health bar, then stars.");
+            ShowThreatIcons = Config.Bind("Creature/Player HUD", "ShowThreatIcons", true,
+                "Show the Alerted/Aware threat icons on creature nameplates. Turn off to hide them.");
+            ThreatIconSize = Config.Bind("Creature/Player HUD", "ThreatIconSize", 5f,
+                new ConfigDescription("Size of the Alerted/Aware icons in pixels. SeneaL's own size is about 26.",
+                    new AcceptableValueRange<float>(2f, 32f)));
+            ThreatIconLift = Config.Bind("Creature/Player HUD", "ThreatIconLift", 10f,
+                new ConfigDescription("Raise the Alerted/Aware icons above the creature name, in pixels.",
+                    new AcceptableValueRange<float>(0f, 24f)));
+            ThreatIconOpacity = Config.Bind("Creature/Player HUD", "ThreatIconOpacity", 0.71f,
+                new ConfigDescription("Opacity of the Alerted/Aware icons. 1 is fully visible, 0 is invisible.",
+                    new AcceptableValueRange<float>(0f, 1f)));
             NameTextScale = Config.Bind("Creature/Player HUD", "NameTextScale", 0.75f,
                 new ConfigDescription("Size of the creature or player name above the health bar. 1 is SeneaL's size.",
                     new AcceptableValueRange<float>(0.5f, 2.5f)));
@@ -155,10 +172,12 @@ namespace SeneaLHudLayout
                 new ConfigDescription("Size of each creature level star, in pixels. Every star uses this size, and it stays matched to the health bar when you move closer or farther.",
                     new AcceptableValueRange<float>(4f, 24f)));
             ShowEnemyLevel = Config.Bind("Creature/Player HUD", "ShowEnemyLevel", false,
-                "Unused. The level label beside creature and boss names stays hidden.");
+                "Show the [Lvl:N] label under the health bar. If Creature Level and Loot Control already adds one, this toggles that label instead of drawing a second.");
             LevelSize = Config.Bind("Creature/Player HUD", "LevelSize", 14f,
-                new ConfigDescription("Font size of that level label.",
+                new ConfigDescription("Font size of our own level label when CLLC is not providing one.",
                     new AcceptableValueRange<float>(8f, 32f)));
+            HideNameplateExtras = Config.Bind("Creature/Player HUD", "HideNameplateExtras", false,
+                "Hide extra nameplate lines above the creature name (CLLC affixes like Aggressive, EliteCreatures mutation lines, and empty caption boxes on some modded creatures). Keeps the main Name and health/level text.");
             AlwaysShowStamina = Config.Bind("Vitals", "AlwaysShowStamina", false,
                 "Keep the stamina bar visible when it is full. Off leaves SeneaL UI's normal fade.");
             AlwaysShowEitr = Config.Bind("Vitals", "AlwaysShowEitr", false,
@@ -227,6 +246,7 @@ namespace SeneaLHudLayout
                 "Keep the coin purse out of chest deposits. Deposit All, Deposit Similar, and Stack All never take coins from the purse. Move coins into your inventory first if you want them in a chest. Turn this off to let those buttons take the purse.");
 
             Harmony harmony = new Harmony(GUID);
+            ShudnalConfigBridge.Apply(harmony);
             CompassPin.Apply(harmony);
             DrawerPreview.Apply(harmony);
             WorldHealthText.Apply(harmony);

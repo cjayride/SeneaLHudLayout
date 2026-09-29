@@ -4,6 +4,16 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.81
+
+- Threat icons: size/lift/opacity (`ThreatIconSize` 5, `ThreatIconLift` 10, `ThreatIconOpacity` 0.71). `ShowThreatIcons` to hide them.
+- Shudnal ConfigurationManager works with SeneaL `ModSettingsWindow = ConfigurationManager`.
+- Nameplate: ValuesBesideLabels restores when off; single CLLC-colored star row; `HideNameplateExtras`; `ShowEnemyLevel`.
+
+## 1.1.73
+
+- With SeneaL `ModSettingsWindow = ConfigurationManager`, F1 opens **shudnal ConfigurationManager** (SeneaL alone only detects the official BepInEx manager GUID).
+
 ## 1.1.31
 
 - Highlight and check color or size changes apply to items that are already selected.

@@ -1,5 +1,50 @@
 # Changelog
 
+## 1.1.81
+
+- `ThreatIconOpacity` default is now 0.71.
+- SeneaL `ModSettingsWindow = ConfigurationManager` works with shudnal ConfigurationManager.
+- Nameplate fixes: ValuesBesideLabels restore, threat icons toggle/size/lift/opacity, single CLLC-colored star row, HideNameplateExtras, ShowEnemyLevel.
+
+## 1.1.80
+
+- Fix: `ThreatIconSize` actually resizes (stretch anchors were ignoring sizeDelta; size changes no longer slide the icon).
+- Fix: `ThreatIconOpacity` applies to all graphics on the icon.
+- `ThreatIconSize` default is now 5.
+
+## 1.1.79
+
+- Threat icon defaults: `ThreatIconSize` 6, `ThreatIconLift` 10. Size slider now goes down to 2.
+- New: `ThreatIconOpacity` (default 1). Lower it to fade the Alerted/Aware icons.
+
+## 1.1.78
+
+- Threat icons (Alerted/Aware): smaller by default (`ThreatIconSize` 12, was SeneaL ~26) and lifted above the creature name (`ThreatIconLift` 4).
+
+## 1.1.77
+
+- Fix: only one star row on nameplates (stops gold + red duplicate stacks). CLLC affix coloring still applies to that row.
+
+## 1.1.76
+
+- Restored CLLC affix star colors (Aggressive red, Regenerating green, etc.). Stars stay left-aligned under the bar.
+
+## 1.1.75
+
+- New: `ShowThreatIcons` (default true). Set false to hide Alerted/Aware icons on nameplates.
+
+## 1.1.74
+
+- `ValuesBesideLabels` restores right-aligned numbers when turned off (no rejoin).
+- `ShowHealthNumbers` no longer hides the Alerted/Aware threat icons.
+- Creature stars stay gold and left-aligned under the bar; CLLC affix color no longer recolors them, and star layout no longer depends on health numbers being on.
+- `ShowEnemyLevel` shows a `[Lvl:N]` label when CLLC is not already providing one.
+- New: `HideNameplateExtras` hides affix/mutation/empty caption lines above the creature name.
+
+## 1.1.73
+
+- When SeneaL `ModSettingsWindow = ConfigurationManager`, F1 / Esc → Mods now open shudnal ConfigurationManager (SeneaL only recognized the official BepInEx GUID before).
+
 ## 1.1.72
 
 - `[Vitals] NumberBold` defaults to 0.8.

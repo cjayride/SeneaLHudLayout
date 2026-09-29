@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -14,6 +13,20 @@ namespace SeneaLHudLayout
 
         static FieldInfo _cmp;
         static readonly List<Job> _jobs = new List<Job>();
+        static readonly Dictionary<int, Snapshot> _original = new Dictionary<int, Snapshot>();
+        static readonly List<TMP_Text> _tracked = new List<TMP_Text>();
+
+        struct Snapshot
+        {
+            public Vector2 AnchorMin;
+            public Vector2 AnchorMax;
+            public Vector2 Pivot;
+            public Vector2 SizeDelta;
+            public Vector2 AnchoredPosition;
+            public TextAlignmentOptions Alignment;
+            public TextWrappingModes Wrap;
+            public TextOverflowModes Overflow;
+        }
 
         sealed class Job
         {
@@ -27,14 +40,14 @@ namespace SeneaLHudLayout
 
         public static void Apply(Harmony harmony)
         {
-            Type tooltip = AccessTools.TypeByName("SeneaLUI.Components.Tooltip");
+            System.Type tooltip = AccessTools.TypeByName("SeneaLUI.Components.Tooltip");
             MethodInfo layRow = tooltip != null ? AccessTools.Method(tooltip, "LayRow") : null;
             if (layRow != null)
             {
                 harmony.Patch(layRow, postfix: new HarmonyMethod(typeof(StatValues), nameof(AfterLayRow)));
             }
 
-            Type craft = AccessTools.TypeByName("SeneaLUI.Inv.CraftView");
+            System.Type craft = AccessTools.TypeByName("SeneaLUI.Inv.CraftView");
             MethodInfo place = craft != null ? AccessTools.Method(craft, "PlaceStat") : null;
             if (place != null)
             {
@@ -47,6 +60,22 @@ namespace SeneaLHudLayout
                 _cmp = AccessTools.Field(craft, "_cmp");
                 harmony.Patch(compare, postfix: new HarmonyMethod(typeof(StatValues), nameof(AfterCompare)));
             }
+
+            if (SeneaLHudLayoutPlugin.StatValuesBesideLabels != null)
+            {
+                SeneaLHudLayoutPlugin.StatValuesBesideLabels.SettingChanged += (_, __) =>
+                {
+                    if (!On)
+                    {
+                        for (int i = 0; i < _tracked.Count; i++)
+                        {
+                            Restore(_tracked[i]);
+                        }
+
+                        _jobs.Clear();
+                    }
+                };
+            }
         }
 
         static bool On
@@ -57,29 +86,53 @@ namespace SeneaLHudLayout
         [HarmonyPriority(Priority.Last)]
         static void AfterLayRow(object __1)
         {
-            if (!On || __1 == null)
+            if (__1 == null)
             {
                 return;
             }
 
-            Beside(Text(__1, "Label"), Text(__1, "Value"), Text(__1, "Small"));
+            TMP_Text label = Text(__1, "Label");
+            TMP_Text value = Text(__1, "Value");
+            TMP_Text small = Text(__1, "Small");
+            if (On)
+            {
+                Beside(label, value, small);
+            }
+            else
+            {
+                Restore(label);
+                Restore(value);
+                Restore(small);
+            }
         }
 
         [HarmonyPriority(Priority.Last)]
         static void AfterPlaceStat(object __0)
         {
-            if (!On || __0 == null)
+            if (__0 == null)
             {
                 return;
             }
 
-            Queue(Text(__0, "Label"), Text(__0, "Value"), Text(__0, "Small"), null, null);
+            TMP_Text label = Text(__0, "Label");
+            TMP_Text value = Text(__0, "Value");
+            TMP_Text small = Text(__0, "Small");
+            if (On)
+            {
+                Queue(label, value, small, null, null);
+            }
+            else
+            {
+                Restore(label);
+                Restore(value);
+                Restore(small);
+            }
         }
 
         [HarmonyPriority(Priority.Last)]
         static void AfterCompare(object __instance)
         {
-            if (!On || __instance == null || _cmp == null)
+            if (__instance == null || _cmp == null)
             {
                 return;
             }
@@ -93,8 +146,76 @@ namespace SeneaLHudLayout
             for (int i = 0; i < rows.Count; i++)
             {
                 object row = rows[i];
-                Queue(Text(row, "Label"), Text(row, "Cur"), Text(row, "Arrow"), Text(row, "Value"), Text(row, "Delta"));
+                TMP_Text label = Text(row, "Label");
+                TMP_Text cur = Text(row, "Cur");
+                TMP_Text arrow = Text(row, "Arrow");
+                TMP_Text value = Text(row, "Value");
+                TMP_Text delta = Text(row, "Delta");
+                if (On)
+                {
+                    Queue(label, cur, arrow, value, delta);
+                }
+                else
+                {
+                    Restore(label);
+                    Restore(cur);
+                    Restore(arrow);
+                    Restore(value);
+                    Restore(delta);
+                }
             }
+        }
+
+        static void Capture(TMP_Text text)
+        {
+            if (text == null)
+            {
+                return;
+            }
+
+            int id = text.GetInstanceID();
+            if (_original.ContainsKey(id))
+            {
+                return;
+            }
+
+            RectTransform rect = text.rectTransform;
+            _original[id] = new Snapshot
+            {
+                AnchorMin = rect.anchorMin,
+                AnchorMax = rect.anchorMax,
+                Pivot = rect.pivot,
+                SizeDelta = rect.sizeDelta,
+                AnchoredPosition = rect.anchoredPosition,
+                Alignment = text.alignment,
+                Wrap = text.textWrappingMode,
+                Overflow = text.overflowMode
+            };
+            _tracked.Add(text);
+        }
+
+        static void Restore(TMP_Text text)
+        {
+            if (text == null)
+            {
+                return;
+            }
+
+            int id = text.GetInstanceID();
+            if (!_original.TryGetValue(id, out Snapshot snap))
+            {
+                return;
+            }
+
+            RectTransform rect = text.rectTransform;
+            rect.anchorMin = snap.AnchorMin;
+            rect.anchorMax = snap.AnchorMax;
+            rect.pivot = snap.Pivot;
+            rect.sizeDelta = snap.SizeDelta;
+            rect.anchoredPosition = snap.AnchoredPosition;
+            text.alignment = snap.Alignment;
+            text.textWrappingMode = snap.Wrap;
+            text.overflowMode = snap.Overflow;
         }
 
         static void Beside(TMP_Text label, params TMP_Text[] parts)
@@ -102,6 +223,12 @@ namespace SeneaLHudLayout
             if (label == null)
             {
                 return;
+            }
+
+            Capture(label);
+            for (int i = 0; i < parts.Length; i++)
+            {
+                Capture(parts[i]);
             }
 
             bool wrapped = false;
@@ -154,6 +281,11 @@ namespace SeneaLHudLayout
 
         public static void Tick()
         {
+            if (!On)
+            {
+                return;
+            }
+
             for (int i = _jobs.Count - 1; i >= 0; i--)
             {
                 Job job = _jobs[i];
@@ -202,6 +334,12 @@ namespace SeneaLHudLayout
             {
                 return;
             }
+
+            Capture(label);
+            Capture(a);
+            Capture(b);
+            Capture(c);
+            Capture(d);
 
             TMP_Text[] parts = { a, b, c, d };
             bool wrapped = false;

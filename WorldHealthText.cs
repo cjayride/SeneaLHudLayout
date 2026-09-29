@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
@@ -12,11 +13,26 @@ namespace SeneaLHudLayout
     static class WorldHealthText
     {
         const string LabelName = "SeneaLHudLayout_Health";
+        const string StarRowName = "SeneaLHudLayout_Stars";
+        const string GlowName = "SeneaLHudLayout_StarGlow";
+        const string GlowInnerName = "SeneaLHudLayout_StarGlowInner";
+        const string LevelName = "SeneaLHudLayout_EnemyLevel";
+        static readonly Regex LevelPattern = new Regex(@"\[Lvl:\s*\d+\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         static readonly FieldInfo HudsField = AccessTools.Field(typeof(EnemyHud), "m_huds");
         static readonly FieldInfo CharacterField = AccessTools.Field(AccessTools.Inner(typeof(EnemyHud), "HudData"), "m_character");
         static readonly FieldInfo GuiField = AccessTools.Field(AccessTools.Inner(typeof(EnemyHud), "HudData"), "m_gui");
         static readonly FieldInfo HealthTextField = AccessTools.Field(AccessTools.Inner(typeof(EnemyHud), "HudData"), "m_healthText");
         static readonly FieldInfo NameField = AccessTools.Field(AccessTools.Inner(typeof(EnemyHud), "HudData"), "m_name");
+        static readonly Color StarGold = new Color(1f, 0.843f, 0.2f, 1f);
+        static readonly Color NoGlow = new Color(0f, 0f, 0f, 0f);
+        static readonly Dictionary<int, float> _nameSizes = new Dictionary<int, float>();
+        static readonly Dictionary<int, float> _barWidths = new Dictionary<int, float>();
+        static readonly Dictionary<int, float> _fillWidths = new Dictionary<int, float>();
+        static Type _guiBarType;
+        static FieldInfo _guiBarWidth;
+        static MethodInfo _setWidth;
+        static MethodInfo _extraEffect;
+        static bool _extraEffectLookup;
 
         public static void Apply(Harmony harmony)
         {
@@ -35,8 +51,14 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            bool show = SeneaLHudLayoutPlugin.ShowHealthNumbers != null
+            bool showHealth = SeneaLHudLayoutPlugin.ShowHealthNumbers != null
                 && SeneaLHudLayoutPlugin.ShowHealthNumbers.Value;
+            bool showLevel = SeneaLHudLayoutPlugin.ShowEnemyLevel != null
+                && SeneaLHudLayoutPlugin.ShowEnemyLevel.Value;
+            bool hideExtras = SeneaLHudLayoutPlugin.HideNameplateExtras != null
+                && SeneaLHudLayoutPlugin.HideNameplateExtras.Value;
+            bool showThreat = SeneaLHudLayoutPlugin.ShowThreatIcons == null
+                || SeneaLHudLayoutPlugin.ShowThreatIcons.Value;
 
             IDictionary huds = HudsField.GetValue(__instance) as IDictionary;
             if (huds == null)
@@ -60,9 +82,15 @@ namespace SeneaLHudLayout
                 }
 
                 TMP_Text plateName = NameField?.GetValue(data) as TMP_Text;
-                if (!show)
+                SizeName(plateName);
+
+                if (hideExtras)
                 {
-                    SizeName(plateName);
+                    HideExtras(gui.transform, plateName);
+                }
+
+                if (!showHealth)
+                {
                     Transform ours = gui.transform.Find(LabelName);
                     if (!ours)
                     {
@@ -80,30 +108,33 @@ namespace SeneaLHudLayout
                     {
                         vanillaText.gameObject.SetActive(true);
                     }
-
-                    continue;
                 }
-
-                TMP_Text label = HealthTextField?.GetValue(data) as TMP_Text;
-                if (!label)
+                else
                 {
-                    label = EnsureLabel(gui.transform, plateName);
-                    HealthTextField?.SetValue(data, label);
+                    TMP_Text label = HealthTextField?.GetValue(data) as TMP_Text;
+                    if (!label)
+                    {
+                        label = EnsureLabel(gui.transform, plateName);
+                        HealthTextField?.SetValue(data, label);
+                    }
+
+                    Transform vanilla = gui.transform.Find("Health/HealthText");
+                    if (vanilla && vanilla.gameObject != label.gameObject)
+                    {
+                        vanilla.gameObject.SetActive(false);
+                    }
+
+                    int hp = Mathf.CeilToInt(character.GetHealth());
+                    int max = Mathf.Max(1, Mathf.CeilToInt(character.GetMaxHealth()));
+                    label.text = hp + "/" + max;
+                    SizeHealth(label, plateName);
+                    PlaceHealthStack(character, gui.transform, label, plateName);
+                    label.gameObject.SetActive(true);
                 }
 
-                Transform vanilla = gui.transform.Find("Health/HealthText");
-                if (vanilla && vanilla.gameObject != label.gameObject)
-                {
-                    vanilla.gameObject.SetActive(false);
-                }
-
-                int hp = Mathf.CeilToInt(character.GetHealth());
-                int max = Mathf.Max(1, Mathf.CeilToInt(character.GetMaxHealth()));
-                label.text = hp + "/" + max;
-                SizeName(plateName);
-                SizeHealth(label, plateName);
-                Layout(character, gui.transform, label, plateName);
-                label.gameObject.SetActive(true);
+                // Stars, bar width, and level stay independent of health numbers so
+                // toggling ShowHealthNumbers does not recolor or recenter the stars.
+                LayoutBarAndStars(character, gui.transform, plateName, showLevel, showThreat);
             }
         }
 
@@ -160,8 +191,6 @@ namespace SeneaLHudLayout
             return tmp;
         }
 
-        static readonly Dictionary<int, float> _nameSizes = new Dictionary<int, float>();
-
         static void SizeName(TMP_Text name)
         {
             if (name == null)
@@ -200,19 +229,128 @@ namespace SeneaLHudLayout
             return size;
         }
 
-        static readonly Dictionary<int, float> _barWidths = new Dictionary<int, float>();
-        static readonly Dictionary<int, float> _fillWidths = new Dictionary<int, float>();
-        static Type _guiBarType;
-        static FieldInfo _guiBarWidth;
-        static MethodInfo _setWidth;
-        const string StarRowName = "SeneaLHudLayout_Stars";
-        const string GlowName = "SeneaLHudLayout_StarGlow";
-        const string GlowInnerName = "SeneaLHudLayout_StarGlowInner";
-        const string LevelName = "SeneaLHudLayout_EnemyLevel";
-        static readonly Color StarGold = new Color(1f, 0.843f, 0.2f, 1f);
-        static readonly Color NoGlow = new Color(0f, 0f, 0f, 0f);
-        static MethodInfo _extraEffect;
-        static bool _extraEffectLookup;
+        static void PlaceHealthStack(Character character, Transform gui, TMP_Text label, TMP_Text name)
+        {
+            RectTransform bar = gui.Find("Health") as RectTransform;
+            if (bar == null || label == null)
+            {
+                return;
+            }
+
+            bool boss = character.IsBoss() || gui.name.IndexOf("Boss", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!boss)
+            {
+                SteadyScale(gui);
+                bar.localScale = Vector3.one;
+                label.rectTransform.localScale = Vector3.one;
+                if (name != null)
+                {
+                    name.rectTransform.localScale = Vector3.one;
+                }
+            }
+
+            Vector3 up = bar.TransformVector(Vector3.up);
+            float unit = up.magnitude;
+            if (unit < 0.0001f)
+            {
+                return;
+            }
+
+            up /= unit;
+            Vector3 barTop = Edge(bar, top: true);
+            Vector3 mid = Center(bar);
+            MoveGlyph(label, barTop, bottom: true, mid);
+            if (name != null)
+            {
+                Vector3 hpTop = GlyphEdge(label, top: true);
+                MoveGlyph(name, hpTop, bottom: true, mid);
+            }
+        }
+
+        static void LayoutBarAndStars(Character character, Transform gui, TMP_Text name, bool showLevel, bool showThreat)
+        {
+            RectTransform bar = gui.Find("Health") as RectTransform;
+            if (bar == null)
+            {
+                return;
+            }
+
+            bool boss = character.IsBoss() || gui.name.IndexOf("Boss", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!boss)
+            {
+                SteadyScale(gui);
+                bar.localScale = Vector3.one;
+                Widen(bar);
+            }
+
+            Vector3 up = bar.TransformVector(Vector3.up);
+            float unit = up.magnitude;
+            if (unit < 0.0001f)
+            {
+                return;
+            }
+
+            up /= unit;
+            Vector3 barBottom = Edge(bar, top: false);
+            Vector3 barLeft = LeftEdge(bar);
+
+            if (!showThreat)
+            {
+                HideMarker(gui, "Alerted");
+                HideMarker(gui, "Aware");
+            }
+            else
+            {
+                PlaceThreatIcon(gui, "Alerted", name, up, unit);
+                PlaceThreatIcon(gui, "Aware", name, up, unit);
+            }
+
+            int stars = Mathf.Max(0, character.GetLevel() - 1);
+            Color glow = EffectGlow(character);
+            RectTransform row = EnsureStars(gui, character.GetLevel(), stars);
+            if (row != null)
+            {
+                HideRivalStars(gui, row);
+                FitStars(row, bar, glow);
+                Vector3 starTop = ImageEdge(row, top: true);
+                Vector3 starLeft = ImageLeft(row);
+                Vector3 delta = barBottom - up * unit - starTop;
+                delta.x = barLeft.x - starLeft.x;
+                row.position += delta;
+                row.SetAsLastSibling();
+            }
+            else
+            {
+                HideRivalStars(gui, null);
+            }
+
+            ApplyLevel(gui, bar, name, character, showLevel, up, unit, barBottom);
+        }
+
+        /// <summary>
+        /// Keep a single star row. Vanilla/SeneaL level_N plus CLLC/custom extras
+        /// otherwise stack as gold + colored duplicates.
+        /// </summary>
+        static void HideRivalStars(Transform gui, Transform keep)
+        {
+            for (int i = 0; i < gui.childCount; i++)
+            {
+                Transform child = gui.GetChild(i);
+                if (child == keep)
+                {
+                    continue;
+                }
+
+                string name = child.name;
+                bool starRow = name.StartsWith("level_", StringComparison.Ordinal)
+                    || name == StarRowName
+                    || name.IndexOf("Star", StringComparison.OrdinalIgnoreCase) >= 0;
+                if (starRow && child.gameObject.activeSelf)
+                {
+                    child.gameObject.SetActive(false);
+                }
+            }
+        }
 
         static Color EffectGlow(Character character)
         {
@@ -257,64 +395,197 @@ namespace SeneaLHudLayout
             }
         }
 
-        static void Layout(Character character, Transform gui, TMP_Text label, TMP_Text name)
+        static void HideMarker(Transform gui, string name)
         {
-            RectTransform bar = gui.Find("Health") as RectTransform;
-            if (bar == null || label == null)
+            Transform marker = gui.Find(name);
+            if (marker != null && marker.gameObject.activeSelf)
+            {
+                marker.gameObject.SetActive(false);
+            }
+        }
+
+        static void PlaceThreatIcon(Transform gui, string markerName, TMP_Text creatureName, Vector3 up, float unit)
+        {
+            if (!(gui.Find(markerName) is RectTransform rt) || !rt.gameObject.activeInHierarchy)
             {
                 return;
             }
 
-            bool boss = character.IsBoss() || gui.name.IndexOf("Boss", System.StringComparison.OrdinalIgnoreCase) >= 0;
-            if (!boss)
+            float size = SeneaLHudLayoutPlugin.ThreatIconSize != null
+                ? SeneaLHudLayoutPlugin.ThreatIconSize.Value
+                : 5f;
+            size = Mathf.Clamp(size, 2f, 32f);
+
+            // Stretch anchors ignore sizeDelta — lock to a centered box so size actually applies.
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.localScale = Vector3.one;
+            rt.sizeDelta = new Vector2(size, size);
+
+            float opacity = SeneaLHudLayoutPlugin.ThreatIconOpacity != null
+                ? SeneaLHudLayoutPlugin.ThreatIconOpacity.Value
+                : 0.71f;
+            opacity = Mathf.Clamp01(opacity);
+            Graphic[] graphics = rt.GetComponentsInChildren<Graphic>(true);
+            for (int i = 0; i < graphics.Length; i++)
             {
-                SteadyScale(gui);
-                bar.localScale = Vector3.one;
-                label.rectTransform.localScale = Vector3.one;
-                if (name != null)
+                Color color = graphics[i].color;
+                color.a = opacity;
+                graphics[i].color = color;
+            }
+
+            float liftPx = SeneaLHudLayoutPlugin.ThreatIconLift != null
+                ? SeneaLHudLayoutPlugin.ThreatIconLift.Value
+                : 10f;
+            liftPx = Mathf.Clamp(liftPx, 0f, 24f);
+
+            // Pin the icon center above the name so changing size does not slide it vertically.
+            if (creatureName != null)
+            {
+                Vector3 nameTop = GlyphEdge(creatureName, top: true);
+                Vector3 target = nameTop + up * ((liftPx + size * 0.5f) * unit);
+                Vector3 delta = target - Center(rt);
+                delta.x = 0f;
+                rt.position += delta;
+            }
+            else
+            {
+                rt.position += up * (liftPx * unit);
+            }
+        }
+
+        static void ApplyLevel(Transform gui, RectTransform bar, TMP_Text name, Character character, bool show, Vector3 up, float unit, Vector3 barBottom)
+        {
+            // Prefer an existing CLLC-style [Lvl:N] label when present.
+            TMP_Text foreign = FindForeignLevel(gui);
+            if (foreign != null)
+            {
+                // Do not hide CLLC's label when our option is off — only force it on when asked.
+                if (show && !foreign.gameObject.activeSelf)
                 {
-                    name.rectTransform.localScale = Vector3.one;
+                    foreign.gameObject.SetActive(true);
                 }
 
-                Widen(bar);
+                HideLevel(gui);
+                return;
             }
 
-            float gapPx = 0f;
-            Vector3 up = bar.TransformVector(Vector3.up);
-            float unit = up.magnitude;
-            if (unit < 0.0001f)
+            if (!show)
+            {
+                HideLevel(gui);
+                return;
+            }
+
+            TMP_Text label = EnsureLevel(gui, name);
+            if (label == null)
             {
                 return;
             }
 
-            up /= unit;
-            float gap = gapPx * unit;
-            Vector3 barTop = Edge(bar, top: true);
-            Vector3 barBottom = Edge(bar, top: false);
-            Vector3 mid = Center(bar);
+            int level = character.GetLevel();
+            label.text = "[Lvl:" + level + "]";
+            float size = SeneaLHudLayoutPlugin.LevelSize != null ? SeneaLHudLayoutPlugin.LevelSize.Value : 14f;
+            label.fontSize = size;
+            label.gameObject.SetActive(true);
 
-            MoveGlyph(label, barTop + up * gap, bottom: true, mid);
-            if (name != null)
+            RectTransform rt = label.rectTransform;
+            rt.localScale = Vector3.one;
+            Vector3 right = RightEdge(bar);
+            Vector3 top = GlyphEdge(label, top: true);
+            Vector3 delta = (barBottom - up * unit) - top;
+            delta.x = right.x - GlyphRight(label).x;
+            rt.position += delta;
+            rt.SetAsLastSibling();
+        }
+
+        static TMP_Text FindForeignLevel(Transform gui)
+        {
+            TMP_Text[] texts = gui.GetComponentsInChildren<TMP_Text>(true);
+            for (int i = 0; i < texts.Length; i++)
             {
-                Vector3 hpTop = GlyphEdge(label, top: true);
-                MoveGlyph(name, hpTop + up * gap, bottom: true, mid);
+                TMP_Text text = texts[i];
+                if (text == null || text.gameObject.name == LevelName || text.gameObject.name == LabelName)
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrEmpty(text.text) && LevelPattern.IsMatch(text.text))
+                {
+                    return text;
+                }
             }
 
-            HideLevel(gui);
-            HideMarker(gui, "Alerted");
-            HideMarker(gui, "Aware");
+            return null;
+        }
 
-            int stars = Mathf.Max(0, character.GetLevel() - 1);
-            Color glow = EffectGlow(character);
-            RectTransform row = EnsureStars(gui, character.GetLevel(), stars, glow);
-            if (row != null)
+        static TMP_Text EnsureLevel(Transform gui, TMP_Text name)
+        {
+            Transform existing = gui.Find(LevelName);
+            TextMeshProUGUI tmp = existing ? existing.GetComponent<TextMeshProUGUI>() : null;
+            if (tmp == null)
             {
-                FitStars(row, bar, glow);
-                Vector3 starTop = ImageEdge(row, top: true);
-                Vector3 delta = barBottom - up * unit - starTop;
-                delta.x = mid.x - ImageMid(row).x;
-                row.position += delta;
-                row.SetAsLastSibling();
+                GameObject go = new GameObject(LevelName);
+                go.transform.SetParent(gui, false);
+                tmp = go.AddComponent<TextMeshProUGUI>();
+                tmp.raycastTarget = false;
+                tmp.alignment = TextAlignmentOptions.Center;
+                tmp.textWrappingMode = TextWrappingModes.NoWrap;
+                tmp.overflowMode = TextOverflowModes.Overflow;
+            }
+
+            if (name != null && name.font != null)
+            {
+                tmp.font = name.font;
+                if (name.fontSharedMaterial != null)
+                {
+                    tmp.fontSharedMaterial = name.fontSharedMaterial;
+                }
+            }
+            else if (tmp.font == null && TMP_Settings.defaultFontAsset != null)
+            {
+                tmp.font = TMP_Settings.defaultFontAsset;
+            }
+
+            tmp.color = new Color(0.96f, 0.93f, 0.86f);
+            return tmp;
+        }
+
+        static void HideExtras(Transform gui, TMP_Text plateName)
+        {
+            TMP_Text[] texts = gui.GetComponentsInChildren<TMP_Text>(true);
+            for (int i = 0; i < texts.Length; i++)
+            {
+                TMP_Text text = texts[i];
+                if (text == null || text == plateName)
+                {
+                    continue;
+                }
+
+                string name = text.gameObject.name;
+                if (name == LabelName || name == LevelName || name == "HealthText" || name == "StaminaText" || name == "Name")
+                {
+                    continue;
+                }
+
+                Transform health = gui.Find("Health");
+                Transform stamina = gui.Find("Stamina");
+                if ((health != null && text.transform.IsChildOf(health)) ||
+                    (stamina != null && text.transform.IsChildOf(stamina)))
+                {
+                    continue;
+                }
+
+                if (LevelPattern.IsMatch(text.text ?? ""))
+                {
+                    continue;
+                }
+
+                // Extra affix / mutation / empty caption lines from CLLC, EliteCreatures, etc.
+                if (text.gameObject.activeSelf)
+                {
+                    text.gameObject.SetActive(false);
+                }
             }
         }
 
@@ -397,15 +668,6 @@ namespace SeneaLHudLayout
             }
         }
 
-        static void MoveRect(RectTransform rt, Vector3 worldTarget, bool bottom, Vector3 mid)
-        {
-            Vector3 edge = Edge(rt, top: !bottom);
-            Vector3 center = Center(rt);
-            Vector3 delta = worldTarget - edge;
-            delta.x = mid.x - center.x;
-            rt.position += delta;
-        }
-
         static void MoveGlyph(TMP_Text text, Vector3 worldTarget, bool bottom, Vector3 mid)
         {
             Vector3 edge = GlyphEdge(text, top: !bottom);
@@ -460,13 +722,41 @@ namespace SeneaLHudLayout
             return text.rectTransform.TransformPoint(new Vector3(0f, top ? max : min, 0f));
         }
 
-        static void HideMarker(Transform gui, string name)
+        static Vector3 GlyphRight(TMP_Text text)
         {
-            Transform marker = gui.Find(name);
-            if (marker != null && marker.gameObject.activeSelf)
+            text.ForceMeshUpdate();
+            float max = float.MinValue;
+            bool found = false;
+            TMP_TextInfo info = text.textInfo;
+            int count = info != null ? info.characterCount : 0;
+            Vector3 point = RightEdge(text.rectTransform);
+            for (int i = 0; i < count; i++)
             {
-                marker.gameObject.SetActive(false);
+                TMP_CharacterInfo character = info.characterInfo[i];
+                if (!character.isVisible)
+                {
+                    continue;
+                }
+
+                Vector3[] verts = info.meshInfo[character.materialReferenceIndex].vertices;
+                int index = character.vertexIndex;
+                if (verts == null || index + 3 >= verts.Length)
+                {
+                    continue;
+                }
+
+                for (int corner = 0; corner < 4; corner++)
+                {
+                    float x = verts[index + corner].x;
+                    if (!found || x > max)
+                    {
+                        max = x;
+                        found = true;
+                    }
+                }
             }
+
+            return found ? text.rectTransform.TransformPoint(new Vector3(max, 0f, 0f)) : point;
         }
 
         static void HideLevel(Transform gui)
@@ -485,6 +775,20 @@ namespace SeneaLHudLayout
             return top ? (corners[1] + corners[2]) * 0.5f : (corners[0] + corners[3]) * 0.5f;
         }
 
+        static Vector3 LeftEdge(RectTransform rt)
+        {
+            Vector3[] corners = new Vector3[4];
+            rt.GetWorldCorners(corners);
+            return (corners[0] + corners[1]) * 0.5f;
+        }
+
+        static Vector3 RightEdge(RectTransform rt)
+        {
+            Vector3[] corners = new Vector3[4];
+            rt.GetWorldCorners(corners);
+            return (corners[2] + corners[3]) * 0.5f;
+        }
+
         static Vector3 Center(RectTransform rt)
         {
             Vector3[] corners = new Vector3[4];
@@ -492,7 +796,7 @@ namespace SeneaLHudLayout
             return (corners[0] + corners[2]) * 0.5f;
         }
 
-        static RectTransform EnsureStars(Transform gui, int level, int stars, Color glow)
+        static RectTransform EnsureStars(Transform gui, int level, int stars)
         {
             Transform custom = gui.Find(StarRowName);
             if (stars <= 0)
@@ -626,7 +930,7 @@ namespace SeneaLHudLayout
             }
 
             float step = size + 1f;
-            float x = -(count - 1) * step * 0.5f;
+            float x = 0f;
             Color color = FadeStar(tint.a > 0.01f ? tint : StarGold);
             for (int i = 0; i < row.childCount; i++)
             {
@@ -659,9 +963,9 @@ namespace SeneaLHudLayout
 
                 float match = barScale / parentScale;
                 slot.localScale = new Vector3(match, match, 1f);
-                slot.anchorMin = new Vector2(0.5f, 0.5f);
-                slot.anchorMax = new Vector2(0.5f, 0.5f);
-                slot.pivot = new Vector2(0.5f, 0.5f);
+                slot.anchorMin = new Vector2(0f, 0.5f);
+                slot.anchorMax = new Vector2(0f, 0.5f);
+                slot.pivot = new Vector2(0f, 0.5f);
                 slot.sizeDelta = new Vector2(size, size);
                 slot.anchoredPosition = new Vector2(x, 0f);
                 if (face.rectTransform != slot)
@@ -747,10 +1051,11 @@ namespace SeneaLHudLayout
             return point;
         }
 
-        static Vector3 ImageMid(RectTransform row)
+        static Vector3 ImageLeft(RectTransform row)
         {
-            Vector3 sum = Vector3.zero;
-            int count = 0;
+            Vector3 point = LeftEdge(row);
+            bool found = false;
+            float best = float.MaxValue;
             Image[] images = row.GetComponentsInChildren<Image>(true);
             for (int i = 0; i < images.Length; i++)
             {
@@ -759,11 +1064,16 @@ namespace SeneaLHudLayout
                     continue;
                 }
 
-                sum += Center(images[i].rectTransform);
-                count++;
+                Vector3 left = LeftEdge(images[i].rectTransform);
+                if (!found || left.x < best)
+                {
+                    best = left.x;
+                    point = left;
+                    found = true;
+                }
             }
 
-            return count > 0 ? sum / count : Center(row);
+            return point;
         }
 
         static bool StarFace(Image image)
@@ -785,6 +1095,5 @@ namespace SeneaLHudLayout
             color.a = 0.75f;
             return color;
         }
-
     }
 }
