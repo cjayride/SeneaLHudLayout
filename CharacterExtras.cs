@@ -11,6 +11,10 @@ namespace SeneaLHudLayout
     {
         const string LevelName = "SeneaLHudLayout_Level";
         const string FoodLevelName = "SeneaLHudLayout_FoodLevel";
+        const string TalentsName = "SeneaLHudLayout_Talents";
+        const string XpBarName = "SeneaLHudLayout_LevelXp";
+        const float XpBarWidth = 100f;
+        const float XpBarHeight = 6f;
 
         static Transform _tabs;
         static TextMeshProUGUI _level;
@@ -22,6 +26,14 @@ namespace SeneaLHudLayout
         static MethodInfo _getLevel;
         static bool _levelLookup;
         static bool _loggedLevel;
+        static Button _talents;
+        static TextMeshProUGUI _talentsLabel;
+        static MethodInfo _talentToggle;
+        static bool _talentLookup;
+        static Image _xpBack;
+        static Image _xpFill;
+        static MethodInfo _getFraction;
+        static bool _fractionLookup;
 
         public static void Tick()
         {
@@ -48,6 +60,7 @@ namespace SeneaLHudLayout
                     _level.gameObject.SetActive(false);
                 }
 
+                HideLevelExtras();
                 return;
             }
 
@@ -63,6 +76,229 @@ namespace SeneaLHudLayout
             if (!_level.gameObject.activeSelf)
             {
                 _level.gameObject.SetActive(true);
+            }
+
+            TickTalents(true);
+            TickXpBar(true);
+        }
+
+        static void HideLevelExtras()
+        {
+            TickTalents(false);
+            TickXpBar(false);
+        }
+
+        static void TickTalents(bool levelShown)
+        {
+            bool show = levelShown && SeneaLHudLayoutPlugin.ShowTalentsButton != null && SeneaLHudLayoutPlugin.ShowTalentsButton.Value && FindTalentToggle() != null;
+            if (!show)
+            {
+                if (_talents != null && _talents.gameObject.activeSelf)
+                {
+                    _talents.gameObject.SetActive(false);
+                }
+
+                return;
+            }
+
+            if (!EnsureTalents())
+            {
+                return;
+            }
+
+            _level.ForceMeshUpdate();
+            float levelWidth = Mathf.Ceil(_level.preferredWidth);
+            _talentsLabel.ForceMeshUpdate();
+            float width = Mathf.Ceil(_talentsLabel.preferredWidth) + 12f;
+            RectTransform rt = _talents.GetComponent<RectTransform>();
+            rt.anchoredPosition = new Vector2(18f + levelWidth + 10f, -11f);
+            rt.sizeDelta = new Vector2(Mathf.Max(48f, width), 18f);
+            rt.SetAsLastSibling();
+
+            if (!_talents.gameObject.activeSelf)
+            {
+                _talents.gameObject.SetActive(true);
+            }
+        }
+
+        static bool EnsureTalents()
+        {
+            if (_talents != null && _talentsLabel != null && _talents.transform.parent == _tabs)
+            {
+                return true;
+            }
+
+            Transform existing = _tabs.Find(TalentsName);
+            if (existing != null)
+            {
+                UnityEngine.Object.Destroy(existing.gameObject);
+            }
+
+            GameObject go = new GameObject(TalentsName);
+            go.transform.SetParent(_tabs, false);
+            Image plate = go.AddComponent<Image>();
+            plate.sprite = Pixel();
+            plate.color = new Color(0.07f, 0.05f, 0.03f, 0.72f);
+            plate.raycastTarget = true;
+            _talents = go.AddComponent<Button>();
+            _talents.targetGraphic = plate;
+            _talents.onClick.AddListener(OnTalents);
+
+            RectTransform rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+
+            GameObject textGo = new GameObject("t");
+            textGo.transform.SetParent(go.transform, false);
+            _talentsLabel = textGo.AddComponent<TextMeshProUGUI>();
+            _talentsLabel.raycastTarget = false;
+            _talentsLabel.alignment = TextAlignmentOptions.Center;
+            _talentsLabel.textWrappingMode = TextWrappingModes.NoWrap;
+            _talentsLabel.overflowMode = TextOverflowModes.Overflow;
+            _talentsLabel.fontSize = 12f;
+            _talentsLabel.fontStyle = FontStyles.Bold;
+            _talentsLabel.color = new Color(0.93f, 0.82f, 0.52f, 1f);
+            _talentsLabel.text = "Talents";
+            if (_level.font != null)
+            {
+                _talentsLabel.font = _level.font;
+                _talentsLabel.fontSharedMaterial = _level.fontSharedMaterial;
+            }
+
+            RectTransform textRt = _talentsLabel.rectTransform;
+            textRt.anchorMin = Vector2.zero;
+            textRt.anchorMax = Vector2.one;
+            textRt.offsetMin = new Vector2(6f, 0f);
+            textRt.offsetMax = new Vector2(-6f, 0f);
+            return true;
+        }
+
+        static void OnTalents()
+        {
+            MethodInfo toggle = FindTalentToggle();
+            if (toggle == null)
+            {
+                return;
+            }
+
+            try
+            {
+                toggle.Invoke(null, null);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[SeneaL HUD Layout] Could not open TalentTree: " + e.GetBaseException().Message);
+            }
+        }
+
+        static MethodInfo FindTalentToggle()
+        {
+            if (!_talentLookup)
+            {
+                _talentLookup = true;
+                Type window = ModTypes.Find("TalentTree", "UI.TalentWindow");
+                _talentToggle = window == null ? null : AccessTools.Method(window, "Toggle", Type.EmptyTypes);
+            }
+
+            return _talentToggle;
+        }
+
+        static void TickXpBar(bool levelShown)
+        {
+            bool show = levelShown && SeneaLHudLayoutPlugin.ShowLevelXpBar != null && SeneaLHudLayoutPlugin.ShowLevelXpBar.Value;
+            float fraction = show ? ReadLevelFraction(Player.m_localPlayer) : -1f;
+            if (fraction < 0f)
+            {
+                if (_xpBack != null && _xpBack.gameObject.activeSelf)
+                {
+                    _xpBack.gameObject.SetActive(false);
+                }
+
+                return;
+            }
+
+            if (!EnsureXpBar())
+            {
+                return;
+            }
+
+            RectTransform level = _level.rectTransform;
+            RectTransform back = _xpBack.rectTransform;
+            back.anchoredPosition = new Vector2(level.anchoredPosition.x, level.anchoredPosition.y - level.sizeDelta.y - 10f);
+            back.sizeDelta = new Vector2(XpBarWidth, XpBarHeight);
+            _xpFill.rectTransform.sizeDelta = new Vector2((XpBarWidth - 2f) * Mathf.Clamp01(fraction), XpBarHeight - 2f);
+
+            if (!_xpBack.gameObject.activeSelf)
+            {
+                _xpBack.gameObject.SetActive(true);
+            }
+        }
+
+        static bool EnsureXpBar()
+        {
+            if (_xpBack != null && _xpFill != null && _xpBack.transform.parent == _tabs)
+            {
+                return true;
+            }
+
+            Transform existing = _tabs.Find(XpBarName);
+            if (existing != null)
+            {
+                UnityEngine.Object.Destroy(existing.gameObject);
+            }
+
+            GameObject go = new GameObject(XpBarName);
+            go.transform.SetParent(_tabs, false);
+            _xpBack = go.AddComponent<Image>();
+            _xpBack.sprite = Pixel();
+            _xpBack.color = new Color(0f, 0f, 0f, 0.65f);
+            _xpBack.raycastTarget = false;
+            RectTransform rt = _xpBack.rectTransform;
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+
+            GameObject fillGo = new GameObject("fill");
+            fillGo.transform.SetParent(go.transform, false);
+            _xpFill = fillGo.AddComponent<Image>();
+            _xpFill.sprite = Pixel();
+            _xpFill.color = new Color(1f, 0.86f, 0.25f, 0.95f);
+            _xpFill.raycastTarget = false;
+            RectTransform fillRt = _xpFill.rectTransform;
+            fillRt.anchorMin = new Vector2(0f, 0.5f);
+            fillRt.anchorMax = new Vector2(0f, 0.5f);
+            fillRt.pivot = new Vector2(0f, 0.5f);
+            fillRt.anchoredPosition = new Vector2(1f, 0f);
+            return true;
+        }
+
+        static float ReadLevelFraction(Player player)
+        {
+            if (player == null)
+            {
+                return -1f;
+            }
+
+            if (!_fractionLookup)
+            {
+                _fractionLookup = true;
+                Type type = ModTypes.Find("SkillsReworked", "SkillsReworked.Systems.Progression.LevelSkillService");
+                _getFraction = type == null ? null : AccessTools.Method(type, "GetCurrentLevelFraction", new[] { typeof(Player) });
+            }
+
+            if (_getFraction == null)
+            {
+                return -1f;
+            }
+
+            try
+            {
+                return (float)_getFraction.Invoke(null, new object[] { player });
+            }
+            catch (Exception)
+            {
+                return -1f;
             }
         }
 

@@ -4,6 +4,12 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.82
+
+- Talents button beside the character-window level (opens TalentTree). `ShowTalentsButton`.
+- 100 px SkillsReworked XP bar under that level. `ShowLevelXpBar`.
+- Fix: skills like Tenacity can take points again after a death leaves them at a partial level. Needs Tenacity and SkillsReworked. `FixSkillRespendAfterDeath`.
+
 ## 1.1.81
 
 - Threat icons: size/lift/opacity (`ThreatIconSize` 5, `ThreatIconLift` 10, `ThreatIconOpacity` 0.71). `ShowThreatIcons` to hide them.

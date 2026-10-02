@@ -11,6 +11,8 @@ namespace SeneaLHudLayout
     [BepInDependency("org.bepinex.plugins.passivepowers", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.grillspett.itemdrawers", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("M2Valheim.SkillsReworked", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("M2Valheim.TalentTree", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("org.bepinex.plugins.tenacity", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.maxsch.valheim.vnei", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("org.bepinex.plugins.creaturelevelcontrol", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("cjayride.CompactStatusSquares", BepInDependency.DependencyFlags.SoftDependency)]
@@ -19,7 +21,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.81";
+        public const string VERSION = "1.1.82";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -70,6 +72,9 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> HideServerRules;
         public static ConfigEntry<bool> HideChat;
         public static ConfigEntry<bool> ShowLevelCharacterWindow;
+        public static ConfigEntry<bool> ShowTalentsButton;
+        public static ConfigEntry<bool> ShowLevelXpBar;
+        public static ConfigEntry<bool> FixSkillRespendAfterDeath;
         public static ConfigEntry<bool> ShowLevelFoodBar;
         public static ConfigEntry<float> ShowLevelFoodBarOffsetX;
         public static ConfigEntry<float> ShowLevelFoodBarOffsetY;
@@ -216,6 +221,12 @@ namespace SeneaLHudLayout
                 "Hide SeneaL UI's chat window. Chat messages still exist for another chat mod, such as Chatter.");
             ShowLevelCharacterWindow = Config.Bind("Character", "ShowLevelCharacterWindow", true,
                 "Show your SkillsReworked level in the top left of the character window (Skills, Texts, Trophies, and PvP).");
+            ShowTalentsButton = Config.Bind("Character", "ShowTalentsButton", true,
+                "Show a Talents button beside that character-window level. It opens TalentTree. Needs TalentTree installed.");
+            ShowLevelXpBar = Config.Bind("Character", "ShowLevelXpBar", true,
+                "Show a 100 pixel SkillsReworked XP bar under that character-window level.");
+            FixSkillRespendAfterDeath = Config.Bind("Character", "FixSkillRespendAfterDeath", true,
+                "Let you spend points again in a skill that lost a partial level on death, such as Tenacity going from 30 to 29.1. Fractional levels are rounded down when the Skills window opens. Only works when both Smoothbrain Tenacity and SkillsReworked are installed. Otherwise it does nothing.");
             ShowLevelFoodBar = Config.Bind("Character", "ShowLevelFoodBar", true,
                 "Show your SkillsReworked level directly under the food timers.");
             ShowLevelFoodBarOffsetX = Config.Bind("Character", "ShowLevelFoodBarOffsetX", -39f,
@@ -261,6 +272,7 @@ namespace SeneaLHudLayout
             StatValues.Apply(harmony);
             CraftMaterials.Apply(harmony);
             StatusEffectsPlace.Apply(harmony);
+            SkillRespendFix.Apply(harmony);
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
         }
 

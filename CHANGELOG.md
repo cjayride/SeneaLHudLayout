@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.82
+
+- New: Talents button in the character window, 10 px right of the level. Opens TalentTree (its own button sits in the inventory, which SeneaL hides). `ShowTalentsButton`.
+- New: 100 px SkillsReworked XP bar 10 px under the character-window level. `ShowLevelXpBar`.
+- Fix: after a death, Tenacity (and other SkillManager skills) could be left at a partial level like 29.1, and SkillsReworked would refuse to spend points into it until Rebirth. Fractional levels are now rounded down when the Skills window opens. Only active when both Tenacity and SkillsReworked are installed. `FixSkillRespendAfterDeath`, on by default.
+- Package now includes a default `config/cjayride.SeneaLHudLayout.cfg`.
+
 ## 1.1.81
 
 - `ThreatIconOpacity` default is now 0.71.
