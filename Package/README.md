@@ -4,6 +4,10 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.83
+
+- Gold diamonds and lines beside creature names are hidden by default. `ShowNameplateDiamonds` to bring them back.
+
 ## 1.1.82
 
 - Talents button beside the character-window level (opens TalentTree). `ShowTalentsButton`.

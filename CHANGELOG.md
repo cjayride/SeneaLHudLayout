@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.83
+
+- New: `ShowNameplateDiamonds` (Creature/Player HUD, off by default) hides SeneaL UI's gold diamonds and lines beside creature names.
+
 ## 1.1.82
 
 - New: Talents button in the character window, 10 px right of the level. Opens TalentTree (its own button sits in the inventory, which SeneaL hides). `ShowTalentsButton`.

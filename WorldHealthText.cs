@@ -59,6 +59,8 @@ namespace SeneaLHudLayout
                 && SeneaLHudLayoutPlugin.HideNameplateExtras.Value;
             bool showThreat = SeneaLHudLayoutPlugin.ShowThreatIcons == null
                 || SeneaLHudLayoutPlugin.ShowThreatIcons.Value;
+            bool showDiamonds = SeneaLHudLayoutPlugin.ShowNameplateDiamonds != null
+                && SeneaLHudLayoutPlugin.ShowNameplateDiamonds.Value;
 
             IDictionary huds = HudsField.GetValue(__instance) as IDictionary;
             if (huds == null)
@@ -83,6 +85,14 @@ namespace SeneaLHudLayout
 
                 TMP_Text plateName = NameField?.GetValue(data) as TMP_Text;
                 SizeName(plateName);
+
+                if (!showDiamonds && plateName)
+                {
+                    HideChild(plateName.transform, "sdl");
+                    HideChild(plateName.transform, "sdr");
+                    HideChild(plateName.transform, "srl");
+                    HideChild(plateName.transform, "srr");
+                }
 
                 if (hideExtras)
                 {
@@ -144,6 +154,15 @@ namespace SeneaLHudLayout
             if (hud != null)
             {
                 AfterUpdateHuds(hud);
+            }
+        }
+
+        static void HideChild(Transform parent, string name)
+        {
+            Transform child = parent.Find(name);
+            if (child && child.gameObject.activeSelf)
+            {
+                child.gameObject.SetActive(false);
             }
         }
 

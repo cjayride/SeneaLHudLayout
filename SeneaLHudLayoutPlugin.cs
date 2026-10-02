@@ -21,7 +21,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.82";
+        public const string VERSION = "1.1.83";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -45,6 +45,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> CollapseDrawerPreview;
         public static ConfigEntry<bool> ShowHealthNumbers;
         public static ConfigEntry<bool> ShowThreatIcons;
+        public static ConfigEntry<bool> ShowNameplateDiamonds;
         public static ConfigEntry<float> ThreatIconSize;
         public static ConfigEntry<float> ThreatIconLift;
         public static ConfigEntry<float> ThreatIconOpacity;
@@ -155,6 +156,8 @@ namespace SeneaLHudLayout
                 "Show current/max health on creature and player nameplates. Order is name, health numbers, health bar, then stars.");
             ShowThreatIcons = Config.Bind("Creature/Player HUD", "ShowThreatIcons", true,
                 "Show the Alerted/Aware threat icons on creature nameplates. Turn off to hide them.");
+            ShowNameplateDiamonds = Config.Bind("Creature/Player HUD", "ShowNameplateDiamonds", false,
+                "Show SeneaL UI's gold diamonds and lines on either side of the creature name. Off hides them.");
             ThreatIconSize = Config.Bind("Creature/Player HUD", "ThreatIconSize", 5f,
                 new ConfigDescription("Size of the Alerted/Aware icons in pixels. SeneaL's own size is about 26.",
                     new AcceptableValueRange<float>(2f, 32f)));
