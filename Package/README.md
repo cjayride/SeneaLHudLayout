@@ -4,6 +4,10 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.84
+
+- Creature level stars can be hidden. `ShowCreatureStars` (on by default).
+
 ## 1.1.83
 
 - Gold diamonds and lines beside creature names are hidden by default. `ShowNameplateDiamonds` to bring them back.

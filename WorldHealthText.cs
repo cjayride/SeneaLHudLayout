@@ -324,9 +324,11 @@ namespace SeneaLHudLayout
                 PlaceThreatIcon(gui, "Aware", name, up, unit);
             }
 
+            bool showStars = SeneaLHudLayoutPlugin.ShowCreatureStars == null
+                || SeneaLHudLayoutPlugin.ShowCreatureStars.Value;
             int stars = Mathf.Max(0, character.GetLevel() - 1);
             Color glow = EffectGlow(character);
-            RectTransform row = EnsureStars(gui, character.GetLevel(), stars);
+            RectTransform row = showStars ? EnsureStars(gui, character.GetLevel(), stars) : null;
             if (row != null)
             {
                 HideRivalStars(gui, row);

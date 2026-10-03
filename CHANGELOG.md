@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.84
+
+- New: `ShowCreatureStars` (Creature/Player HUD, on by default) hides creature level stars, including CLLC-colored rows.
+
 ## 1.1.83
 
 - New: `ShowNameplateDiamonds` (Creature/Player HUD, off by default) hides SeneaL UI's gold diamonds and lines beside creature names.
