@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.85
+
+- New: `UseVanillaSkillsWindow` (Character, on by default). When SkillsReworked is installed, the Skills button opens the vanilla window so its spend-points controls are visible. SeneaL's skills list stays hidden.
+- Passive Powers: the shared "Passive" label is hidden. While the shortcut keys are grey, the shared cooldown is shown under them.
+- Passive Powers key, buff, and cooldown labels use the in-game font instead of LiberationSans.
+
 ## 1.1.84
 
 - New: `ShowCreatureStars` (Creature/Player HUD, on by default) hides creature level stars, including CLLC-colored rows.

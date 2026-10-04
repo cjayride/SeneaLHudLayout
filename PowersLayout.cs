@@ -96,6 +96,7 @@ namespace SeneaLHudLayout
             }
 
             RememberFont(hud);
+            TmpFont.Ensure();
 
             var shown = new List<Transform>();
             Transform root = hud.m_gpRoot.transform;
@@ -129,10 +130,13 @@ namespace SeneaLHudLayout
                 }
 
                 shown[i].position += new Vector3(x - minX, y - minY, 0f);
+                HidePowerTitle(shown[i]);
                 SetKey(shown[i], ShortcutText(config, slot), shared > 0f);
                 string power = PowerName(slot);
-                SetTimer(shown[i], BuffName, power == null ? 0f : EffectTimeLeft("PassivePowers " + power), BuffColor, above: true);
-                SetTimer(shown[i], DownName, power == null ? 0f : EffectTimeLeft("PassivePowers Depletion " + power), DownColor, above: false);
+                float buff = power == null ? 0f : EffectTimeLeft("PassivePowers " + power);
+                float down = power == null ? 0f : EffectTimeLeft("PassivePowers Depletion " + power);
+                SetTimer(shown[i], BuffName, buff, BuffColor, above: true);
+                SetTimer(shown[i], DownName, Mathf.Max(down, shared), DownColor, above: false);
 
                 if (shown[i].Find("Icon") is RectTransform icon)
                 {
@@ -148,6 +152,33 @@ namespace SeneaLHudLayout
             }
 
             PlaceSharedCooldown(hud, rightIcon, shared, scale);
+            HidePassiveWord(hud);
+        }
+
+        static void HidePassiveWord(Hud hud)
+        {
+            if (hud.m_gpCooldown == null)
+            {
+                return;
+            }
+
+            string passive = Localization.instance != null
+                ? Localization.instance.Localize("$powers_type_passive")
+                : "Passive";
+            if (hud.m_gpCooldown.text == passive || hud.m_gpCooldown.text == "$powers_type_passive")
+            {
+                hud.m_gpCooldown.text = "";
+                hud.m_gpCooldown.gameObject.SetActive(false);
+            }
+        }
+
+        static void HidePowerTitle(Transform container)
+        {
+            Transform name = container.Find("Name");
+            if (name != null && name.gameObject.activeSelf)
+            {
+                name.gameObject.SetActive(false);
+            }
         }
 
         static void ResetScale()
@@ -413,25 +444,32 @@ namespace SeneaLHudLayout
             Transform existing = container.Find(name);
             if (existing != null)
             {
-                return existing.GetComponent<TextMeshProUGUI>();
+                TextMeshProUGUI current = existing.GetComponent<TextMeshProUGUI>();
+                TmpFont.Apply(current);
+                return current;
             }
 
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(container, false);
+            go.SetActive(false);
             var labelRt = go.GetComponent<RectTransform>();
             labelRt.sizeDelta = new Vector2(96f, 18f);
+            TmpFont.Ensure();
             var label = go.AddComponent<TextMeshProUGUI>();
+            if (_font != null)
+            {
+                label.font = _font;
+                label.fontSharedMaterial = _fontMaterial;
+            }
+
+            TmpFont.Apply(label);
             label.fontSize = 13f;
             label.alignment = TextAlignmentOptions.Center;
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.overflowMode = TextOverflowModes.Overflow;
             label.raycastTarget = false;
             label.color = color;
-            if (_font != null)
-            {
-                label.font = _font;
-                label.fontSharedMaterial = _fontMaterial;
-            }
+            go.SetActive(true);
 
             return label;
         }

@@ -21,7 +21,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.84";
+        public const string VERSION = "1.1.85";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -77,6 +77,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> ShowTalentsButton;
         public static ConfigEntry<bool> ShowLevelXpBar;
         public static ConfigEntry<bool> FixSkillRespendAfterDeath;
+        public static ConfigEntry<bool> UseVanillaSkillsWindow;
         public static ConfigEntry<bool> ShowLevelFoodBar;
         public static ConfigEntry<float> ShowLevelFoodBarOffsetX;
         public static ConfigEntry<float> ShowLevelFoodBarOffsetY;
@@ -233,6 +234,8 @@ namespace SeneaLHudLayout
                 "Show a 100 pixel SkillsReworked XP bar under that character-window level.");
             FixSkillRespendAfterDeath = Config.Bind("Character", "FixSkillRespendAfterDeath", true,
                 "Let you spend points again in a skill that lost a partial level on death, such as Tenacity going from 30 to 29.1. Fractional levels are rounded down when the Skills window opens. Only works when both Smoothbrain Tenacity and SkillsReworked are installed. Otherwise it does nothing.");
+            UseVanillaSkillsWindow = Config.Bind("Character", "UseVanillaSkillsWindow", true,
+                "When SkillsReworked is installed, leave the vanilla Skills window visible so you can spend its skill points. SeneaL UI's own skills list stays hidden. Does nothing if SkillsReworked is not installed.");
             ShowLevelFoodBar = Config.Bind("Character", "ShowLevelFoodBar", true,
                 "Show your SkillsReworked level directly under the food timers.");
             ShowLevelFoodBarOffsetX = Config.Bind("Character", "ShowLevelFoodBarOffsetX", -39f,
@@ -279,6 +282,7 @@ namespace SeneaLHudLayout
             CraftMaterials.Apply(harmony);
             StatusEffectsPlace.Apply(harmony);
             SkillRespendFix.Apply(harmony);
+            VanillaSkillsWindow.Apply(harmony);
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
         }
 

@@ -4,6 +4,11 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.85
+
+- With SkillsReworked installed, the Skills button opens the vanilla window. `UseVanillaSkillsWindow`.
+- The Passive Powers "Passive" label is hidden. Grey shortcut keys show the shared cooldown under them.
+
 ## 1.1.84
 
 - Creature level stars can be hidden. `ShowCreatureStars` (on by default).
