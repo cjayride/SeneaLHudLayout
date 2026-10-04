@@ -4,6 +4,13 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.93
+
+- Character window: Quests button (EpicLoot adventure mode) and Talents button (TalentTree), left of the settings gear. Same dark fill, 1 pixel brass edge.
+- Quests opens Bounties and Treasure tabs: target, zone, stars, loot, and a Map button. Closing the map returns to that list. `Bounties: 2/8` uses EpicLoot's Max Bounties Per Player. Treasure shows how many maps you have.
+- Accepting a bounty or treasure map from Haldor does not open the map (`Quests` / `KeepMapClosedOnAccept`, on by default).
+- Passive Powers shared cooldown is shown beside the icons.
+
 ## 1.1.85
 
 - With SkillsReworked installed, the Skills button opens the vanilla window. `UseVanillaSkillsWindow`.

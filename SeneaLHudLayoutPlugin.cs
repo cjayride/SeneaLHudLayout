@@ -21,7 +21,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.86";
+        public const string VERSION = "1.1.93";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -75,6 +75,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> HideChat;
         public static ConfigEntry<bool> ShowLevelCharacterWindow;
         public static ConfigEntry<bool> ShowTalentsButton;
+        public static ConfigEntry<bool> KeepMapClosedOnAccept;
         public static ConfigEntry<bool> ShowLevelXpBar;
         public static ConfigEntry<bool> FixSkillRespendAfterDeath;
         public static ConfigEntry<bool> UseVanillaSkillsWindow;
@@ -229,7 +230,9 @@ namespace SeneaLHudLayout
             ShowLevelCharacterWindow = Config.Bind("Character", "ShowLevelCharacterWindow", true,
                 "Show your SkillsReworked level in the top left of the character window (Skills, Texts, Trophies, and PvP).");
             ShowTalentsButton = Config.Bind("Character", "ShowTalentsButton", true,
-                "Show a Talents button beside that character-window level. It opens TalentTree. Needs TalentTree installed.");
+                "Show a Talents button at the top right of the character window, left of the settings gear. It opens TalentTree. Needs TalentTree installed.");
+            KeepMapClosedOnAccept = Config.Bind("Quests", "KeepMapClosedOnAccept", true,
+                "Buying a bounty or treasure map from the trader does not open the world map.");
             ShowLevelXpBar = Config.Bind("Character", "ShowLevelXpBar", true,
                 "Show a 100 pixel SkillsReworked XP bar under that character-window level.");
             FixSkillRespendAfterDeath = Config.Bind("Character", "FixSkillRespendAfterDeath", true,
@@ -272,6 +275,7 @@ namespace SeneaLHudLayout
             WorldHealthText.Apply(harmony);
             SlotCue.Apply(harmony);
             CharacterExtras.Apply(harmony);
+            AdventureJournal.Apply(harmony);
             RulesNotice.Apply(harmony);
             ChatHide.Apply(harmony);
             CenterMessageRoute.Apply(harmony);
@@ -291,6 +295,7 @@ namespace SeneaLHudLayout
             ResourceBars.Apply();
             SlotCue.Tick();
             CharacterExtras.Tick();
+            AdventureJournal.Tick();
             VneiSearch.Tick();
             CraftMaterials.Tick();
             StatValues.Tick();

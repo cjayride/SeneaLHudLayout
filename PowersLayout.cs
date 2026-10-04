@@ -300,6 +300,7 @@ namespace SeneaLHudLayout
             }
 
             hud.m_gpCooldown.gameObject.SetActive(true);
+            hud.m_gpCooldown.text = StatusEffect.GetTimeString(seconds, false, false);
             cooldown.localScale = new Vector3(scale, scale, 1f);
             float iconMid = (HudLayout.EdgeY(icon, bottom: true) + HudLayout.EdgeY(icon, bottom: false)) * 0.5f;
             float iconRight = HudLayout.EdgeX(icon, left: false);

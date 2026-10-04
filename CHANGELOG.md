@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.1.93
+
+- Quests and Talents keep the dark fill. Only a 1 pixel brass edge is gold.
+- The quest totals read Bounties: 2/8 and Treasure: 2.
+
+## 1.1.92
+
+- Bounty count uses EpicLoot's Max Bounties Per Player. Treasure maps show the number you have; that config has no cap.
+- Quests text is not bold. Quests and Talents share a 1 pixel brass edge.
+
+## 1.1.91
+
+- Quests and Talents are text only, both 88 pixels wide, with the same plate and gold text.
+- The Quests list still fills when the bounty and treasure totals cannot be read.
+
+## 1.1.90
+
+- Quests uses the same plate and text color as Talents. Talents has a diamond mark and Quests has a scroll mark, to the left of the word.
+- The Quests window shows active bounties and treasure maps against how many you can hold, on the tab row.
+
+## 1.1.89
+
+- Talents moves to the top right of the character window, in the slot Quests used. Quests sits to its left when adventure mode is on.
+- Accepting a bounty or treasure map keeps the map closed (`Quests` / `KeepMapClosedOnAccept`, on by default).
+- Closing the map after a Quests Map button returns to the same open Quests list.
+
+## 1.1.88
+
+- Quests button shows only while EpicLoot adventure mode (bounties and treasure maps) is on.
+- Accepting a bounty or treasure map from Haldor no longer opens the map. Map from the Quests window does, and closing that map returns to the open Quests window.
+- Talents sits under the character level. The level XP bar sits where Talents was, beside the level. The Talents button spans the level text plus the XP bar.
+- Passive Powers: the shared cooldown timer is written on the power icons, so "power not ready" has a visible timer.
+
+## 1.1.87
+
+- Character panel: Quests button to the left of the settings gear. Opens a Bounties / Treasure tab list of active EpicLoot contracts, with a Map button for each target.
+
 ## 1.1.86
 
 - Passive Powers: shared activation cooldown only on the right of the icons (not duplicated under F / Shift+F). Red timers under a key are that power's depletion only.

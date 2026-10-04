@@ -107,12 +107,18 @@ namespace SeneaLHudLayout
             }
 
             _level.ForceMeshUpdate();
-            float levelWidth = Mathf.Ceil(_level.preferredWidth);
-            _talentsLabel.ForceMeshUpdate();
-            float width = Mathf.Ceil(_talentsLabel.preferredWidth) + 12f;
+            if (!(_tabs.Find("gear") is RectTransform gear))
+            {
+                return;
+            }
+
             RectTransform rt = _talents.GetComponent<RectTransform>();
-            rt.anchoredPosition = new Vector2(18f + levelWidth + 10f, -11f);
-            rt.sizeDelta = new Vector2(Mathf.Max(48f, width), 18f);
+            rt.anchorMin = new Vector2(1f, 1f);
+            rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot = new Vector2(1f, 1f);
+            float height = gear.sizeDelta.y > 8f ? gear.sizeDelta.y : 28f;
+            rt.sizeDelta = new Vector2(88f, height);
+            rt.anchoredPosition = new Vector2(gear.anchoredPosition.x - gear.sizeDelta.x - 8f, gear.anchoredPosition.y);
             rt.SetAsLastSibling();
 
             if (!_talents.gameObject.activeSelf)
@@ -138,8 +144,8 @@ namespace SeneaLHudLayout
             go.transform.SetParent(_tabs, false);
             Image plate = go.AddComponent<Image>();
             plate.sprite = Pixel();
-            plate.color = new Color(0.07f, 0.05f, 0.03f, 0.72f);
             plate.raycastTarget = true;
+            Frame(plate);
             _talents = go.AddComponent<Button>();
             _talents.targetGraphic = plate;
             _talents.onClick.AddListener(OnTalents);
@@ -157,7 +163,7 @@ namespace SeneaLHudLayout
             _talentsLabel.textWrappingMode = TextWrappingModes.NoWrap;
             _talentsLabel.overflowMode = TextOverflowModes.Overflow;
             _talentsLabel.fontSize = 12f;
-            _talentsLabel.fontStyle = FontStyles.Bold;
+            _talentsLabel.fontStyle = FontStyles.Normal;
             _talentsLabel.color = new Color(0.93f, 0.82f, 0.52f, 1f);
             _talentsLabel.text = "Talents";
             if (_level.font != null)
@@ -223,9 +229,11 @@ namespace SeneaLHudLayout
                 return;
             }
 
+            _level.ForceMeshUpdate();
+            float levelWidth = Mathf.Ceil(_level.preferredWidth);
             RectTransform level = _level.rectTransform;
             RectTransform back = _xpBack.rectTransform;
-            back.anchoredPosition = new Vector2(level.anchoredPosition.x, level.anchoredPosition.y - level.sizeDelta.y - 10f);
+            back.anchoredPosition = new Vector2(18f + levelWidth + 10f, level.anchoredPosition.y - (level.sizeDelta.y - XpBarHeight) * 0.5f);
             back.sizeDelta = new Vector2(XpBarWidth, XpBarHeight);
             _xpFill.rectTransform.sizeDelta = new Vector2((XpBarWidth - 2f) * Mathf.Clamp01(fraction), XpBarHeight - 2f);
 
@@ -548,6 +556,28 @@ namespace SeneaLHudLayout
             plate.pivot = new Vector2(0f, 1f);
             plate.anchoredPosition = new Vector2(_foodCenterX + nudgeX - reference * 0.5f, _foodUnder + nudgeY);
             plate.sizeDelta = new Vector2(Mathf.Max(8f, width), 16f);
+        }
+
+        public static void Frame(Image plate)
+        {
+            plate.sprite = Pixel();
+            plate.color = new Color(0.62f, 0.48f, 0.28f, 0.95f);
+            var go = new GameObject("fill", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(plate.transform, false);
+            var rt = (RectTransform)go.transform;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(1f, 1f);
+            rt.offsetMax = new Vector2(-1f, -1f);
+            var fill = go.GetComponent<Image>();
+            fill.sprite = Pixel();
+            fill.color = new Color(0.07f, 0.05f, 0.03f, 0.72f);
+            fill.raycastTarget = false;
+        }
+
+        public static Sprite Plate()
+        {
+            return Pixel();
         }
 
         static Sprite Pixel()
