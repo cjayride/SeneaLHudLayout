@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.94
+
+- The Quests list scrolls with the mouse wheel and has a scrollbar on the right.
+
 ## 1.1.93
 
 - Quests and Talents keep the dark fill. Only a 1 pixel brass edge is gold.

@@ -24,7 +24,9 @@ namespace SeneaLHudLayout
         static Transform _tabs;
         static Button _button;
         static GameObject _window;
+        static RectTransform _view;
         static RectTransform _list;
+        static ScrollRect _scroll;
         static TextMeshProUGUI _bountyTab;
         static TextMeshProUGUI _counts;
         static TextMeshProUGUI _treasureTab;
@@ -144,6 +146,35 @@ namespace SeneaLHudLayout
             {
                 _window.SetActive(false);
             }
+
+            Wheel();
+        }
+
+        static void Wheel()
+        {
+            if (_scroll == null || _view == null || _window == null || !_window.activeSelf)
+            {
+                return;
+            }
+
+            float delta = Input.mouseScrollDelta.y;
+            if (Mathf.Abs(delta) < 0.01f)
+            {
+                return;
+            }
+
+            if (!RectTransformUtility.RectangleContainsScreenPoint(_view, Input.mousePosition))
+            {
+                return;
+            }
+
+            float span = _list.rect.height - _view.rect.height;
+            if (span < 1f)
+            {
+                return;
+            }
+
+            _scroll.verticalNormalizedPosition = Mathf.Clamp01(_scroll.verticalNormalizedPosition + (delta * 72f / span));
         }
 
         static bool _adventureChecked;
@@ -314,9 +345,11 @@ namespace SeneaLHudLayout
             viewport.anchorMin = new Vector2(0f, 0f);
             viewport.anchorMax = new Vector2(1f, 1f);
             viewport.offsetMin = new Vector2(12f, 12f);
-            viewport.offsetMax = new Vector2(-12f, -88f);
+            viewport.offsetMax = new Vector2(-28f, -88f);
             viewportGo.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.25f);
+            viewportGo.GetComponent<Image>().raycastTarget = true;
             viewportGo.GetComponent<Mask>().showMaskGraphic = true;
+            _view = viewport;
 
             var contentGo = new GameObject("list", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
             contentGo.transform.SetParent(viewport, false);
@@ -341,7 +374,46 @@ namespace SeneaLHudLayout
             scroll.content = _list;
             scroll.horizontal = false;
             scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 40f;
+            scroll.verticalScrollbar = AddScrollbar(rt);
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+            _scroll = scroll;
             go.SetActive(false);
+        }
+
+        static Scrollbar AddScrollbar(RectTransform window)
+        {
+            var trackGo = new GameObject("scroll", typeof(RectTransform), typeof(Image));
+            trackGo.transform.SetParent(window, false);
+            var track = (RectTransform)trackGo.transform;
+            track.anchorMin = new Vector2(1f, 0f);
+            track.anchorMax = new Vector2(1f, 1f);
+            track.pivot = new Vector2(1f, 1f);
+            track.offsetMin = new Vector2(-22f, 12f);
+            track.offsetMax = new Vector2(-8f, -88f);
+            trackGo.GetComponent<Image>().color = new Color(0.07f, 0.05f, 0.03f, 0.9f);
+
+            var areaGo = new GameObject("area", typeof(RectTransform));
+            areaGo.transform.SetParent(track, false);
+            var area = (RectTransform)areaGo.transform;
+            area.anchorMin = Vector2.zero;
+            area.anchorMax = Vector2.one;
+            area.offsetMin = new Vector2(2f, 2f);
+            area.offsetMax = new Vector2(-2f, -2f);
+
+            var handleGo = new GameObject("handle", typeof(RectTransform), typeof(Image));
+            handleGo.transform.SetParent(area, false);
+            var handle = (RectTransform)handleGo.transform;
+            handle.anchorMin = Vector2.zero;
+            handle.anchorMax = Vector2.one;
+            handle.sizeDelta = Vector2.zero;
+            handleGo.GetComponent<Image>().color = new Color(0.62f, 0.48f, 0.28f, 0.95f);
+
+            var bar = trackGo.AddComponent<Scrollbar>();
+            bar.handleRect = handle;
+            bar.targetGraphic = handleGo.GetComponent<Image>();
+            bar.direction = Scrollbar.Direction.BottomToTop;
+            return bar;
         }
 
         static void AddTab(RectTransform window, string text, Vector2 pos, bool bounties)
@@ -398,6 +470,11 @@ namespace SeneaLHudLayout
         static void Rebuild()
         {
             PaintTabs();
+            if (_scroll != null)
+            {
+                _scroll.verticalNormalizedPosition = 1f;
+            }
+
             for (int i = _list.childCount - 1; i >= 0; i--)
             {
                 UnityEngine.Object.Destroy(_list.GetChild(i).gameObject);
@@ -443,6 +520,9 @@ namespace SeneaLHudLayout
                     Row(TreasureText(item), "Map", () => ShowMap(ReadVector(Field(item, "Position"))));
                 }
             }
+
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_list);
         }
 
         static object Invoke(MethodInfo method, object target)

@@ -4,6 +4,10 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.94
+
+- The Quests list scrolls with the mouse wheel and has a scrollbar on the right.
+
 ## 1.1.93
 
 - Character window: Quests button (EpicLoot adventure mode) and Talents button (TalentTree), left of the settings gear. Same dark fill, 1 pixel brass edge.
