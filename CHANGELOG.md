@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.86
+
+- Passive Powers: shared activation cooldown only on the right of the icons (not duplicated under F / Shift+F). Red timers under a key are that power's depletion only.
+- Passive Powers: red depletion timer reads the live `PassivePowers Depletion …` effect (120s passive loss after active ends), not only the HUD buff list.
+
 ## 1.1.85
 
 - New: `UseVanillaSkillsWindow` (Character, on by default). When SkillsReworked is installed, the Skills button opens the vanilla window so its spend-points controls are visible. SeneaL's skills list stays hidden.

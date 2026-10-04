@@ -7,7 +7,7 @@ Requires **SeneaL UI**. Clients only.
 ## 1.1.85
 
 - With SkillsReworked installed, the Skills button opens the vanilla window. `UseVanillaSkillsWindow`.
-- The Passive Powers "Passive" label is hidden. Grey shortcut keys show the shared cooldown under them.
+- The Passive Powers "Passive" label is hidden. Shared activation cooldown sits to the right of the icons; grey F / Shift+F keys while it runs. Green above an icon = passive buff time left; red under a key = that power's depletion.
 
 ## 1.1.84
 

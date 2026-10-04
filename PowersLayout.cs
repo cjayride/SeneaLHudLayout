@@ -136,7 +136,7 @@ namespace SeneaLHudLayout
                 float buff = power == null ? 0f : EffectTimeLeft("PassivePowers " + power);
                 float down = power == null ? 0f : EffectTimeLeft("PassivePowers Depletion " + power);
                 SetTimer(shown[i], BuffName, buff, BuffColor, above: true);
-                SetTimer(shown[i], DownName, Mathf.Max(down, shared), DownColor, above: false);
+                SetTimer(shown[i], DownName, down, DownColor, above: false);
 
                 if (shown[i].Find("Icon") is RectTransform icon)
                 {
@@ -233,6 +233,17 @@ namespace SeneaLHudLayout
 
         static float EffectTimeLeft(string effectName)
         {
+            Player player = Player.m_localPlayer;
+            if (player != null && !string.IsNullOrEmpty(effectName))
+            {
+                StatusEffect live = player.GetSEMan().GetStatusEffect(effectName.GetStableHashCode());
+                if (live != null && live.m_ttl > 0f)
+                {
+                    float elapsed = EffectTimeField?.GetValue(live) is float time ? time : 0f;
+                    return Mathf.Max(0f, live.m_ttl - elapsed);
+                }
+            }
+
             for (int i = 0; i < Effects.Count; i++)
             {
                 StatusEffect effect = Effects[i];
