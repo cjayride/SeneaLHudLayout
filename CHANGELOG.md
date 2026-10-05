@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.96
+
+- Quests window has a 1 pixel brass edge. The fill stays on `[Quests] Background` / `BackgroundAlpha`.
+
+## 1.1.95
+
+- Quests window uses a solid fill. `[Quests] Background` sets the color. `BackgroundAlpha` sets how see-through it is (1 is solid).
+
 ## 1.1.94
 
 - The Quests list scrolls with the mouse wheel and has a scrollbar on the right.

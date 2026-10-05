@@ -24,6 +24,8 @@ namespace SeneaLHudLayout
         static Transform _tabs;
         static Button _button;
         static GameObject _window;
+        static Image _panel;
+        static Image _viewportFill;
         static RectTransform _view;
         static RectTransform _list;
         static ScrollRect _scroll;
@@ -310,6 +312,28 @@ namespace SeneaLHudLayout
             Rebuild();
         }
 
+        public static void PaintBackground()
+        {
+            Color rgb = SeneaLHudLayoutPlugin.QuestBackground != null
+                ? SeneaLHudLayoutPlugin.QuestBackground.Value
+                : new Color(0.08f, 0.07f, 0.05f, 1f);
+            float alpha = SeneaLHudLayoutPlugin.QuestBackgroundAlpha != null
+                ? Mathf.Clamp01(SeneaLHudLayoutPlugin.QuestBackgroundAlpha.Value)
+                : 1f;
+            var fill = new Color(rgb.r, rgb.g, rgb.b, alpha);
+            if (_panel != null)
+            {
+                _panel.sprite = CharacterExtras.Plate();
+                _panel.color = fill;
+            }
+
+            if (_viewportFill != null)
+            {
+                _viewportFill.sprite = CharacterExtras.Plate();
+                _viewportFill.color = fill;
+            }
+        }
+
         static void EnsureWindow()
         {
             if (_window != null)
@@ -325,8 +349,24 @@ namespace SeneaLHudLayout
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = new Vector2(560f, 460f);
-            go.GetComponent<Image>().color = new Color(0.08f, 0.07f, 0.05f, 0.96f);
+            var border = go.GetComponent<Image>();
+            border.sprite = CharacterExtras.Plate();
+            border.color = new Color(0.62f, 0.48f, 0.28f, 1f);
+            border.raycastTarget = true;
             _window = go;
+
+            var fillGo = new GameObject("fill", typeof(RectTransform), typeof(Image));
+            fillGo.transform.SetParent(rt, false);
+            fillGo.transform.SetAsFirstSibling();
+            var fillRt = (RectTransform)fillGo.transform;
+            fillRt.anchorMin = Vector2.zero;
+            fillRt.anchorMax = Vector2.one;
+            fillRt.offsetMin = new Vector2(1f, 1f);
+            fillRt.offsetMax = new Vector2(-1f, -1f);
+            _panel = fillGo.GetComponent<Image>();
+            _panel.sprite = CharacterExtras.Plate();
+            _panel.raycastTarget = true;
+            PaintBackground();
 
             AddLabel(rt, "Bounties and treasure maps", 18f, new Vector2(0f, -16f), 20f, FontStyles.Bold);
             AddTab(rt, "Bounties", new Vector2(16f, -48f), true);
@@ -346,8 +386,10 @@ namespace SeneaLHudLayout
             viewport.anchorMax = new Vector2(1f, 1f);
             viewport.offsetMin = new Vector2(12f, 12f);
             viewport.offsetMax = new Vector2(-28f, -88f);
-            viewportGo.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.25f);
-            viewportGo.GetComponent<Image>().raycastTarget = true;
+            _viewportFill = viewportGo.GetComponent<Image>();
+            _viewportFill.sprite = CharacterExtras.Plate();
+            _viewportFill.raycastTarget = true;
+            PaintBackground();
             viewportGo.GetComponent<Mask>().showMaskGraphic = true;
             _view = viewport;
 

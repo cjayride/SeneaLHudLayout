@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>1.1.94</Version>
-    <AssemblyVersion>1.1.94</AssemblyVersion>
-    <FileVersion>1.1.94</FileVersion>
+    <Version>1.1.96</Version>
+    <AssemblyVersion>1.1.96</AssemblyVersion>
+    <FileVersion>1.1.96</FileVersion>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>

@@ -4,6 +4,14 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.96
+
+- Quests window has a 1 pixel brass edge. The fill stays the Background color.
+
+## 1.1.95
+
+- Quests window is a solid fill. `[Quests] Background` and `BackgroundAlpha` (1 is solid).
+
 ## 1.1.94
 
 - The Quests list scrolls with the mouse wheel and has a scrollbar on the right.

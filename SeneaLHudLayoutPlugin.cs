@@ -21,7 +21,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.94";
+        public const string VERSION = "1.1.96";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -76,6 +76,8 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> ShowLevelCharacterWindow;
         public static ConfigEntry<bool> ShowTalentsButton;
         public static ConfigEntry<bool> KeepMapClosedOnAccept;
+        public static ConfigEntry<Color> QuestBackground;
+        public static ConfigEntry<float> QuestBackgroundAlpha;
         public static ConfigEntry<bool> ShowLevelXpBar;
         public static ConfigEntry<bool> FixSkillRespendAfterDeath;
         public static ConfigEntry<bool> UseVanillaSkillsWindow;
@@ -233,6 +235,13 @@ namespace SeneaLHudLayout
                 "Show a Talents button at the top right of the character window, left of the settings gear. It opens TalentTree. Needs TalentTree installed.");
             KeepMapClosedOnAccept = Config.Bind("Quests", "KeepMapClosedOnAccept", true,
                 "Buying a bounty or treasure map from the trader does not open the world map.");
+            QuestBackground = Config.Bind("Quests", "Background", new Color(0.08f, 0.07f, 0.05f, 1f),
+                "Solid fill behind the Bounties and Treasure list.");
+            QuestBackgroundAlpha = Config.Bind("Quests", "BackgroundAlpha", 1f,
+                new ConfigDescription("How opaque that fill is. 1 is solid. 0 is invisible.",
+                    new AcceptableValueRange<float>(0f, 1f)));
+            QuestBackground.SettingChanged += (_, __) => AdventureJournal.PaintBackground();
+            QuestBackgroundAlpha.SettingChanged += (_, __) => AdventureJournal.PaintBackground();
             ShowLevelXpBar = Config.Bind("Character", "ShowLevelXpBar", true,
                 "Show a 100 pixel SkillsReworked XP bar under that character-window level.");
             FixSkillRespendAfterDeath = Config.Bind("Character", "FixSkillRespendAfterDeath", true,
