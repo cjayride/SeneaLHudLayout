@@ -28,8 +28,8 @@ Install on **clients only**. Dedicated servers do not need it.
 - `[Vitals] NumberBold` (default 0.8) makes those bar numbers heavier. 0 is SeneaL's weight. 1 is extra bold
 - Selected and equipped items get a soft gold glow (`[Slots] Highlight`, on by default)
 - A green check marks the selected hotbar item and equipped gear (`[Slots] CornerPip`, on by default)
-- Magic items fill the slot interior with their EpicLoot color, and SeneaL's rarity border is hidden (`[Slots] RarityFill`, on by default). `[Slots] RarityFillStrength` defaults to 0.10
-- Equipping or unequipping shows a white seconds countdown in the inventory window (`[Slots] ShowEquipCue`). The hotbar only counts down worn gear (`[Slots] ShowGearBarCue`)
+- Magic items can fill the slot interior with their EpicLoot color (`[Slots] RarityFill`, off by default). `[Slots] RarityFillStrength` defaults to 0.10
+- Equipping or unequipping can show a white seconds countdown (`[Slots] ShowEquipCue` and `ShowGearBarCue`, both off by default)
 - The login server-rules window is hidden (`[Notices] HideServerRules`, on by default). Server limits still apply.
 - SkillsReworked level appears in the top left of the character window (`[Character] ShowLevel`, on by default)
 - Wind and day/time pills under the minimap can be hidden with `[Minimap] HideWindAndServerDay` (off by default). The biome name stays

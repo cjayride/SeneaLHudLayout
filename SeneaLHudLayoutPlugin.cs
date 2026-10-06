@@ -21,7 +21,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.96";
+        public const string VERSION = "1.1.102";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -33,6 +33,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> MinimapOffsetX;
         public static ConfigEntry<float> MinimapOffsetY;
         public static ConfigEntry<float> BossOffsetY;
+        public static ConfigEntry<bool> HideBossStars;
         public static ConfigEntry<float> CompassTop;
         public static ConfigEntry<float> CenterMessageGap;
         public static ConfigEntry<float> CenterMessageScale;
@@ -43,6 +44,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> PowersOffsetX;
         public static ConfigEntry<float> PowersOffsetY;
         public static ConfigEntry<bool> CollapseDrawerPreview;
+        public static ConfigEntry<bool> CreatureHud;
         public static ConfigEntry<bool> ShowHealthNumbers;
         public static ConfigEntry<bool> ShowThreatIcons;
         public static ConfigEntry<bool> ShowNameplateDiamonds;
@@ -81,6 +83,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> ShowLevelXpBar;
         public static ConfigEntry<bool> FixSkillRespendAfterDeath;
         public static ConfigEntry<bool> UseVanillaSkillsWindow;
+        public static ConfigEntry<bool> OldSkillsWindow;
         public static ConfigEntry<bool> ShowLevelFoodBar;
         public static ConfigEntry<float> ShowLevelFoodBarOffsetX;
         public static ConfigEntry<float> ShowLevelFoodBarOffsetY;
@@ -107,7 +110,7 @@ namespace SeneaLHudLayout
             HotbarOffsetX = Config.Bind("Hotbar", "OffsetX", 0f,
                 new ConfigDescription("Extra horizontal nudge in pixels. Positive moves right.",
                     new AcceptableValueRange<float>(-2000f, 2000f)));
-            HotbarOffsetY = Config.Bind("Hotbar", "OffsetY", 0f,
+            HotbarOffsetY = Config.Bind("Hotbar", "OffsetY", 14.5f,
                 new ConfigDescription("Extra vertical nudge in pixels, after BottomLeft placement. Positive moves up.",
                     new AcceptableValueRange<float>(-2000f, 2000f)));
 
@@ -127,6 +130,8 @@ namespace SeneaLHudLayout
             BossOffsetY = Config.Bind("BossBar", "OffsetY", 40f,
                 new ConfigDescription("Pixels to move boss health bars. Positive moves up. Regular enemy bars stay where SeneaL UI put them.",
                     new AcceptableValueRange<float>(-2000f, 2000f)));
+            HideBossStars = Config.Bind("BossBar", "HideStars", true,
+                "Remove the star icons on the boss health card. Creature nameplate stars are a separate setting.");
 
             CompassTop = Config.Bind("Compass", "Top", 8f,
                 new ConfigDescription("Pixels between the top of the screen and the compass. The hotbar and action slots never move it.",
@@ -157,6 +162,8 @@ namespace SeneaLHudLayout
 
             CollapseDrawerPreview = Config.Bind("Hover", "CollapseItemDrawerStacks", true,
                 "When hovering a Grillspett Item Drawer, show one preview slot for the stored item instead of every stack.");
+            CreatureHud = Config.Bind("Creature/Player HUD", "Enabled", true,
+                "Apply this mod's creature and player nameplate changes: health numbers, star size, name size, bar width, threat icons. Off leaves those nameplates entirely to SeneaL UI.");
             ShowHealthNumbers = Config.Bind("Creature/Player HUD", "ShowHealthNumbers", true,
                 "Show current/max health on creature and player nameplates. Order is name, health numbers, health bar, then stars.");
             ShowThreatIcons = Config.Bind("Creature/Player HUD", "ShowThreatIcons", true,
@@ -216,14 +223,14 @@ namespace SeneaLHudLayout
                     new AcceptableValueRange<float>(8f, 40f)));
             CheckColor = Config.Bind("Slots", "CheckColor", new Color(0.15f, 0.92f, 0.28f, 1f),
                 "Color of that check mark. Default is a bright green.");
-            RarityFill = Config.Bind("Slots", "RarityFill", true,
+            RarityFill = Config.Bind("Slots", "RarityFill", false,
                 "Fill the inside of a magic item's slot with its EpicLoot color (green, blue, purple, orange) and hide SeneaL's rarity border. The gold selected and equipped glow stays. Off restores SeneaL's border.");
             RarityFillStrength = Config.Bind("Slots", "RarityFillStrength", 0.10f,
                 new ConfigDescription("How strong that interior color is. 0 is invisible. 1 is a solid plate under the icon.",
                     new AcceptableValueRange<float>(0f, 1f)));
-            ShowEquipCue = Config.Bind("Slots", "ShowEquipCue", true,
+            ShowEquipCue = Config.Bind("Slots", "ShowEquipCue", false,
                 "Show a white seconds countdown on an item in the inventory window while it is being equipped or unequipped.");
-            ShowGearBarCue = Config.Bind("Slots", "ShowGearBarCue", true,
+            ShowGearBarCue = Config.Bind("Slots", "ShowGearBarCue", false,
                 "Also show that countdown on the hotbar or action bar, but only while armor or other worn gear is being equipped or unequipped. Switching weapons or tools does not show it.");
             HideServerRules = Config.Bind("Notices", "HideServerRules", true,
                 "Never show SeneaL UI's server-rules window when you enter a world.");
@@ -247,7 +254,9 @@ namespace SeneaLHudLayout
             FixSkillRespendAfterDeath = Config.Bind("Character", "FixSkillRespendAfterDeath", true,
                 "Let you spend points again in a skill that lost a partial level on death, such as Tenacity going from 30 to 29.1. Fractional levels are rounded down when the Skills window opens. Only works when both Smoothbrain Tenacity and SkillsReworked are installed. Otherwise it does nothing.");
             UseVanillaSkillsWindow = Config.Bind("Character", "UseVanillaSkillsWindow", true,
-                "When SkillsReworked is installed, leave the vanilla Skills window visible so you can spend its skill points. SeneaL UI's own skills list stays hidden. Does nothing if SkillsReworked is not installed.");
+                "Kept for older configs. SkillsReworked 1.8.2 and older use the vanilla skills window. Newer than 1.8.2 keeps SeneaL UI's skills panel. The saved on/off value is not the switch.");
+            OldSkillsWindow = Config.Bind("Character", "OldSkillsWindow", false,
+                "SkillsReworked 1.8.2 and older only. On tries to draw that mod's points inside SeneaL UI's skills panel. The vanilla skills window still opens for 1.8.2 and older, because that window has the Skills and Active skills tabs. Newer than 1.8.2 is unchanged.");
             ShowLevelFoodBar = Config.Bind("Character", "ShowLevelFoodBar", true,
                 "Show your SkillsReworked level directly under the food timers.");
             ShowLevelFoodBarOffsetX = Config.Bind("Character", "ShowLevelFoodBarOffsetX", -39f,
@@ -296,6 +305,7 @@ namespace SeneaLHudLayout
             StatusEffectsPlace.Apply(harmony);
             SkillRespendFix.Apply(harmony);
             VanillaSkillsWindow.Apply(harmony);
+            OldSkillsWindowBind.Apply(harmony);
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
         }
 
@@ -310,6 +320,7 @@ namespace SeneaLHudLayout
             StatValues.Tick();
             ChatHide.Tick();
             WorldHealthText.Tick();
+            BossStars.Tick();
             if (Enabled == null || !Enabled.Value)
             {
                 HudLayout.Restore();

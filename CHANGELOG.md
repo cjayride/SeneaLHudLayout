@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.1.102
+
+- `[Slots] RarityFill` defaults off, so SeneaL's rarity border stays.
+- The equip countdown defaults off. `[Slots] ShowEquipCue` and `[Slots] ShowGearBarCue`.
+
+## 1.1.101
+
+- SkillsReworked newer than 1.8.2 keeps SeneaL UI's skills panel. 1.8.2 and older open the vanilla skills window, which still has the Skills and Active skills tabs and point spending. The saved `UseVanillaSkillsWindow` value is not the switch.
+
+## 1.1.100
+
+- `UseVanillaSkillsWindow` defaults on again. On keeps the SkillsReworked skills window. The extra Skills and Active skills buttons added on the SeneaL panel are gone.
+
+## 1.1.98
+
+- If SeneaL UI cannot hook SkillsReworked, bind the older points window so SeneaL still draws it. `[Character] OldSkillsWindow`, on by default. Off leaves the game's window.
+
+## 1.1.97
+
+- HideWindAndServerDay also hides SeneaL UI 1.1.9's wind and day card (`info`).
+- Boss bar stars can be removed. `[BossBar] HideStars`, on by default.
+- `[Creature/Player HUD] Enabled` turns our nameplate overrides off and leaves them to SeneaL UI. On by default.
+- Hotbar OffsetY default is 14.5 so the bar clears the longer quick-action labels. An existing config keeps its saved value.
+
 ## 1.1.96
 
 - Quests window has a 1 pixel brass edge. The fill stays on `[Quests] Background` / `BackgroundAlpha`.

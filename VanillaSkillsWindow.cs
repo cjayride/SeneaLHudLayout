@@ -8,6 +8,7 @@ namespace SeneaLHudLayout
     static class VanillaSkillsWindow
     {
         const string SkillsReworkedGuid = "M2Valheim.SkillsReworked";
+        static readonly System.Version SeneaLPanelFrom = new System.Version(1, 8, 2);
 
         public static void Apply(Harmony harmony)
         {
@@ -27,13 +28,24 @@ namespace SeneaLHudLayout
             harmony.Patch(apply, prefix: new HarmonyMethod(typeof(VanillaSkillsWindow), nameof(ForceVanilla)));
         }
 
+        public static bool ReworkedHasSeneaLPanel()
+        {
+            if (!Chainloader.PluginInfos.TryGetValue(SkillsReworkedGuid, out var info) || info?.Metadata == null)
+            {
+                return false;
+            }
+
+            return info.Metadata.Version.CompareTo(SeneaLPanelFrom) > 0;
+        }
+
         static void ForceVanilla(ref bool on)
         {
-            if (SeneaLHudLayoutPlugin.UseVanillaSkillsWindow != null
-                && SeneaLHudLayoutPlugin.UseVanillaSkillsWindow.Value)
+            if (ReworkedHasSeneaLPanel())
             {
-                on = false;
+                return;
             }
+
+            on = false;
         }
     }
 }

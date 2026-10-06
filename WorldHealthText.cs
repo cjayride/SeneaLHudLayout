@@ -51,6 +51,8 @@ namespace SeneaLHudLayout
                 return;
             }
 
+            bool creatureHud = SeneaLHudLayoutPlugin.CreatureHud == null
+                || SeneaLHudLayoutPlugin.CreatureHud.Value;
             bool showHealth = SeneaLHudLayoutPlugin.ShowHealthNumbers != null
                 && SeneaLHudLayoutPlugin.ShowHealthNumbers.Value;
             bool showLevel = SeneaLHudLayoutPlugin.ShowEnemyLevel != null
@@ -80,6 +82,12 @@ namespace SeneaLHudLayout
                 GameObject gui = GuiField?.GetValue(data) as GameObject;
                 if (!character || !gui)
                 {
+                    continue;
+                }
+
+                if (!creatureHud)
+                {
+                    ReleasePlate(gui.transform);
                     continue;
                 }
 
@@ -145,6 +153,32 @@ namespace SeneaLHudLayout
                 // Stars, bar width, and level stay independent of health numbers so
                 // toggling ShowHealthNumbers does not recolor or recenter the stars.
                 LayoutBarAndStars(character, gui.transform, plateName, showLevel, showThreat);
+            }
+        }
+
+        static void ReleasePlate(Transform gui)
+        {
+            HideChild(gui, LabelName);
+            HideChild(gui, StarRowName);
+            HideChild(gui, LevelName);
+            Transform health = gui.Find("Health");
+            if (health != null)
+            {
+                HideChild(health, LabelName);
+                Transform vanilla = health.Find("HealthText");
+                if (vanilla != null && !vanilla.gameObject.activeSelf)
+                {
+                    vanilla.gameObject.SetActive(true);
+                }
+            }
+
+            for (int i = 0; i < gui.childCount; i++)
+            {
+                Transform child = gui.GetChild(i);
+                if (child.name.StartsWith("level_", StringComparison.Ordinal) && !child.gameObject.activeSelf)
+                {
+                    child.gameObject.SetActive(true);
+                }
             }
         }
 

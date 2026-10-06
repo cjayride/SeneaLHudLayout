@@ -4,6 +4,18 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.102
+
+- Rarity fill and the equip countdown default off. `[Slots] RarityFill`, `ShowEquipCue`, `ShowGearBarCue`.
+
+## 1.1.101
+
+- SkillsReworked newer than 1.8.2 uses SeneaL UI's skills panel. 1.8.2 and older use the vanilla skills window.
+
+## 1.1.97
+
+- Wind and day hide follows SeneaL UI 1.1.9. Boss stars: `[BossBar] HideStars`. Creature nameplates: `[Creature/Player HUD] Enabled`. Hotbar OffsetY default 14.5.
+
 ## 1.1.96
 
 - Quests window has a 1 pixel brass edge. The fill stays the Background color.

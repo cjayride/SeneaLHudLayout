@@ -656,8 +656,10 @@ namespace SeneaLHudLayout
 
             Transform map = layer.Find("minimap");
             bool mapOn = map != null && map.gameObject.activeSelf;
-            SetPill(layer.Find("wind"), hide || !mapOn);
-            SetPill(layer.Find("time"), hide || !mapOn);
+            bool off = hide || !mapOn;
+            SetPill(layer.Find("wind"), off);
+            SetPill(layer.Find("time"), off);
+            SetPill(layer.Find("info"), off);
         }
 
         static void SetPill(Transform pill, bool hidden)
