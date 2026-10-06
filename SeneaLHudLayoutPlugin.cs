@@ -5,6 +5,13 @@ using UnityEngine;
 
 namespace SeneaLHudLayout
 {
+    public enum StarAlign
+    {
+        Left,
+        Center,
+        Right
+    }
+
     [BepInPlugin(GUID, NAME, VERSION)]
     [BepInDependency("seneaL.valheim.ui")]
     [BepInDependency("_shudnal.ConfigurationManager", BepInDependency.DependencyFlags.SoftDependency)]
@@ -21,7 +28,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.103";
+        public const string VERSION = "1.1.104";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -35,6 +42,9 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> BossOffsetY;
         public static ConfigEntry<bool> HideBossStars;
         public static ConfigEntry<float> CompassTop;
+        public static ConfigEntry<bool> ShipsOnCompass;
+        public static ConfigEntry<bool> CartsOnCompass;
+        public static ConfigEntry<bool> PortalsOnCompass;
         public static ConfigEntry<float> CenterMessageGap;
         public static ConfigEntry<float> CenterMessageScale;
         public static ConfigEntry<bool> CenterMessageToNotices;
@@ -56,6 +66,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> HealthTextScale;
         public static ConfigEntry<float> BarWidth;
         public static ConfigEntry<float> StarSize;
+        public static ConfigEntry<StarAlign> StarAlignment;
         public static ConfigEntry<bool> ShowEnemyLevel;
         public static ConfigEntry<float> LevelSize;
         public static ConfigEntry<bool> HideNameplateExtras;
@@ -137,6 +148,12 @@ namespace SeneaLHudLayout
             CompassTop = Config.Bind("Compass", "Top", 8f,
                 new ConfigDescription("Pixels between the top of the screen and the compass. The hotbar and action slots never move it.",
                     new AcceptableValueRange<float>(0f, 800f)));
+            ShipsOnCompass = Config.Bind("Compass", "ShowShips", false,
+                "Show the ship markers SeneaL UI's [Map] LiveShips adds on the compass. Off keeps them on the map and minimap only.");
+            CartsOnCompass = Config.Bind("Compass", "ShowCarts", false,
+                "Show the cart markers SeneaL UI's [Map] LiveCarts adds on the compass. Off keeps them on the map and minimap only.");
+            PortalsOnCompass = Config.Bind("Compass", "ShowPortals", false,
+                "Show the portal markers SeneaL UI's [Map] LivePortals adds on the compass. Off keeps them on the map and minimap only.");
             CenterMessageGap = Config.Bind("CenterMessage", "Gap", 47f,
                 new ConfigDescription("Pixels between the slain / biome banner and whatever is above it: the compass, or the boss bar when one is showing.",
                     new AcceptableValueRange<float>(0f, 400f)));
@@ -194,6 +211,8 @@ namespace SeneaLHudLayout
             StarSize = Config.Bind("Creature/Player HUD", "StarSize", 10f,
                 new ConfigDescription("Size of each creature level star, in pixels. Every star uses this size, and it stays matched to the health bar when you move closer or farther.",
                     new AcceptableValueRange<float>(4f, 24f)));
+            StarAlignment = Config.Bind("Creature/Player HUD", "StarAlign", StarAlign.Left,
+                "Where the level stars sit under the health bar. SeneaL UI 1.1.9 centers its own stars; this one is ours.");
             ShowEnemyLevel = Config.Bind("Creature/Player HUD", "ShowEnemyLevel", false,
                 "Show the [Lvl:N] label under the health bar. If Creature Level and Loot Control already adds one, this toggles that label instead of drawing a second.");
             LevelSize = Config.Bind("Creature/Player HUD", "LevelSize", 14f,
@@ -292,6 +311,7 @@ namespace SeneaLHudLayout
             Harmony harmony = new Harmony(GUID);
             ShudnalConfigBridge.Apply(harmony);
             CompassPin.Apply(harmony);
+            CompassLivePins.Apply(harmony);
             DrawerPreview.Apply(harmony);
             WorldHealthText.Apply(harmony);
             SlotCue.Apply(harmony);

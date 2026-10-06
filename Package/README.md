@@ -4,6 +4,12 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.104
+
+- Creature level stars are ours again at every level, with the Creature Level and Loot Control colour and `[Creature/Player HUD] StarSize`. SeneaL UI 1.1.9 had started drawing its own row over them.
+- New `[Creature/Player HUD] StarAlign`: Left (default), Center or Right.
+- Ships, carts and portals can stay off the compass while SeneaL UI still shows them on the map and minimap. `[Compass] ShowShips`, `ShowCarts`, `ShowPortals`, all off by default.
+
 ## 1.1.103
 
 - The top-left equip number on item icons is hidden. `[Slots] ShowEquipQueue`.

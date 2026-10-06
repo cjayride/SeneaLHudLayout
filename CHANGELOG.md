@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.104
+
+- SeneaL UI 1.1.9 draws its own star row (`sstars`) inside the health bar instead of on the plate root, so ours no longer replaced it. It is hidden again and our stars come back at `[Creature/Player HUD] StarSize` with the Creature Level and Loot Control effect colour.
+- Creatures of level 2 and 3 get our star row too. SeneaL UI now blanks the vanilla `level_2` and `level_3` rows with a zeroed CanvasGroup, and we were reusing those rows for low levels.
+- New `[Creature/Player HUD] StarAlign`: Left (default), Center or Right under the bar.
+- Ships, carts and portals stay off the compass while SeneaL UI's `[Map] LiveShips`, `LiveCarts` and `LivePortals` keep them on the map and minimap. `[Compass] ShowShips`, `ShowCarts` and `ShowPortals`, all off by default.
+
 ## 1.1.103
 
 - SeneaL UI's top-left equip number is hidden. That number is the queue position, not a timer. `[Slots] ShowEquipQueue` defaults off.

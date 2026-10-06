@@ -17,6 +17,7 @@ namespace SeneaLHudLayout
         const string GlowName = "SeneaLHudLayout_StarGlow";
         const string GlowInnerName = "SeneaLHudLayout_StarGlowInner";
         const string LevelName = "SeneaLHudLayout_EnemyLevel";
+        const string SeneaLStarRow = "sstars";
         static readonly Regex LevelPattern = new Regex(@"\[Lvl:\s*\d+\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         static readonly FieldInfo HudsField = AccessTools.Field(typeof(EnemyHud), "m_huds");
         static readonly FieldInfo CharacterField = AccessTools.Field(AccessTools.Inner(typeof(EnemyHud), "HudData"), "m_character");
@@ -193,6 +194,11 @@ namespace SeneaLHudLayout
 
         static void HideChild(Transform parent, string name)
         {
+            if (parent == null)
+            {
+                return;
+            }
+
             Transform child = parent.Find(name);
             if (child && child.gameObject.activeSelf)
             {
@@ -345,7 +351,6 @@ namespace SeneaLHudLayout
 
             up /= unit;
             Vector3 barBottom = Edge(bar, top: false);
-            Vector3 barLeft = LeftEdge(bar);
 
             if (!showThreat)
             {
@@ -368,9 +373,8 @@ namespace SeneaLHudLayout
                 HideRivalStars(gui, row);
                 FitStars(row, bar, glow);
                 Vector3 starTop = ImageEdge(row, top: true);
-                Vector3 starLeft = ImageLeft(row);
                 Vector3 delta = barBottom - up * unit - starTop;
-                delta.x = barLeft.x - starLeft.x;
+                delta.x = AlignOffset(row, bar);
                 row.position += delta;
                 row.SetAsLastSibling();
             }
@@ -405,6 +409,9 @@ namespace SeneaLHudLayout
                     child.gameObject.SetActive(false);
                 }
             }
+
+            // SeneaL UI 1.1.9 parents its own "sstars" row to the Health bar, not the plate root.
+            HideChild(gui.Find("Health"), SeneaLStarRow);
         }
 
         static Color EffectGlow(Character character)
@@ -864,22 +871,8 @@ namespace SeneaLHudLayout
                 return null;
             }
 
-            Transform vanilla = gui.Find("level_" + level);
-            if (level <= 3 && vanilla is RectTransform vanillaRow)
-            {
-                if (custom != null)
-                {
-                    custom.gameObject.SetActive(false);
-                }
-
-                if (!vanilla.gameObject.activeSelf)
-                {
-                    vanilla.gameObject.SetActive(true);
-                }
-
-                return vanillaRow;
-            }
-
+            // SeneaL UI 1.1.9 zeroes the CanvasGroup alpha on level_2 and level_3, so reusing
+            // those rows for 1-2 star creatures renders nothing. Always build our own row.
             for (int i = 0; i < gui.childCount; i++)
             {
                 Transform child = gui.GetChild(i);
@@ -1099,6 +1092,50 @@ namespace SeneaLHudLayout
                 {
                     best = edge.y;
                     point = edge;
+                    found = true;
+                }
+            }
+
+            return point;
+        }
+
+        static float AlignOffset(RectTransform row, RectTransform bar)
+        {
+            StarAlign align = SeneaLHudLayoutPlugin.StarAlignment != null
+                ? SeneaLHudLayoutPlugin.StarAlignment.Value
+                : StarAlign.Left;
+            float left = ImageLeft(row).x;
+            float right = ImageRight(row).x;
+
+            switch (align)
+            {
+                case StarAlign.Center:
+                    return Center(bar).x - (left + right) * 0.5f;
+                case StarAlign.Right:
+                    return RightEdge(bar).x - right;
+                default:
+                    return LeftEdge(bar).x - left;
+            }
+        }
+
+        static Vector3 ImageRight(RectTransform row)
+        {
+            Vector3 point = RightEdge(row);
+            bool found = false;
+            float best = float.MinValue;
+            Image[] images = row.GetComponentsInChildren<Image>(true);
+            for (int i = 0; i < images.Length; i++)
+            {
+                if (!StarFace(images[i]))
+                {
+                    continue;
+                }
+
+                Vector3 right = RightEdge(images[i].rectTransform);
+                if (!found || right.x > best)
+                {
+                    best = right.x;
+                    point = right;
                     found = true;
                 }
             }
