@@ -21,7 +21,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.102";
+        public const string VERSION = "1.1.103";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -73,6 +73,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> RarityFillStrength;
         public static ConfigEntry<bool> ShowEquipCue;
         public static ConfigEntry<bool> ShowGearBarCue;
+        public static ConfigEntry<bool> ShowEquipQueue;
         public static ConfigEntry<bool> HideServerRules;
         public static ConfigEntry<bool> HideChat;
         public static ConfigEntry<bool> ShowLevelCharacterWindow;
@@ -232,6 +233,8 @@ namespace SeneaLHudLayout
                 "Show a white seconds countdown on an item in the inventory window while it is being equipped or unequipped.");
             ShowGearBarCue = Config.Bind("Slots", "ShowGearBarCue", false,
                 "Also show that countdown on the hotbar or action bar, but only while armor or other worn gear is being equipped or unequipped. Switching weapons or tools does not show it.");
+            ShowEquipQueue = Config.Bind("Slots", "ShowEquipQueue", false,
+                "Show SeneaL UI's number in the top left of an item icon while it is waiting to equip. That number is the queue position, 1 then 2, not a timer. Off hides it.");
             HideServerRules = Config.Bind("Notices", "HideServerRules", true,
                 "Never show SeneaL UI's server-rules window when you enter a world.");
             HideChat = Config.Bind("Chat", "HideChat", true,
@@ -306,6 +309,7 @@ namespace SeneaLHudLayout
             SkillRespendFix.Apply(harmony);
             VanillaSkillsWindow.Apply(harmony);
             OldSkillsWindowBind.Apply(harmony);
+            EquipQueueMark.Apply(harmony);
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
         }
 

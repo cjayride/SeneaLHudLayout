@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.103
+
+- SeneaL UI's top-left equip number is hidden. That number is the queue position, not a timer. `[Slots] ShowEquipQueue` defaults off.
+
 ## 1.1.102
 
 - `[Slots] RarityFill` defaults off, so SeneaL's rarity border stays.
