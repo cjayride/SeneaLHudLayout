@@ -700,6 +700,22 @@ namespace SeneaLHudLayout
             }
         }
 
+        static readonly List<Image> IconScan = new List<Image>(128);
+
+        static void CollectIcons(Transform first, Transform second)
+        {
+            IconScan.Clear();
+            if (first != null)
+            {
+                first.GetComponentsInChildren(false, IconScan);
+            }
+
+            if (second != null && second != first)
+            {
+                second.GetComponentsInChildren(false, IconScan);
+            }
+        }
+
         static Image FindBarIcon(Sprite sprite)
         {
             if (!sprite)
@@ -710,10 +726,10 @@ namespace SeneaLHudLayout
             InventoryGui gui = InventoryGui.instance;
             Image best = null;
             float bestArea = 0f;
-            Image[] images = UnityEngine.Object.FindObjectsOfType<Image>();
-            for (int i = 0; i < images.Length; i++)
+            CollectIcons(Hud.instance != null ? Hud.instance.transform : null, null);
+            for (int i = 0; i < IconScan.Count; i++)
             {
-                Image image = images[i];
+                Image image = IconScan[i];
                 if (!image || !image.isActiveAndEnabled || image.sprite != sprite)
                 {
                     continue;
@@ -756,7 +772,7 @@ namespace SeneaLHudLayout
             Image[] images = gui.GetComponentsInChildren<Image>(false);
             for (int i = 0; i < images.Length; i++)
             {
-                Image image = images[i];
+                Image image = IconScan[i];
                 if (!image || !image.isActiveAndEnabled || image.sprite != sprite)
                 {
                     continue;
@@ -830,10 +846,10 @@ namespace SeneaLHudLayout
             if (sprite != null && seconds >= 1)
             {
                 RememberFont();
-                Image[] images = UnityEngine.Object.FindObjectsOfType<Image>();
-                for (int i = 0; i < images.Length; i++)
+                CollectIcons(InventoryGui.instance != null ? InventoryGui.instance.transform : null, Hud.instance != null ? Hud.instance.transform : null);
+                for (int i = 0; i < IconScan.Count; i++)
                 {
-                    Image image = images[i];
+                    Image image = IconScan[i];
                     if (!image || !image.isActiveAndEnabled || image.sprite != sprite)
                     {
                         continue;

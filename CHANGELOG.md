@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.1.111
+
+- SeneaL's piece health color bar stays left of the cursor.
+- `[Hover] ShowPieceHealth` and `ShowPieceHealthPercent` default off. Turned on, they show only the current/max number or only the percent beside that bar. The piece name is not added. `ShowPieceHealthSize` and `ShowPieceHealthPercentSize` set each text size.
+- A Creature Level and Loot Control effect name such as Curious is kept to the name's size. With HideNameplateExtras on, that word is removed.
+
+## 1.1.110
+
+- Nameplates, boss stars, and the equip countdown no longer scan the whole screen every frame.
+
+## 1.1.109
+
+- Piece health text is rebuilt only when that piece's health changes. The crop harvest key is read once.
+
+## 1.1.108
+
+- Crop and beehive hover text shows the real Plant Easily bulk-harvest keys. Left Shift was being labeled Q. Shift + the use key is what actually picks the area.
+
+## 1.1.107
+
+- With the hammer out, optional numbers can sit beside SeneaL's piece health bar. See 1.1.111. Both default off.
+
+## 1.1.106
+
+- Rebirth and Prestige already explain a failure and a success, but that text is drawn on the HUD while the skills window covers it. A failed confirm now replaces "This cannot be undone" with the reason, such as the missing coins. Success is written into chat.
+
 ## 1.1.104
 
 - SeneaL UI 1.1.9 draws its own star row (`sstars`) inside the health bar instead of on the plate root, so ours no longer replaced it. It is hidden again and our stars come back at `[Creature/Player HUD] StarSize` with the Creature Level and Loot Control effect colour.

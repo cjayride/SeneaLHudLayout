@@ -28,7 +28,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.104";
+        public const string VERSION = "1.1.111";
 
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
@@ -108,6 +108,10 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> ClickMaterials;
         public static ConfigEntry<bool> SplitWalletForChest;
         public static ConfigEntry<bool> StatValuesBesideLabels;
+        public static ConfigEntry<bool> ShowPieceHealth;
+        public static ConfigEntry<float> ShowPieceHealthSize;
+        public static ConfigEntry<bool> ShowPieceHealthPercent;
+        public static ConfigEntry<float> ShowPieceHealthPercentSize;
 
         void Awake()
         {
@@ -180,6 +184,16 @@ namespace SeneaLHudLayout
 
             CollapseDrawerPreview = Config.Bind("Hover", "CollapseItemDrawerStacks", true,
                 "When hovering a Grillspett Item Drawer, show one preview slot for the stored item instead of every stack.");
+            ShowPieceHealth = Config.Bind("Hover", "ShowPieceHealth", false,
+                "With the hammer out, show the piece's current/max health beside SeneaL's piece health bar. The piece name stays hidden. The bar itself stays visible.");
+            ShowPieceHealthSize = Config.Bind("Hover", "ShowPieceHealthSize", 14f,
+                new ConfigDescription("Text size of the current/max piece health number.",
+                    new AcceptableValueRange<float>(8f, 32f)));
+            ShowPieceHealthPercent = Config.Bind("Hover", "ShowPieceHealthPercent", false,
+                "With the hammer out, show the piece's health percent beside SeneaL's piece health bar. The piece name stays hidden. The bar itself stays visible.");
+            ShowPieceHealthPercentSize = Config.Bind("Hover", "ShowPieceHealthPercentSize", 14f,
+                new ConfigDescription("Text size of the piece health percent.",
+                    new AcceptableValueRange<float>(8f, 32f)));
             CreatureHud = Config.Bind("Creature/Player HUD", "Enabled", true,
                 "Apply this mod's creature and player nameplate changes: health numbers, star size, name size, bar width, threat icons. Off leaves those nameplates entirely to SeneaL UI.");
             ShowHealthNumbers = Config.Bind("Creature/Player HUD", "ShowHealthNumbers", true,
@@ -313,6 +327,8 @@ namespace SeneaLHudLayout
             CompassPin.Apply(harmony);
             CompassLivePins.Apply(harmony);
             DrawerPreview.Apply(harmony);
+            PieceHealthLabel.Apply(harmony);
+            CropHarvestHint.Apply(harmony);
             WorldHealthText.Apply(harmony);
             SlotCue.Apply(harmony);
             CharacterExtras.Apply(harmony);
@@ -328,6 +344,7 @@ namespace SeneaLHudLayout
             StatusEffectsPlace.Apply(harmony);
             SkillRespendFix.Apply(harmony);
             VanillaSkillsWindow.Apply(harmony);
+            RebirthNotice.Apply(harmony);
             OldSkillsWindowBind.Apply(harmony);
             EquipQueueMark.Apply(harmony);
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
@@ -343,7 +360,6 @@ namespace SeneaLHudLayout
             CraftMaterials.Tick();
             StatValues.Tick();
             ChatHide.Tick();
-            WorldHealthText.Tick();
             BossStars.Tick();
             if (Enabled == null || !Enabled.Value)
             {

@@ -4,6 +4,8 @@ namespace SeneaLHudLayout
 {
     static class BossStars
     {
+        static Transform _bosses;
+
         public static void Tick()
         {
             if (SeneaLHudLayoutPlugin.HideBossStars == null || !SeneaLHudLayoutPlugin.HideBossStars.Value)
@@ -11,22 +13,22 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            Hud hud = Hud.instance;
-            if (hud == null || hud.m_rootObject == null)
+            if (_bosses == null)
             {
-                return;
+                Hud hud = Hud.instance;
+                Transform root = hud != null && hud.m_rootObject != null
+                    ? hud.m_rootObject.transform.Find("SeneaLUI_Hud")
+                    : null;
+                _bosses = FindNamed(root, "bosses");
+                if (_bosses == null)
+                {
+                    return;
+                }
             }
 
-            Transform root = hud.m_rootObject.transform.Find("SeneaLUI_Hud");
-            Transform bosses = FindNamed(root, "bosses");
-            if (bosses == null)
+            for (int i = 0; i < _bosses.childCount; i++)
             {
-                return;
-            }
-
-            for (int i = 0; i < bosses.childCount; i++)
-            {
-                HideOn(bosses.GetChild(i));
+                HideOn(_bosses.GetChild(i));
             }
         }
 

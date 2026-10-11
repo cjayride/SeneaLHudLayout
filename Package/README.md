@@ -4,6 +4,13 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.111
+
+- Rebirth and Prestige results stay visible. A failed confirm replaces "This cannot be undone" with the reason. A success is written into chat.
+- SeneaL's piece health color bar stays left of the cursor. `[Hover] ShowPieceHealth` and `ShowPieceHealthPercent` default off and, when on, show only the current/max number or the percent beside that bar. `ShowPieceHealthSize` and `ShowPieceHealthPercentSize` set the text size.
+- Crop and beehive hover text shows the real Plant Easily bulk-harvest keys. Shift plus the use key picks the area.
+- A Creature Level and Loot Control effect name such as Curious stays the name's size. `HideNameplateExtras` removes that word.
+
 ## 1.1.104
 
 - Creature level stars are ours again at every level, with the Creature Level and Loot Control colour and `[Creature/Player HUD] StarSize`. SeneaL UI 1.1.9 had started drawing its own row over them.

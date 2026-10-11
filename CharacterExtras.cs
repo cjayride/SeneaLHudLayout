@@ -32,13 +32,14 @@ namespace SeneaLHudLayout
         static bool _talentLookup;
         static Image _xpBack;
         static Image _xpFill;
+        static string _xpMeasured;
+        static float _xpLevelWidth;
         static MethodInfo _getFraction;
         static bool _fractionLookup;
 
         public static void Tick()
         {
             TickLevel();
-            TickMinimap();
         }
 
         static void TickLevel()
@@ -106,7 +107,6 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            _level.ForceMeshUpdate();
             if (!(_tabs.Find("gear") is RectTransform gear))
             {
                 return;
@@ -229,8 +229,14 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            _level.ForceMeshUpdate();
-            float levelWidth = Mathf.Ceil(_level.preferredWidth);
+            if (_level.text != _xpMeasured)
+            {
+                _level.ForceMeshUpdate();
+                _xpMeasured = _level.text;
+                _xpLevelWidth = Mathf.Ceil(_level.preferredWidth);
+            }
+
+            float levelWidth = _xpLevelWidth;
             RectTransform level = _level.rectTransform;
             RectTransform back = _xpBack.rectTransform;
             back.anchoredPosition = new Vector2(18f + levelWidth + 10f, level.anchoredPosition.y - (level.sizeDelta.y - XpBarHeight) * 0.5f);

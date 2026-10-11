@@ -108,6 +108,8 @@ namespace SeneaLHudLayout
                     HideExtras(gui.transform, plateName);
                 }
 
+                FitAffixLabel(character, gui.transform, plateName, hideExtras);
+
                 if (!showHealth)
                 {
                     Transform ours = gui.transform.Find(LabelName);
@@ -611,6 +613,106 @@ namespace SeneaLHudLayout
 
             tmp.color = new Color(0.96f, 0.93f, 0.86f);
             return tmp;
+        }
+
+        static readonly string[] AffixWords =
+        {
+            "Curious", "Aggressive", "Armored", "Regenerating", "Quick", "Splitting"
+        };
+
+        static bool IsAffixLabel(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return false;
+            }
+
+            string plain = Regex.Replace(text, "<.*?>", string.Empty).Trim();
+            for (int i = 0; i < AffixWords.Length; i++)
+            {
+                if (string.Equals(plain, AffixWords[i], StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// CLLC's Text and Both modes draw the effect name as its own label. That label
+        /// keeps a large font, so it towers over the creature name. The pack hides it.
+        /// </summary>
+        static void FitAffixLabel(Character character, Transform gui, TMP_Text plateName, bool hide)
+        {
+            if (hide && plateName)
+            {
+                string[] lines = (plateName.text ?? "").Split('\n');
+                bool changed = false;
+                var kept = new System.Text.StringBuilder();
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    if (IsAffixLabel(lines[i]))
+                    {
+                        changed = true;
+                        continue;
+                    }
+
+                    if (kept.Length > 0)
+                    {
+                        kept.Append('\n');
+                    }
+
+                    kept.Append(lines[i]);
+                }
+
+                if (changed)
+                {
+                    plateName.text = kept.ToString();
+                }
+            }
+
+            float size = plateName ? plateName.fontSize : 16f;
+            if (size < 8f)
+            {
+                size = 16f;
+            }
+
+            VisitAffix(gui, hide, size);
+            if (character)
+            {
+                VisitAffix(character.transform, hide, size);
+            }
+        }
+
+        static void VisitAffix(Transform root, bool hide, float size)
+        {
+            if (!root)
+            {
+                return;
+            }
+
+            TMP_Text[] texts = root.GetComponentsInChildren<TMP_Text>(true);
+            for (int i = 0; i < texts.Length; i++)
+            {
+                TMP_Text text = texts[i];
+                if (!text || text.gameObject.name == "Name" || !IsAffixLabel(text.text))
+                {
+                    continue;
+                }
+
+                if (hide)
+                {
+                    if (text.gameObject.activeSelf)
+                    {
+                        text.gameObject.SetActive(false);
+                    }
+                }
+                else if (text.fontSize > size * 1.15f)
+                {
+                    text.fontSize = size;
+                }
+            }
         }
 
         static void HideExtras(Transform gui, TMP_Text plateName)
