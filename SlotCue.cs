@@ -772,7 +772,7 @@ namespace SeneaLHudLayout
             Image[] images = gui.GetComponentsInChildren<Image>(false);
             for (int i = 0; i < images.Length; i++)
             {
-                Image image = IconScan[i];
+                Image image = images[i];
                 if (!image || !image.isActiveAndEnabled || image.sprite != sprite)
                 {
                     continue;

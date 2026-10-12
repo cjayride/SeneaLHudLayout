@@ -4,6 +4,10 @@ Client layout companion for **SeneaL UI**. Moves the hotbar cluster to the botto
 
 Requires **SeneaL UI**. Clients only.
 
+## 1.1.112
+
+- The equip countdown no longer throws an error when the inventory is open. It was reading the wrong icon list.
+
 ## 1.1.111
 
 - Rebirth and Prestige results stay visible. A failed confirm replaces "This cannot be undone" with the reason. A success is written into chat.

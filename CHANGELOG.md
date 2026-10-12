@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.112
+
+- The hotbar slot countdown no longer crashes when the inventory icon list and the scan list differ in length.
+
 ## 1.1.111
 
 - SeneaL's piece health color bar stays left of the cursor.

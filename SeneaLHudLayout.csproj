@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>1.1.111</Version>
+    <Version>1.1.112</Version>
     <AssemblyVersion>1.1.109</AssemblyVersion>
     <FileVersion>1.1.109</FileVersion>
     <LangVersion>latest</LangVersion>
