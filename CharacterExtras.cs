@@ -431,8 +431,33 @@ namespace SeneaLHudLayout
             }
 
             Transform seneal = hud.m_rootObject.transform.Find("SeneaLUI_Hud");
-            Transform vitals = seneal != null ? seneal.Find("Health/vitals") : null;
+
+            /* foreach (Transform t in seneal.GetComponentsInChildren<Transform>(true)) // debug
+            {
+                if (t.name == "food" || t.name == "vitals" || t.name == "Health")
+                {
+                    Debug.LogWarning(
+                        "[SeneaL HUD Layout] HUD node: " +
+                        GetPath(t, seneal)
+                    );
+                }
+            } */
+
+            Transform vitals = seneal != null ? seneal.Find("Food/fx/vitals") : null;
             RectTransform food = vitals != null ? vitals.Find("food") as RectTransform : null;
+
+
+           /* if (food == null)  // debug
+            {
+                Debug.LogWarning(
+                    "[SeneaL HUD Layout] Food level lookup failed. " +
+                    "SeneaL=" + (seneal != null) +
+                    ", Vitals=" + (vitals != null) +
+                    ", Food=" + (food != null)
+                );
+                return false;
+            } */
+
             if (food == null)
             {
                 return false;
@@ -674,6 +699,19 @@ namespace SeneaLHudLayout
             {
                 pill.gameObject.SetActive(!hidden);
             }
+        }
+
+        static string GetPath(Transform t, Transform root) // added for debug
+        {
+            string path = t.name;
+
+            while (t.parent != null && t.parent != root)
+            {
+                t = t.parent;
+                path = t.name + "/" + path;
+            }
+
+            return path;
         }
     }
 }

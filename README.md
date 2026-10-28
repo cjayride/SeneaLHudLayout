@@ -1,55 +1,136 @@
 # SeneaL HUD Layout
 
-Client layout companion for **SeneaL UI**. Moves SeneaL's hotbar cluster to the bottom left, lifts health/food above it, keeps the compass pinned to the top of the screen, and places Passive Powers next to the food column.
+A client-side layout and quality-of-life companion for [SeneaL UI](https://thunderstore.io/c/valheim/p/seneaL/SeneaL_UI/). Repositions HUD elements, improves readability, and adds configurable interface enhancements throughout Valheim.
 
-This mod does **not** replace SeneaL UI. Without SeneaL UI, it does nothing.
+**Requires SeneaL UI. This mod does not replace it and does nothing without it.**
 
-## Requires
+## Requirements
 
 - BepInEx
 - [SeneaL UI](https://thunderstore.io/c/valheim/p/seneaL/SeneaL_UI/)
-- Optional: Smoothbrain Passive Powers (for the two power icons)
+- Optional: Smoothbrain Passive Powers
 
-Install on **clients only**. Dedicated servers do not need it.
+**Client-side only. Dedicated servers do not need this mod.**
 
-## What it changes
+## Features
 
-- Hotbar, action slots, and food quick slots → bottom left
-- Health / food / guardian cluster raised above that hotbar
-- Compass stays at the top (hotbar never drags it down)
-- Boss bars nudged down a bit; slain/biome banners sit under the compass or boss bar
-- Minimap cluster nudged left
-- SeneaL's unused guardian-power circle and F hint can be hidden; Passive Powers sit beside the food column
-- `[Powers] Scale` shrinks or grows those Passive Powers icons (0.5 to 1.5, default 1)
-- Item Drawer hover preview collapses to one slot (total count) instead of every stack
-- Creature and player world health bars show `current/max` just below the bar (`[Creature/Player HUD] ShowHealthNumbers`, on by default). `NameTextScale` (default 0.75) and `HealthTextScale` (default 0.94) size the name and the health numbers. 1 is SeneaL's size. `BarWidth` widens those bars and their health fill. Boss bars stay the same width
-- Level stars stay the same size at any distance. `[Creature/Player HUD] StarSize` defaults to 10. Their color matches the creature's Creature Level and Loot Control effect: green Regenerating, red Aggressive, blue Armored, cyan Curious, magenta Quick, white Splitting. No effect stays gold
-- Optional always-visible stamina, eitr, and adrenaline bars (`[Vitals]`, all off by default)
-- `[Vitals] NumberBold` (default 0.8) makes those bar numbers heavier. 0 is SeneaL's weight. 1 is extra bold
-- Selected and equipped items get a soft gold glow (`[Slots] Highlight`, on by default)
-- A green check marks the selected hotbar item and equipped gear (`[Slots] CornerPip`, on by default)
-- Magic items can fill the slot interior with their EpicLoot color (`[Slots] RarityFill`, off by default). `[Slots] RarityFillStrength` defaults to 0.10
-- Equipping or unequipping can show a white seconds countdown (`[Slots] ShowEquipCue` and `ShowGearBarCue`, both off by default)
-- The login server-rules window is hidden (`[Notices] HideServerRules`, on by default). Server limits still apply.
-- SkillsReworked level appears in the top left of the character window (`[Character] ShowLevel`, on by default)
-- Wind and day/time pills under the minimap can be hidden with `[Minimap] HideWindAndServerDay` (off by default). The biome name stays
-- SeneaL's status effect list can move to a screen corner with `[Status Effects] MoveToCorner` (off by default), `Corner`, `OffsetX`, and `OffsetY`. Compact Status Squares still replaces that list when it is enabled
-- SkillsReworked level also sits under the food timers, beside the health number (`[Character] ShowLevel`)
-- The crafting panel has an Items button that opens VNEI's item search. The same button says Close while it is open (`[Crafting] ShowItemSearch`, on by default)
-- A crafting requirement made at the same station can be clicked to open its recipe. Back returns to the previous recipe (`[Crafting] ClickMaterials`, on by default)
-- SeneaL's chat window is hidden (`[Chat] HideChat`, on by default) so another chat mod can draw the messages
-- Chest deposits leave the coin purse alone (`[Wallet] SplitForChest`, on by default). Move coins into your inventory before they can go into a chest
-- The hammer's piece search keeps what you typed when you close it to place a piece and open it again
-- Stat numbers sit beside their names, such as pierce 8 (`[Stats] ValuesBesideLabels`, on by default)
+### HUD Layout
 
-Turn `[General] Enabled` off to restore SeneaL's own placement.
+- Moves the hotbar, action slots, and food quick slots to the bottom-left corner.
+- Positions health, food, and guardian power elements above the hotbar.
+- Keeps the compass pinned to the top of the screen.
+- Adjusts boss bars, center messages, and event banners to prevent overlapping.
+- Shifts the minimap cluster to the left.
+- Positions Passive Powers icons beside the food column.
+- Optionally hides SeneaL UI's unused guardian power slot and F-key hint.
 
-## Install
+### Vitals
 
-1. Install SeneaL UI.
-2. Drop `SeneaLHudLayout.dll` into `BepInEx/plugins`.
-3. Launch once. Config: `BepInEx/config/cjayride.SeneaLHudLayout.cfg`.
+- Optional always-visible stamina, Eitr, and adrenaline bars.
+- Synchronizes Eitr and adrenaline bar sizes and positions with stamina.
+- Configurable bar dimensions and positional offsets.
+- Adjustable number font weight.
+
+### Creature & Player HUD
+
+- Displays current and maximum health beneath creature and player health bars.
+- Configurable name, health number, and bar sizes.
+- Keeps level stars consistent in size at different viewing distances.
+- Colors stars according to Creature Level and Loot Control effects:
+  - **Green:** Regenerating
+  - **Red:** Aggressive
+  - **Blue:** Armored
+  - **Cyan:** Curious
+  - **Magenta:** Quick
+  - **White:** Splitting
+  - **Gold:** No effect
+
+### Hotbar & Equipment
+
+- Adds a soft gold glow to selected hotbar items and equipped gear.
+- Adds a checkmark to selected and equipped items.
+- Optionally fills magic item slots with their EpicLoot rarity color.
+- Optional equip and gear countdown timers.
+- Configurable highlight colors, sizes, and effects.
+
+### Character & Skills
+
+- Displays the SkillsReworked level in the character window.
+- Optionally displays the level beneath food timers, beside the health number.
+
+### Crafting & Building
+
+- Adds an Items button to the crafting panel to open VNEI's item search.
+- Allows crafting materials made at the current station to be clicked to open their recipes.
+- Adds a Back option to return to the previous recipe.
+- Preserves hammer piece-search text when closing the search to place a building piece and reopening it.
+- Positions crafting stat values beside their labels.
+
+### Minimap & Status Effects
+
+- Optionally hides wind direction and day/time indicators beneath the minimap while keeping the biome name visible.
+- Can move SeneaL UI's status effect list to a screen corner with configurable offsets.
+- Compact Status Squares retains control of status effects when enabled.
+
+### Inventory & Item Information
+
+- Collapses the Grillspett Item Drawer hover preview into one slot displaying the total stored quantity.
+- Prevents chest deposit operations from taking coins directly out of the coin purse.
+- Positions stat values beside their labels in item tooltips and crafting panels.
+
+### Interface & Notifications
+
+- Hides SeneaL UI's login server-rules window. Server restrictions still apply.
+- Hides SeneaL UI's chat window so compatible chat mods can display messages.
+- Adjusts center messages to avoid overlapping the compass and boss health bar.
+- Improves the repair window layout to prevent unwanted text wrapping.
+- Supports additional EpicLoot interface adjustments, including legendary set ability buttons.
+
+## Configuration
+
+Configuration file:
+
+`BepInEx/config/cjayride.SeneaLHudLayout.cfg`
+
+Settings are organized by category. Key options include:
+
+| Category | Setting | Default |
+| --- | --- | --- |
+| General | `Enabled` | On |
+| Vitals | `SyncVitalsSize` | On |
+| Vitals | `AlwaysShowStamina` | Off |
+| Vitals | `AlwaysShowEitr` | Off |
+| Vitals | `AlwaysShowAdrenaline` | Off |
+| Vitals | `NumberBold` | 0.8 |
+| Creature/Player HUD | `ShowHealthNumbers` | On |
+| Creature/Player HUD | `NameTextScale` | 0.75 |
+| Creature/Player HUD | `HealthTextScale` | 0.94 |
+| Creature/Player HUD | `StarSize` | 10 |
+| Powers | `Scale` | 1.0 |
+| Slots | `Highlight` | On |
+| Slots | `CornerPip` | On |
+| Slots | `RarityFill` | Off |
+| Crafting | `ShowItemSearch` | On |
+| Crafting | `ClickMaterials` | On |
+| Minimap | `HideWindAndServerDay` | Off |
+| Status Effects | `MoveToCorner` | Off |
+| Chat | `HideChat` | On |
+| Wallet | `SplitForChest` | On |
+
+Additional settings control positioning, sizing, colors, visibility, and other behaviors.
+
+To restore SeneaL UI's original placement behavior, set `[General] Enabled` to `false`.
+
+## Installation
+
+1. Install BepInEx and SeneaL UI.
+2. Place `SeneaLHudLayout.dll` in `BepInEx/plugins`.
+3. Launch Valheim once to generate the configuration file.
+4. Customize settings in `BepInEx/config/cjayride.SeneaLHudLayout.cfg`.
+
+Install on each client that needs the layout changes.
 
 ## Credits
 
-SeneaL UI is by **seneaL**. This is a layout overlay by **cjayride**.
+- **SeneaL UI:** Created by [seneaL](https://thunderstore.io/c/valheim/p/seneaL/SeneaL_UI/).
+- **SeneaL HUD Layout:** Created by cjayride.

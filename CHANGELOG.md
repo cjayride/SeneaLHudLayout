@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.2.0
+- UPDATED TO WORK WITH SENEAL UI VERSION 1.2.8
+- Updated "Hide Wind Direction and Time"
+- Updated Vitals (Adrenaline, Eitr, Stamina bars)
+- Fixed Vitals 'always on' setting - previously wasn't working.
+- Added Vitals position config settings.
+- Fixed Guardian Powers (Passive Powers) location and countdown text.
+- Fixed EpicLoot legendary set ability button positions.
+- Fixed Center Message alignment.
+- Fixed Repair Window to auto-expand width to prevent word wrapping.
+- Removed CropHarvestHint.cs - Don't need this code anymore, SeneaL UI has built in integration now.
+- Removed from config: OldSkillsWindow, UseVanillaSkillsWindow - Not needed anymore (runs automatic/obsolete).
+- Removed OldSkillsWindowBind.cs (obsolete).
+
+## 1.1.114
+
+- Improved element finding for SeneaL UI v1.2.1 compatibility
+- Enhanced vitals bar synchronization to handle nested UI elements
+- Better hotbar positioning for bottom-left alignment
+- Improved wind/server day hiding with more path options
+- More robust center message gap calculation
+- Fixed guardian power hotkeys display
+
+## 1.1.113
+
+- SeneaL UI v1.2.1 compatibility: guardian power hotkeys and timers are visible again. `[Powers] HideSenealSlot` still hides SeneaL's unused guardian-power circle and F key.
+- Vitals bar size synchronization: `[Vitals] SyncVitalsSize` (on by default) makes the adrenaline and eitr bars match the stamina bar's size and position. `[Vitals] VitalsWidth` and `VitalsHeight` set the target dimensions (default 300×24 pixels). `[Vitals] VitalsOffset` adds an extra nudge. Fixes misalignment in SeneaL UI v1.2.1.
+
 ## 1.1.112
 
 - The hotbar slot countdown no longer crashes when the inventory icon list and the scan list differ in length.

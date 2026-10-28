@@ -12,6 +12,16 @@ namespace SeneaLHudLayout
         Right
     }
 
+    public enum VitalsBarOrder
+    {
+        Stamina_Eitr_Adrenaline,   // current order you like
+        Stamina_Adrenaline_Eitr,
+        Eitr_Stamina_Adrenaline,
+        Eitr_Adrenaline_Stamina,
+        Adrenaline_Stamina_Eitr,
+        Adrenaline_Eitr_Stamina
+    }
+
     [BepInPlugin(GUID, NAME, VERSION)]
     [BepInDependency("seneaL.valheim.ui")]
     [BepInDependency("_shudnal.ConfigurationManager", BepInDependency.DependencyFlags.SoftDependency)]
@@ -28,8 +38,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.1.112";
-
+        public const string VERSION = "1.2.0";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -37,6 +46,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> HotbarOffsetY;
         public static ConfigEntry<bool> LiftHealthAboveHotbar;
         public static ConfigEntry<float> HealthFoodOffsetY;
+        public static ConfigEntry<float> HealthFoodOffsetX;
         public static ConfigEntry<float> MinimapOffsetX;
         public static ConfigEntry<float> MinimapOffsetY;
         public static ConfigEntry<float> BossOffsetY;
@@ -74,6 +84,10 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> AlwaysShowEitr;
         public static ConfigEntry<bool> AlwaysShowAdrenaline;
         public static ConfigEntry<float> VitalsNumberBold;
+        public static ConfigEntry<bool> SyncVitalsSize;
+        public static ConfigEntry<float> VitalsWidth;
+        public static ConfigEntry<float> VitalsHeight;
+        public static ConfigEntry<Vector2> VitalsOffset;
         public static ConfigEntry<bool> Highlight;
         public static ConfigEntry<Color> HighlightColor;
         public static ConfigEntry<float> HighlightSize;
@@ -94,8 +108,6 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> QuestBackgroundAlpha;
         public static ConfigEntry<bool> ShowLevelXpBar;
         public static ConfigEntry<bool> FixSkillRespendAfterDeath;
-        public static ConfigEntry<bool> UseVanillaSkillsWindow;
-        public static ConfigEntry<bool> OldSkillsWindow;
         public static ConfigEntry<bool> ShowLevelFoodBar;
         public static ConfigEntry<float> ShowLevelFoodBarOffsetX;
         public static ConfigEntry<float> ShowLevelFoodBarOffsetY;
@@ -112,6 +124,12 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> ShowPieceHealthSize;
         public static ConfigEntry<bool> ShowPieceHealthPercent;
         public static ConfigEntry<float> ShowPieceHealthPercentSize;
+        public static ConfigEntry<VitalsBarOrder> VitalsOrder;
+        public static ConfigEntry<bool> HideStaminaNumber;
+        public static ConfigEntry<bool> HideEitrNumber;
+        public static ConfigEntry<bool> HideAdrenalineNumber;
+        public static ConfigEntry<float> EpicLootAbilitiesOffsetX;
+        public static ConfigEntry<float> EpicLootAbilitiesOffsetY;
 
         void Awake()
         {
@@ -132,8 +150,11 @@ namespace SeneaLHudLayout
 
             LiftHealthAboveHotbar = Config.Bind("HealthFood", "LiftAboveHotbar", true,
                 "Raise the health, food, and guardian-power cluster so it sits above the relocated hotbar.");
-            HealthFoodOffsetY = Config.Bind("HealthFood", "OffsetY", 28f,
+            HealthFoodOffsetY = Config.Bind("HealthFood", "OffsetY", -54f,
                 new ConfigDescription("Extra pixels to raise the health and food cluster. Positive moves up. Applied on top of LiftAboveHotbar.",
+                    new AcceptableValueRange<float>(-2000f, 2000f)));
+            HealthFoodOffsetX = Config.Bind("HealthFood", "OffsetX", 54f,
+                new ConfigDescription("Extra horizontal spacing for the food bar relative to the health bar. Positive moves right.",
                     new AcceptableValueRange<float>(-2000f, 2000f)));
 
             MinimapOffsetX = Config.Bind("Minimap", "OffsetX", -36f,
@@ -158,7 +179,7 @@ namespace SeneaLHudLayout
                 "Show the cart markers SeneaL UI's [Map] LiveCarts adds on the compass. Off keeps them on the map and minimap only.");
             PortalsOnCompass = Config.Bind("Compass", "ShowPortals", false,
                 "Show the portal markers SeneaL UI's [Map] LivePortals adds on the compass. Off keeps them on the map and minimap only.");
-            CenterMessageGap = Config.Bind("CenterMessage", "Gap", 47f,
+            CenterMessageGap = Config.Bind("CenterMessage", "Gap", 110f,
                 new ConfigDescription("Pixels between the slain / biome banner and whatever is above it: the compass, or the boss bar when one is showing.",
                     new AcceptableValueRange<float>(0f, 400f)));
             CenterMessageScale = Config.Bind("CenterMessage", "Scale", 0.5f,
@@ -175,10 +196,10 @@ namespace SeneaLHudLayout
             PowersScale = Config.Bind("Powers", "Scale", 1f,
                 new ConfigDescription("Size of the Passive Powers icons, their key labels, and the shared cooldown. 1 is the current size. Smaller than 1 shrinks them.",
                     new AcceptableValueRange<float>(0.5f, 1.5f)));
-            PowersOffsetX = Config.Bind("Powers", "OffsetX", 0f,
+            PowersOffsetX = Config.Bind("Powers", "OffsetX", -30f,
                 new ConfigDescription("Extra nudge for the Passive Powers icons. Positive moves right.",
                     new AcceptableValueRange<float>(-2000f, 2000f)));
-            PowersOffsetY = Config.Bind("Powers", "OffsetY", 0f,
+            PowersOffsetY = Config.Bind("Powers", "OffsetY", -78f,
                 new ConfigDescription("Extra nudge for the Passive Powers icons. Positive moves up.",
                     new AcceptableValueRange<float>(-2000f, 2000f)));
 
@@ -243,6 +264,24 @@ namespace SeneaLHudLayout
             VitalsNumberBold = Config.Bind("Vitals", "NumberBold", 0.8f,
                 new ConfigDescription("How heavy the stamina, eitr, and adrenaline numbers look. 0 is SeneaL's own weight. 1 thickens the digits (face dilate + outline). Change it in F1 and you should see it immediately.",
                     new AcceptableValueRange<float>(0f, 1f)));
+            SyncVitalsSize = Config.Bind("Vitals", "SyncSize", true,
+                "Make the adrenaline and eitr bars match the stamina bar's size. Fixes misalignment in SeneaL UI v1.2.1.");
+            VitalsWidth = Config.Bind("Vitals", "Width", 300f,
+                new ConfigDescription("Target width for all vital bars when SyncSize is on, pixels.",
+                    new AcceptableValueRange<float>(50f, 600f)));
+            VitalsHeight = Config.Bind("Vitals", "Height", 24f,
+                new ConfigDescription("Target height for all vital bars when SyncSize is on, pixels.",
+                    new AcceptableValueRange<float>(10f, 60f)));
+            VitalsOffset = Config.Bind("Vitals", "Offset", Vector2.zero,
+                new ConfigDescription("Extra nudge for the vitals cluster after syncing. Positive X moves right, positive Y moves up."));
+            VitalsOrder = Config.Bind("Vitals", "BarOrder", VitalsBarOrder.Stamina_Eitr_Adrenaline,
+                new ConfigDescription("Order of the three resource bars from top to bottom."));
+            HideStaminaNumber = Config.Bind("Vitals", "HideStaminaNumber", false,
+                new ConfigDescription("Hide the stamina value number and its background square."));
+            HideEitrNumber = Config.Bind("Vitals", "HideEitrNumber", false,
+                new ConfigDescription("Hide the eitr value number and its background square."));
+            HideAdrenalineNumber = Config.Bind("Vitals", "HideAdrenalineNumber", false,
+                new ConfigDescription("Hide the adrenaline value number and its background square."));           
             Highlight = Config.Bind("Slots", "Highlight", true,
                 "Add a soft glow around the button's own edge on the selected hotbar item and on gear equipped in the inventory window.");
             HighlightColor = Config.Bind("Slots", "HighlightColor", new Color(1f, 0.843137f, 0f, 1f),
@@ -289,19 +328,15 @@ namespace SeneaLHudLayout
                 "Show a 100 pixel SkillsReworked XP bar under that character-window level.");
             FixSkillRespendAfterDeath = Config.Bind("Character", "FixSkillRespendAfterDeath", true,
                 "Let you spend points again in a skill that lost a partial level on death, such as Tenacity going from 30 to 29.1. Fractional levels are rounded down when the Skills window opens. Only works when both Smoothbrain Tenacity and SkillsReworked are installed. Otherwise it does nothing.");
-            UseVanillaSkillsWindow = Config.Bind("Character", "UseVanillaSkillsWindow", true,
-                "Kept for older configs. SkillsReworked 1.8.2 and older use the vanilla skills window. Newer than 1.8.2 keeps SeneaL UI's skills panel. The saved on/off value is not the switch.");
-            OldSkillsWindow = Config.Bind("Character", "OldSkillsWindow", false,
-                "SkillsReworked 1.8.2 and older only. On tries to draw that mod's points inside SeneaL UI's skills panel. The vanilla skills window still opens for 1.8.2 and older, because that window has the Skills and Active skills tabs. Newer than 1.8.2 is unchanged.");
             ShowLevelFoodBar = Config.Bind("Character", "ShowLevelFoodBar", true,
                 "Show your SkillsReworked level directly under the food timers.");
-            ShowLevelFoodBarOffsetX = Config.Bind("Character", "ShowLevelFoodBarOffsetX", -39f,
+            ShowLevelFoodBarOffsetX = Config.Bind("Character", "ShowLevelFoodBarOffsetX", -57f,
                 new ConfigDescription("Horizontal nudge for that food-bar level, in pixels. Positive moves right. Longer levels grow to the right.",
                     new AcceptableValueRange<float>(-200f, 200f)));
-            ShowLevelFoodBarOffsetY = Config.Bind("Character", "ShowLevelFoodBarOffsetY", -20.4f,
+            ShowLevelFoodBarOffsetY = Config.Bind("Character", "ShowLevelFoodBarOffsetY", -11f,
                 new ConfigDescription("Vertical nudge for that food-bar level, in pixels. Positive moves up.",
                     new AcceptableValueRange<float>(-200f, 200f)));
-            HideMinimapStats = Config.Bind("Minimap", "HideWindAndServerDay", false,
+            HideMinimapStats = Config.Bind("Minimap", "HideWindAndServerDay", true,
                 "Hide the wind and day/time pills under the minimap. The biome name on the map stays.");
             StatusMove = Config.Bind("Status Effects", "MoveToCorner", false,
                 "Move SeneaL UI's status effect list to a screen corner. Off leaves SeneaL's own placement. Compact Status Squares still replaces this list when that mod is enabled.");
@@ -322,13 +357,22 @@ namespace SeneaLHudLayout
             SplitWalletForChest = Config.Bind("Wallet", "SplitForChest", true,
                 "Keep the coin purse out of chest deposits. Deposit All, Deposit Similar, and Stack All never take coins from the purse. Move coins into your inventory first if you want them in a chest. Turn this off to let those buttons take the purse.");
 
+            EpicLootAbilitiesOffsetX = Config.Bind("EpicLootAbilities", "OffsetX", 12f,
+                new ConfigDescription(
+                    "Horizontal gap between Epic Loot Legendary Set abilities and Guardian Powers, or food bars when Guardian Powers are unavailable. Positive values increase the gap.",
+                    new AcceptableValueRange<float>(-200f, 400f)));
+
+            EpicLootAbilitiesOffsetY = Config.Bind("EpicLootAbilities", "OffsetY", 0f,
+                new ConfigDescription(
+            "Vertical adjustment for Epic Loot Legendary Set ability icons. Positive moves up.",
+            new AcceptableValueRange<float>(-400f, 400f)));
+
             Harmony harmony = new Harmony(GUID);
             ShudnalConfigBridge.Apply(harmony);
             CompassPin.Apply(harmony);
             CompassLivePins.Apply(harmony);
             DrawerPreview.Apply(harmony);
             PieceHealthLabel.Apply(harmony);
-            CropHarvestHint.Apply(harmony);
             WorldHealthText.Apply(harmony);
             SlotCue.Apply(harmony);
             CharacterExtras.Apply(harmony);
@@ -345,7 +389,6 @@ namespace SeneaLHudLayout
             SkillRespendFix.Apply(harmony);
             VanillaSkillsWindow.Apply(harmony);
             RebirthNotice.Apply(harmony);
-            OldSkillsWindowBind.Apply(harmony);
             EquipQueueMark.Apply(harmony);
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
         }

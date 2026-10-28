@@ -58,9 +58,29 @@ namespace SeneaLHudLayout
 
         static void HideSenealSlot(RectTransform senealRoot)
         {
+            // Try multiple paths for guardian power element in SeneaL UI v1.2.5
             Transform gp = senealRoot.Find("Health/vitals/gp");
+            if (gp == null) gp = senealRoot.Find("vitals/gp");
+            if (gp == null) gp = senealRoot.Find("Health/guardianPower");
+            if (gp == null) gp = senealRoot.Find("guardianPower");
+            if (gp == null) gp = senealRoot.Find("vitals/guardianPower");
+            if (gp == null) gp = senealRoot.Find("Health/vitals/guardianPower");
+            if (gp == null) gp = senealRoot.Find("Health/vitalsCluster/gp");
+            if (gp == null) gp = senealRoot.Find("vitalsCluster/gp");
+            if (gp == null) gp = senealRoot.Find("Health/vitals/guardianPowerIcon");
+            if (gp == null) gp = senealRoot.Find("vitals/guardianPowerIcon");
+            if (gp == null) gp = senealRoot.Find("Health/vitals/guardianPowerSlot");
+            if (gp == null) gp = senealRoot.Find("vitals/guardianPowerSlot");
+            if (gp == null) gp = senealRoot.Find("Health/vitals/guardianPowerContainer");
+            if (gp == null) gp = senealRoot.Find("vitals/guardianPowerContainer");
+            if (gp == null) gp = senealRoot.Find("Health/vitalsCluster/guardianPower");
+            if (gp == null) gp = senealRoot.Find("vitalsCluster/guardianPower");
+            if (gp == null) gp = senealRoot.Find("Health/guardianPowerContainer");
+            if (gp == null) gp = senealRoot.Find("guardianPowerContainer");
+            
             if (gp == null)
             {
+                // Debug.LogWarning("[SeneaL HUD Layout] Guardian power element not found - hotkeys may not display correctly");
                 return;
             }
 
@@ -85,36 +105,77 @@ namespace SeneaLHudLayout
 
         static void PlacePowers(Hud hud, RectTransform senealRoot, ConfigFile config)
         {
-            if (hud.m_gpRoot == null)
-            {
-                return;
-            }
+            // ---------- Food (new SeneaL path) ----------
+            RectTransform food = senealRoot.Find("Food/fx/vitals/food") as RectTransform;
+            if (food == null) food = senealRoot.Find("Food/fx/vitals") as RectTransform;
+            if (food == null) food = senealRoot.Find("Food") as RectTransform;
 
-            if (!(senealRoot.Find("Health/vitals/food") is RectTransform food))
+            /*if (food == null)
             {
-                return;
+                Debug.LogWarning("[SeneaLHudLayout] Food element still not found");
             }
+            else
+            {
+                Debug.Log("[SeneaLHudLayout] Food found at Food/fx/vitals/food (or parent)");
+            }*/
 
             RememberFont(hud);
             TmpFont.Ensure();
 
+            // ---------- Collect power slots from SeneaL's GuardianPower ----------
             var shown = new List<Transform>();
-            Transform root = hud.m_gpRoot.transform;
-            for (int i = 0; i < root.childCount; i++)
-            {
-                Transform child = root.GetChild(i);
-                if (!child.name.StartsWith("powerContainer") || !child.gameObject.activeInHierarchy)
-                {
-                    continue;
-                }
 
-                shown.Add(child);
+            Transform gpRoot = senealRoot.Find("GuardianPower/fx/vitals");
+            /*if (gpRoot == null)
+            {
+                Debug.LogWarning("[SeneaLHudLayout] GuardianPower/fx/vitals not found");
+                return;
+            }*/
+
+            // gp, gp1, gp2 ... gp6
+            for (int i = 0; i < gpRoot.childCount; i++)
+            {
+                Transform child = gpRoot.GetChild(i);
+                string name = child.name;
+
+                // Accept "gp", "gp1", "gp2", ...
+                if (name == "gp" || (name.StartsWith("gp") && name.Length <= 3))
+                {
+                    if (child.gameObject.activeInHierarchy)
+                        shown.Add(child);
+                }
             }
 
+            // Debug.Log($"[SeneaLHudLayout] Found {shown.Count} SeneaL power slots under GuardianPower");
+
+            /*if (shown.Count == 0)
+            {
+                Debug.LogWarning("[SeneaLHudLayout] No active power slots found");
+                return;
+            }*/
+
+            // ---------- Positioning ----------
             float gap = SeneaLHudLayoutPlugin.PowersGap.Value;
             float scale = SeneaLHudLayoutPlugin.PowersScale.Value;
-            float x = HudLayout.EdgeX(food, left: false) + gap + SeneaLHudLayoutPlugin.PowersOffsetX.Value;
-            float y = HudLayout.EdgeY(food, bottom: true) + SeneaLHudLayoutPlugin.PowersOffsetY.Value;
+            float offsetX = SeneaLHudLayoutPlugin.PowersOffsetX.Value;
+            float offsetY = SeneaLHudLayoutPlugin.PowersOffsetY.Value;
+
+            float x, y;
+
+            if (food != null)
+            {
+                x = HudLayout.EdgeX(food, left: false) + gap + offsetX;
+                y = HudLayout.EdgeY(food, bottom: true) + offsetY;
+            }
+            else
+            {
+                // Fallback
+                x = 300f + offsetX;
+                y = 180f + offsetY;
+            }
+
+            // Debug.Log($"[SeneaLHudLayout] Powers settings → scale={scale}, gap={gap}, offsetX={offsetX}, offsetY={offsetY}");
+
             float shared = SharedCooldown();
             RefreshEffects();
             RectTransform rightIcon = null;
@@ -122,23 +183,56 @@ namespace SeneaLHudLayout
 
             for (int i = 0; i < shown.Count; i++)
             {
-                int slot = SlotIndex(shown[i]);
+                // Slot index: "gp" = 1, "gp1" = 2, "gp2" = 3, etc.
+                int slot = 1;
+                string name = shown[i].name;
+                if (name.StartsWith("gp") && name.Length > 2 && int.TryParse(name.Substring(2), out int num))
+                    slot = num + 1;
+
                 shown[i].localScale = new Vector3(scale, scale, 1f);
-                if (!TryBounds(shown[i], out float minX, out float minY, out float maxX, out _))
+
+                // Hide original SeneaL key
+                Transform originalKey = shown[i].Find("key");
+                if (originalKey != null)
+                    originalKey.gameObject.SetActive(false);
+
+                bool hasBounds = TryBounds(shown[i], out float minX, out float minY, out float maxX, out float maxY);
+
+                if (hasBounds && shown[i] is RectTransform rt)
                 {
-                    continue;
+                    // Absolute positioning (stable, no flicker)
+                    float width = maxX - minX;
+                    float height = maxY - minY;
+
+                    Vector3 worldTarget = new Vector3(
+                        x + width * 0.5f,
+                        y + height * 0.5f,
+                        rt.position.z);
+
+                    if (rt.parent != null)
+                    {
+                        Vector3 local = rt.parent.InverseTransformPoint(worldTarget);
+                        rt.anchoredPosition = new Vector2(local.x, local.y);
+                    }
+                    else
+                    {
+                        rt.position = worldTarget;
+                    }
+
+                    x += width + gap;
                 }
 
-                shown[i].position += new Vector3(x - minX, y - minY, 0f);
-                HidePowerTitle(shown[i]);
-                SetKey(shown[i], ShortcutText(config, slot), shared > 0f);
+                string keyText = ShortcutText(config, slot);
+                SetKey(shown[i], keyText, shared > 0f);
+
                 string power = PowerName(slot);
                 float buff = power == null ? 0f : EffectTimeLeft("PassivePowers " + power);
                 float down = power == null ? 0f : EffectTimeLeft("PassivePowers Depletion " + power);
                 SetTimer(shown[i], BuffName, buff, BuffColor, above: true);
                 SetTimer(shown[i], DownName, down, DownColor, above: false);
 
-                if (shown[i].Find("Icon") is RectTransform icon)
+                RectTransform icon = FindPowerIcon(shown[i]);
+                if (icon != null)
                 {
                     float edge = HudLayout.EdgeX(icon, left: false);
                     if (edge > rightEdge)
@@ -147,8 +241,6 @@ namespace SeneaLHudLayout
                         rightIcon = icon;
                     }
                 }
-
-                x += (maxX - minX) + gap;
             }
 
             PlaceSharedCooldown(hud, rightIcon, shared, scale);
@@ -300,7 +392,7 @@ namespace SeneaLHudLayout
             }
 
             hud.m_gpCooldown.gameObject.SetActive(true);
-            hud.m_gpCooldown.text = StatusEffect.GetTimeString(seconds, false, false);
+            hud.m_gpCooldown.text = StatusEffect.GetTimeString(seconds, false, false).ToLowerInvariant();
             cooldown.localScale = new Vector3(scale, scale, 1f);
             float iconMid = (HudLayout.EdgeY(icon, bottom: true) + HudLayout.EdgeY(icon, bottom: false)) * 0.5f;
             float iconRight = HudLayout.EdgeX(icon, left: false);
@@ -333,6 +425,9 @@ namespace SeneaLHudLayout
             {
                 return "";
             }
+
+            // Temporary – remove after confirming
+            // Debug.Log($"[SeneaLHudLayout] Slot {slot} shortcut = '{result}' (found={found})");
 
             var parts = new List<string>();
             foreach (KeyCode modifier in key.Modifiers)
@@ -386,12 +481,24 @@ namespace SeneaLHudLayout
             TextMeshProUGUI label = EnsureLabel(container, KeyName, locked ? KeyLocked : KeyReady);
             label.text = text;
             label.color = locked ? KeyLocked : KeyReady;
-            if (!TryBounds(container, out float minX, out float minY, out float maxX, out _))
-            {
-                return;
-            }
 
-            label.rectTransform.position = new Vector3((minX + maxX) * 0.5f, minY - 2f, label.rectTransform.position.z);
+            if (TryBounds(container, out float minX, out float minY, out float maxX, out _))
+            {
+                label.rectTransform.position = new Vector3(
+                    (minX + maxX) * 0.5f,
+                    minY - 2f,
+                    label.rectTransform.position.z);
+            }
+            else
+            {
+                // Fallback: center under the container itself
+                if (container is RectTransform rt)
+                {
+                    float cx = (HudLayout.EdgeX(rt, left: true) + HudLayout.EdgeX(rt, left: false)) * 0.5f;
+                    float bottom = HudLayout.EdgeY(rt, bottom: true);
+                    label.rectTransform.position = new Vector3(cx, bottom - 2f, label.rectTransform.position.z);
+                }
+            }
         }
 
         static void SetTimer(Transform container, string name, float seconds, Color color, bool above)
@@ -404,13 +511,13 @@ namespace SeneaLHudLayout
             }
 
             label.gameObject.SetActive(true);
-            label.text = StatusEffect.GetTimeString(seconds, false, false);
+            label.text = StatusEffect.GetTimeString(seconds, false, false).ToLowerInvariant();
             label.color = color;
 
             RectTransform anchor = above ? TopAnchor(container) : container.Find(KeyName) as RectTransform;
             if (anchor == null)
             {
-                anchor = container.Find("Icon") as RectTransform;
+                anchor = FindPowerIcon(container);
             }
 
             if (anchor == null)
@@ -525,6 +632,32 @@ namespace SeneaLHudLayout
             }
 
             return any;
+        }
+        static RectTransform FindPowerIcon(Transform container)
+        {
+            // SeneaL uses "power"
+            Transform t = container.Find("power");
+            if (t is RectTransform rt && rt.gameObject.activeInHierarchy)
+                return rt;
+
+            // Fallbacks
+            string[] candidates = { "Icon", "icon", "PowerIcon", "powerIcon", "Image", "image" };
+            foreach (string name in candidates)
+            {
+                t = container.Find(name);
+                if (t is RectTransform r && r.gameObject.activeInHierarchy)
+                    return r;
+            }
+
+            // Last resort
+            var images = container.GetComponentsInChildren<UnityEngine.UI.Image>(true);
+            foreach (var img in images)
+            {
+                if (img.gameObject.activeInHierarchy && img.rectTransform != null)
+                    return img.rectTransform;
+            }
+
+            return null;
         }
     }
 }
