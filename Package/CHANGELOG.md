@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.4
+
+- Clicking the wishbone in a key slot picks it up instead of swapping it with the belt. With `WishboneInKeySlot` on, SeneaL treated it as a utility item (belt cell) because it was no longer a charm.
+- `[BuildPanel] Scale` default is 0.8. The selected-piece card is drawn above the vitals without adding a Canvas (that hid hammer pieces and spammed the log).
+- Wishbone right-click no longer equips it (that countdown unequipped the belt) and no longer drops it from a key slot. Left-click still picks it up.
+- Stopped scanning the inventory on every change (that hitch when equipping a hip lantern).
+
 ## 1.2.3
 
 - `[BuildPanel] Scale` (default 0.85) shrinks SeneaL's selected-piece build card from its current size. 1 is SeneaL's size. SeneaL also has `[Sizes] BuildPanel` in `seneaL.valheim.ui.cfg`; this setting is independent so you can scale it from Configuration Manager under this mod.

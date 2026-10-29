@@ -670,7 +670,7 @@ namespace SeneaLHudLayout
                 _buildPanelKnown = true;
             }
 
-            float scale = 0.85f;
+            float scale = 0.8f;
             if (SeneaLHudLayoutPlugin.BuildPanelScale != null)
             {
                 scale = Mathf.Clamp(SeneaLHudLayoutPlugin.BuildPanelScale.Value, 0.5f, 1.5f);
@@ -680,6 +680,28 @@ namespace SeneaLHudLayout
                 _buildPanelBaseScale.x * scale,
                 _buildPanelBaseScale.y * scale,
                 _buildPanelBaseScale.z);
+            LiftBuildPanelOverVitals(root);
+        }
+
+        static void LiftBuildPanelOverVitals(RectTransform root)
+        {
+            if (_buildPanel == null || root == null)
+            {
+                return;
+            }
+
+            Transform node = _buildPanel;
+            while (node.parent != null && node.parent != root)
+            {
+                node = node.parent;
+            }
+
+            if (node.parent == root)
+            {
+                node.SetAsLastSibling();
+            }
+
+            _buildPanel.SetAsLastSibling();
         }
 
         static void RestoreBuildPanel()

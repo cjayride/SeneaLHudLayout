@@ -7,18 +7,23 @@ using UnityEngine;
 namespace SeneaLHudLayout
 {
     /// <summary>
-    /// SeneaL parks the wishbone in the charm / utility cell. Optionally treat it as a key
-    /// so pickup and drag go to a dungeon-key slot instead.
+    /// Optionally treat the wishbone as a dungeon key so it lives in a SeneaL key slot
+    /// instead of the charm cell. Clicking it there picks it up; it does not swap with the belt.
     /// </summary>
     static class WishboneKeySlot
     {
         const string Token = "$item_wishbone";
+        const int CharmSlot = 7;
+        const int ExtraCharmSlot = 14;
 
         static Type _slots;
         static Type _pouch;
         static MethodInfo _isKeyCell;
         static MethodInfo _freeKey;
         static MethodInfo _changed;
+        static MethodInfo _setupDrag;
+        static FieldInfo _manual;
+        static FieldInfo _dragGo;
         static bool _looked;
         static bool _placing;
 
@@ -43,16 +48,59 @@ namespace SeneaLHudLayout
                 harmony.Patch(isKey, postfix: new HarmonyMethod(typeof(WishboneKeySlot), nameof(AfterIsKey)));
             }
 
-            MethodInfo changed = AccessTools.Method(typeof(Inventory), "Changed");
-            if (changed != null)
+            MethodInfo slotRaw = AccessTools.Method(_slots, "SlotRaw", new[] { typeof(ItemDrop.ItemData) });
+            if (slotRaw != null)
             {
-                harmony.Patch(changed, postfix: new HarmonyMethod(typeof(WishboneKeySlot), nameof(AfterInventory)));
+                harmony.Patch(slotRaw, postfix: new HarmonyMethod(typeof(WishboneKeySlot), nameof(AfterSlotRaw)));
+            }
+
+            MethodInfo accepts = AccessTools.Method(_slots, "Accepts", new[] { typeof(int), typeof(ItemDrop.ItemData) });
+            if (accepts != null)
+            {
+                harmony.Patch(accepts, postfix: new HarmonyMethod(typeof(WishboneKeySlot), nameof(AfterAccepts)));
             }
 
             MethodInfo equip = AccessTools.Method(typeof(Humanoid), nameof(Humanoid.EquipItem));
             if (equip != null)
             {
+                harmony.Patch(equip, prefix: new HarmonyMethod(typeof(WishboneKeySlot), nameof(BeforeEquip)));
                 harmony.Patch(equip, postfix: new HarmonyMethod(typeof(WishboneKeySlot), nameof(AfterEquip)));
+            }
+
+            MethodInfo selected = AccessTools.Method(typeof(InventoryGui), "OnSelectedItem");
+            if (selected != null)
+            {
+                harmony.Patch(selected, prefix: new HarmonyMethod(typeof(WishboneKeySlot), nameof(BeforeSelected)));
+            }
+
+            MethodInfo right = AccessTools.Method(typeof(InventoryGui), "OnRightClickItem");
+            if (right != null)
+            {
+                harmony.Patch(right, prefix: new HarmonyMethod(typeof(WishboneKeySlot), nameof(BeforeRightClick)));
+            }
+
+            MethodInfo use = AccessTools.Method(typeof(Humanoid), nameof(Humanoid.UseItem));
+            if (use != null)
+            {
+                harmony.Patch(use, prefix: new HarmonyMethod(typeof(WishboneKeySlot), nameof(BeforeUse)));
+            }
+
+            MethodInfo toggle = AccessTools.DeclaredMethod(typeof(Player), "ToggleEquipped");
+            if (toggle != null)
+            {
+                harmony.Patch(toggle, prefix: new HarmonyMethod(typeof(WishboneKeySlot), nameof(BeforeToggle)));
+            }
+
+            MethodInfo queueOn = AccessTools.DeclaredMethod(typeof(Player), "QueueEquipAction");
+            if (queueOn != null)
+            {
+                harmony.Patch(queueOn, prefix: new HarmonyMethod(typeof(WishboneKeySlot), nameof(BeforeQueue)));
+            }
+
+            MethodInfo queueOff = AccessTools.DeclaredMethod(typeof(Player), "QueueUnequipAction");
+            if (queueOff != null)
+            {
+                harmony.Patch(queueOff, prefix: new HarmonyMethod(typeof(WishboneKeySlot), nameof(BeforeQueue)));
             }
 
             if (SeneaLHudLayoutPlugin.WishboneInKeySlot != null)
@@ -61,13 +109,93 @@ namespace SeneaLHudLayout
             }
         }
 
-        static void AfterInventory(Inventory __instance)
+        static bool BeforeSelected(InventoryGui __instance, InventoryGrid grid, ItemDrop.ItemData item, Vector2i pos, InventoryGrid.Modifier mod)
         {
-            Player player = Player.m_localPlayer;
-            if (player != null && player.GetInventory() == __instance)
+            if (!On() || __instance == null || item == null || !IsWishbone(item))
             {
-                Place(player);
+                return true;
             }
+
+            Player player = Player.m_localPlayer;
+            if (player == null)
+            {
+                return true;
+            }
+
+            Inventory inv = player.GetInventory();
+            if (inv == null || grid == null || grid.GetInventory() != inv)
+            {
+                return true;
+            }
+
+            if (!InKey(inv, item))
+            {
+                return true;
+            }
+
+            if (Dragging(__instance))
+            {
+                return true;
+            }
+
+            Pickup(__instance, item, inv);
+            return false;
+        }
+
+        static bool BeforeRightClick(InventoryGui __instance, InventoryGrid grid, ItemDrop.ItemData item, Vector2i pos)
+        {
+            if (!On() || __instance == null || item == null || !IsWishbone(item))
+            {
+                return true;
+            }
+
+            Player player = Player.m_localPlayer;
+            Inventory inv = player == null ? null : player.GetInventory();
+            if (inv == null || grid == null || grid.GetInventory() != inv)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        static bool BeforeUse(Humanoid __instance, ItemDrop.ItemData item)
+        {
+            if (!On() || !IsWishbone(item) || !(__instance is Player player))
+            {
+                return true;
+            }
+
+            player.RemoveEquipAction(item);
+            return false;
+        }
+
+        static bool BeforeToggle(Player __instance, ItemDrop.ItemData item, ref bool __result)
+        {
+            if (!On() || !IsWishbone(item) || __instance == null)
+            {
+                return true;
+            }
+
+            __instance.RemoveEquipAction(item);
+            __result = false;
+            return false;
+        }
+
+        static bool BeforeQueue(Player __instance, ItemDrop.ItemData item)
+        {
+            return !On() || !IsWishbone(item);
+        }
+
+        static bool BeforeEquip(Humanoid __instance, ItemDrop.ItemData item, ref bool __result)
+        {
+            if (!On() || !IsWishbone(item) || !(__instance is Player))
+            {
+                return true;
+            }
+
+            __result = false;
+            return false;
         }
 
         static void AfterEquip(Humanoid __instance, ItemDrop.ItemData item)
@@ -89,6 +217,27 @@ namespace SeneaLHudLayout
         static void AfterIsKey(ItemDrop.ItemData item, ref bool __result)
         {
             if (!__result && On() && IsWishbone(item))
+            {
+                __result = true;
+            }
+        }
+
+        static void AfterSlotRaw(ItemDrop.ItemData item, ref int __result)
+        {
+            if (On() && IsWishbone(item))
+            {
+                __result = -1;
+            }
+        }
+
+        static void AfterAccepts(int slot, ItemDrop.ItemData item, ref bool __result)
+        {
+            if (__result || !On() || !IsWishbone(item))
+            {
+                return;
+            }
+
+            if (slot == CharmSlot || slot == ExtraCharmSlot)
             {
                 __result = true;
             }
@@ -117,9 +266,52 @@ namespace SeneaLHudLayout
                 && name.IndexOf("wishbone", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
+        static bool InKey(Inventory inv, ItemDrop.ItemData item)
+        {
+            if (inv == null || item == null)
+            {
+                return false;
+            }
+
+            Lookup();
+            if (_isKeyCell == null)
+            {
+                return false;
+            }
+
+            return (bool)_isKeyCell.Invoke(null, new object[] { inv, item.m_gridPos.x, item.m_gridPos.y });
+        }
+
+        static void Pickup(InventoryGui gui, ItemDrop.ItemData item, Inventory inv)
+        {
+            Lookup();
+            if (gui == null || item == null || _setupDrag == null)
+            {
+                return;
+            }
+
+            _setupDrag.Invoke(gui, new object[] { item, inv, item.m_stack });
+        }
+
+        static bool Dragging(InventoryGui gui)
+        {
+            if (_dragGo == null || gui == null)
+            {
+                return false;
+            }
+
+            object go = _dragGo.GetValue(gui);
+            return go is UnityEngine.Object obj && obj;
+        }
+
+        static bool ManualMove()
+        {
+            return _manual != null && _manual.GetValue(null) is bool flag && flag;
+        }
+
         static void Place(Player player)
         {
-            if (_placing || !On() || player == null)
+            if (_placing || !On() || player == null || ManualMove())
             {
                 return;
             }
@@ -139,27 +331,26 @@ namespace SeneaLHudLayout
             _placing = true;
             try
             {
-
-            List<ItemDrop.ItemData> items = inv.GetAllItems();
-            if (items == null)
-            {
-                return;
-            }
-
-            ItemDrop.ItemData wish = null;
-            for (int i = 0; i < items.Count; i++)
-            {
-                if (IsWishbone(items[i]))
+                List<ItemDrop.ItemData> items = inv.GetAllItems();
+                if (items == null)
                 {
-                    wish = items[i];
-                    break;
+                    return;
                 }
-            }
 
-            if (wish == null)
-            {
-                return;
-            }
+                ItemDrop.ItemData wish = null;
+                for (int i = 0; i < items.Count; i++)
+                {
+                    if (IsWishbone(items[i]))
+                    {
+                        wish = items[i];
+                        break;
+                    }
+                }
+
+                if (wish == null)
+                {
+                    return;
+                }
 
                 if ((bool)_isKeyCell.Invoke(null, new object[] { inv, wish.m_gridPos.x, wish.m_gridPos.y }))
                 {
@@ -209,6 +400,9 @@ namespace SeneaLHudLayout
             _changed = _pouch == null
                 ? null
                 : AccessTools.Method(_pouch, "Changed", new[] { typeof(Inventory) });
+            _manual = _slots == null ? null : AccessTools.Field(_slots, "Manual");
+            _setupDrag = AccessTools.Method(typeof(InventoryGui), "SetupDragItem");
+            _dragGo = AccessTools.Field(typeof(InventoryGui), "m_dragGo");
         }
     }
 }
