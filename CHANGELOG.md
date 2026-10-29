@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1
+
+- Clarified `[Hover] ShowPieceHealth` and `ShowPieceHealthPercent`: they sit beside SeneaL's crosshair piece health bar and only appear when that bar is shown. On SeneaL UI 1.2.8+, keep **TooltipExtra** and **TooltipPlates** off in `seneaL.valheim.ui.cfg` (or use an equivalent layout), or the numbers stay hidden even when these options are on.
+
 ## 1.2.0
 - UPDATED TO WORK WITH SENEAL UI VERSION 1.2.8
 - Updated "Hide Wind Direction and Time"

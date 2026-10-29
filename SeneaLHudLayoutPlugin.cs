@@ -38,7 +38,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.2.0";
+        public const string VERSION = "1.2.1";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -206,12 +206,16 @@ namespace SeneaLHudLayout
             CollapseDrawerPreview = Config.Bind("Hover", "CollapseItemDrawerStacks", true,
                 "When hovering a Grillspett Item Drawer, show one preview slot for the stored item instead of every stack.");
             ShowPieceHealth = Config.Bind("Hover", "ShowPieceHealth", false,
-                "With the hammer out, show the piece's current/max health beside SeneaL's piece health bar. The piece name stays hidden. The bar itself stays visible.");
+                "With the hammer out, show the piece's current/max health beside SeneaL's crosshair piece health bar (PieceHealthIndicator). "
+                + "Requires that bar to stay visible: on SeneaL UI 1.2.8+, turn off TooltipExtra and TooltipPlates (or use an equivalent layout). "
+                + "Does not add the piece name.");
             ShowPieceHealthSize = Config.Bind("Hover", "ShowPieceHealthSize", 14f,
                 new ConfigDescription("Text size of the current/max piece health number.",
                     new AcceptableValueRange<float>(8f, 32f)));
             ShowPieceHealthPercent = Config.Bind("Hover", "ShowPieceHealthPercent", false,
-                "With the hammer out, show the piece's health percent beside SeneaL's piece health bar. The piece name stays hidden. The bar itself stays visible.");
+                "With the hammer out, show the piece's health percent beside SeneaL's crosshair piece health bar (PieceHealthIndicator). "
+                + "Requires that bar to stay visible: on SeneaL UI 1.2.8+, turn off TooltipExtra and TooltipPlates (or use an equivalent layout). "
+                + "Does not add the piece name.");
             ShowPieceHealthPercentSize = Config.Bind("Hover", "ShowPieceHealthPercentSize", 14f,
                 new ConfigDescription("Text size of the piece health percent.",
                     new AcceptableValueRange<float>(8f, 32f)));
