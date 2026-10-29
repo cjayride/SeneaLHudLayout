@@ -18,6 +18,9 @@ namespace SeneaLHudLayout
         static RectTransform _food;
         static Vector2 _foodBase;
         static bool _foodKnown;
+        static RectTransform _buildPanel;
+        static Vector3 _buildPanelBaseScale;
+        static bool _buildPanelKnown;
 
         public static void Apply()
         {
@@ -43,6 +46,7 @@ namespace SeneaLHudLayout
             LiftBossWithoutCompass(root);
             ClearRaidFromBoss(root);
             PlaceCenterMessage(root);
+            PlaceBuildPanel(root);
             PowersLayout.Apply(hud, root);
             EpicLootAbilitiesLayout.Apply(root);
             _applied = true;
@@ -100,6 +104,7 @@ namespace SeneaLHudLayout
 
             RestoreBossBars();
             RestoreCenterMessage();
+            RestoreBuildPanel();
             PowersLayout.Restore(root);
             EpicLootAbilitiesLayout.Restore(root);
             _applied = false;
@@ -648,6 +653,77 @@ namespace SeneaLHudLayout
                 _banner.localScale = Vector3.one;
                 _banner.anchoredPosition = _bannerBase;
             }
+        }
+
+        static void PlaceBuildPanel(RectTransform root)
+        {
+            if (!_buildPanelKnown || _buildPanel == null)
+            {
+                RectTransform found = FindBuildPanel(root);
+                if (found == null)
+                {
+                    return;
+                }
+
+                _buildPanel = found;
+                _buildPanelBaseScale = found.localScale;
+                _buildPanelKnown = true;
+            }
+
+            float scale = 0.85f;
+            if (SeneaLHudLayoutPlugin.BuildPanelScale != null)
+            {
+                scale = Mathf.Clamp(SeneaLHudLayoutPlugin.BuildPanelScale.Value, 0.5f, 1.5f);
+            }
+
+            _buildPanel.localScale = new Vector3(
+                _buildPanelBaseScale.x * scale,
+                _buildPanelBaseScale.y * scale,
+                _buildPanelBaseScale.z);
+        }
+
+        static void RestoreBuildPanel()
+        {
+            if (_buildPanelKnown && _buildPanel != null)
+            {
+                _buildPanel.localScale = _buildPanelBaseScale;
+            }
+        }
+
+        static RectTransform FindBuildPanel(Transform root)
+        {
+            Transform direct = root.Find("BuildPanel");
+            if (direct is RectTransform panel)
+            {
+                return panel;
+            }
+
+            direct = root.Find("menuFade/BuildPanel");
+            if (direct is RectTransform nested)
+            {
+                return nested;
+            }
+
+            return FindNamedRect(root, "BuildPanel");
+        }
+
+        static RectTransform FindNamedRect(Transform parent, string name)
+        {
+            if (parent.name == name && parent is RectTransform self)
+            {
+                return self;
+            }
+
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                RectTransform hit = FindNamedRect(parent.GetChild(i), name);
+                if (hit != null)
+                {
+                    return hit;
+                }
+            }
+
+            return null;
         }
 
         internal static void Move(RectTransform rt, float pixelsX, float pixelsY)

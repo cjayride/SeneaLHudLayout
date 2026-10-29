@@ -38,7 +38,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.2.2";
+        public const string VERSION = "1.2.3";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -120,6 +120,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> ClickMaterials;
         public static ConfigEntry<bool> SplitWalletForChest;
         public static ConfigEntry<bool> WishboneInKeySlot;
+        public static ConfigEntry<float> BuildPanelScale;
         public static ConfigEntry<bool> StatValuesBesideLabels;
         public static ConfigEntry<bool> ShowPieceHealth;
         public static ConfigEntry<float> ShowPieceHealthSize;
@@ -363,6 +364,10 @@ namespace SeneaLHudLayout
                 "Keep the coin purse out of chest deposits. Deposit All, Deposit Similar, and Stack All never take coins from the purse. Move coins into your inventory first if you want them in a chest. Turn this off to let those buttons take the purse.");
             WishboneInKeySlot = Config.Bind("Inventory", "WishboneInKeySlot", false,
                 "Put the wishbone in a SeneaL dungeon-key slot instead of the charm / utility cell. Off (default) keeps SeneaL's normal wishbone slot. Needs key slots enabled in SeneaL UI. The wishbone is stored there, not worn, so its effect is off until you move it back to the charm cell.");
+            BuildPanelScale = Config.Bind("BuildPanel", "Scale", 0.85f,
+                new ConfigDescription(
+                    "Size of SeneaL's selected-piece BuildPanel (the hammer piece card). 1 is SeneaL's current size. 0.85 is this mod's default. SeneaL's own [Sizes] BuildPanel stays at 1 unless you change that too.",
+                    new AcceptableValueRange<float>(0.5f, 1.5f)));
 
             EpicLootAbilitiesOffsetX = Config.Bind("EpicLootAbilities", "OffsetX", 12f,
                 new ConfigDescription(

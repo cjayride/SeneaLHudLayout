@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.3
+
+- `[BuildPanel] Scale` (default 0.85) shrinks SeneaL's selected-piece build card from its current size. 1 is SeneaL's size. SeneaL also has `[Sizes] BuildPanel` in `seneaL.valheim.ui.cfg`; this setting is independent so you can scale it from Configuration Manager under this mod.
+
 ## 1.2.2
 
 - `[Inventory] WishboneInKeySlot` (off by default). Turned on, the wishbone uses a SeneaL key slot instead of the charm / utility cell. Needs SeneaL key slots enabled. Stored in a key slot it is not worn, so the ping effect stays off until you put it back on the charm cell.
