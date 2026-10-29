@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.2
+
+- `[Inventory] WishboneInKeySlot` (off by default). Turned on, the wishbone uses a SeneaL key slot instead of the charm / utility cell. Needs SeneaL key slots enabled. Stored in a key slot it is not worn, so the ping effect stays off until you put it back on the charm cell.
+
 ## 1.2.1
 
 - Clarified `[Hover] ShowPieceHealth` and `ShowPieceHealthPercent`: they sit beside SeneaL's crosshair piece health bar and only appear when that bar is shown. On SeneaL UI 1.2.8+, keep **TooltipExtra** and **TooltipPlates** off in `seneaL.valheim.ui.cfg` (or use an equivalent layout), or the numbers stay hidden even when these options are on.

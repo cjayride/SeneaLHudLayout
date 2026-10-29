@@ -38,7 +38,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.2.1";
+        public const string VERSION = "1.2.2";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -119,6 +119,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> ShowItemSearch;
         public static ConfigEntry<bool> ClickMaterials;
         public static ConfigEntry<bool> SplitWalletForChest;
+        public static ConfigEntry<bool> WishboneInKeySlot;
         public static ConfigEntry<bool> StatValuesBesideLabels;
         public static ConfigEntry<bool> ShowPieceHealth;
         public static ConfigEntry<float> ShowPieceHealthSize;
@@ -360,6 +361,8 @@ namespace SeneaLHudLayout
                 "Place stat numbers directly beside their names, such as pierce 8. Covers item tooltips and the item window. Off keeps SeneaL's right-aligned numbers.");
             SplitWalletForChest = Config.Bind("Wallet", "SplitForChest", true,
                 "Keep the coin purse out of chest deposits. Deposit All, Deposit Similar, and Stack All never take coins from the purse. Move coins into your inventory first if you want them in a chest. Turn this off to let those buttons take the purse.");
+            WishboneInKeySlot = Config.Bind("Inventory", "WishboneInKeySlot", false,
+                "Put the wishbone in a SeneaL dungeon-key slot instead of the charm / utility cell. Off (default) keeps SeneaL's normal wishbone slot. Needs key slots enabled in SeneaL UI. The wishbone is stored there, not worn, so its effect is off until you move it back to the charm cell.");
 
             EpicLootAbilitiesOffsetX = Config.Bind("EpicLootAbilities", "OffsetX", 12f,
                 new ConfigDescription(
@@ -394,6 +397,7 @@ namespace SeneaLHudLayout
             VanillaSkillsWindow.Apply(harmony);
             RebirthNotice.Apply(harmony);
             EquipQueueMark.Apply(harmony);
+            WishboneKeySlot.Apply(harmony);
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
         }
 
