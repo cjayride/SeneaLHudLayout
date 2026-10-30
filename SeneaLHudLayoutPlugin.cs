@@ -33,12 +33,13 @@ namespace SeneaLHudLayout
     [BepInDependency("com.maxsch.valheim.vnei", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("org.bepinex.plugins.creaturelevelcontrol", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("cjayride.CompactStatusSquares", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("randyknapp.mods.epicloot", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInProcess("valheim.exe")]
     public class SeneaLHudLayoutPlugin : BaseUnityPlugin
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.2.4";
+        public const string VERSION = "1.3.5";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -132,6 +133,9 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> HideAdrenalineNumber;
         public static ConfigEntry<float> EpicLootAbilitiesOffsetX;
         public static ConfigEntry<float> EpicLootAbilitiesOffsetY;
+        public static ConfigEntry<bool> ShardSocketWindow;
+        public static ConfigEntry<KeyboardShortcut> ShardSocketHotkey;
+        public static ConfigEntry<bool> ShardWindowRequireConfirmClose;
 
         void Awake()
         {
@@ -379,6 +383,13 @@ namespace SeneaLHudLayout
             "Vertical adjustment for Epic Loot Legendary Set ability icons. Positive moves up.",
             new AcceptableValueRange<float>(-400f, 400f)));
 
+            ShardSocketWindow = Config.Bind("EpicLoot", "ShardSocketWindow", true,
+                "Client-only, not synced. When on and Epic Loot is loaded, open shard sockets in a dedicated window so add/remove works with SeneaL CustomUI on. Off leaves Epic Loot's own overlay shortcut unchanged and adds no extra hotkey.");
+            ShardSocketHotkey = Config.Bind("EpicLoot", "ShardSocketHotkey", new KeyboardShortcut(KeyCode.E),
+                "Opens the shard socket window for the inventory item under the mouse. Inventory must be open and the item must have Epic Loot shard sockets. Client-only. Default is E (same as Epic Loot's overlay shortcut; this mod then hosts the socket row in the window).");
+            ShardWindowRequireConfirmClose = Config.Bind("EpicLoot", "ShardWindowRequireConfirmClose", false,
+                "If on, do not close the shard window while an inventory item is being dragged. Client-only. Off (default) closes with Esc, the X button, or closing inventory.");
+
             Harmony harmony = new Harmony(GUID);
             ShudnalConfigBridge.Apply(harmony);
             CompassPin.Apply(harmony);
@@ -403,6 +414,7 @@ namespace SeneaLHudLayout
             RebirthNotice.Apply(harmony);
             EquipQueueMark.Apply(harmony);
             WishboneKeySlot.Apply(harmony);
+            EpicLootShardWindow.Apply(harmony);
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
         }
 
@@ -412,6 +424,7 @@ namespace SeneaLHudLayout
             SlotCue.Tick();
             CharacterExtras.Tick();
             AdventureJournal.Tick();
+            EpicLootShardWindow.Tick();
             VneiSearch.Tick();
             CraftMaterials.Tick();
             StatValues.Tick();

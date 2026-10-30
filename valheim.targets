@@ -51,7 +51,7 @@
   
   <!-- Manual overrides -->
   <PropertyGroup>
-    <BepInExPath>$(GamePath)\BepInEx</BepInExPath>
+    <BepInExPath Condition="'$(BepInExPath)' == ''">$(GamePath)\BepInEx</BepInExPath>
     <BepInExPath Condition="!Exists('$(BepInExPath)\core\BepInEx.dll')">$(MSBuildThisFileDirectory)lib\BepInEx</BepInExPath>
     <ManagedDataPath>$(GamePath)\valheim_Data\Managed</ManagedDataPath>
     <UnityPath>$(ManagedDataPath)</UnityPath>

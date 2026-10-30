@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.3.5
+
+- Shard window hint is only "Drag shard stones or runes into empty sockets."
+- Gold border on each shard slot, matching the panel frame.
+
+## 1.3.4
+
+- Removed the inventory **Sockets** button. Hover a socketed item and press E (or the configured hotkey).
+
+## 1.3.3
+
+- Shard window no longer shows Epic Loot's cloned vanilla inventory wood background (`Bkg`) or extra title inside the panel. The SeneaL-styled frame stays; only shard slot cells remain.
+
+## 1.3.2
+
+- Fixed Harmony crash on Epic Loot `ShardUI.Open` (patch used `gui`; the method parameter is `invGui`). That exception aborted the rest of the shard-window patches, so E did nothing.
+
+## 1.3.1
+
+- Shard socket hotkey now intercepts Use (E) before the inventory closes, reads the hovered cell from SeneaL's cursor selection, and stops Epic Loot from immediately closing the socket panel because the vanilla player grid is hidden.
+
+## 1.3.0
+
+- Epic Loot shard socket window for SeneaL CustomUI. With `[EpicLoot] ShardSocketWindow` on (default), hover a socketed item in inventory and press `ShardSocketHotkey` (default E) or the Sockets button to open Epic Loot's shard row in a dedicated window. Add/remove uses Epic Loot 0.15.4 (`ShardUI.Open`); no need to turn CustomUI off. Client-only. Off restores previous behavior.
+
 ## 1.2.4
 
 - Clicking the wishbone in a key slot picks it up instead of swapping it with the belt. With `WishboneInKeySlot` on, SeneaL treated it as a utility item (belt cell) because it was no longer a charm.

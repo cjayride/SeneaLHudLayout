@@ -77,6 +77,7 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 - Collapses the Grillspett Item Drawer hover preview into one slot displaying the total stored quantity.
 - Prevents chest deposit operations from taking coins directly out of the coin purse.
 - Positions stat values beside their labels in item tooltips and crafting panels.
+- With Epic Loot loaded, opens shard (and rune) sockets in a dedicated window so they can be filled or emptied while SeneaL CustomUI is on. Hover the gear and press E. Turn `[EpicLoot] ShardSocketWindow` off to leave this to Epic Loot alone.
 
 ### Interface & Notifications
 
@@ -116,6 +117,7 @@ Settings are organized by category. Key options include:
 | Status Effects | `MoveToCorner` | Off |
 | Chat | `HideChat` | On |
 | Wallet | `SplitForChest` | On |
+| EpicLoot | `ShardSocketWindow` | On |
 
 Additional settings control positioning, sizing, colors, visibility, and other behaviors.
 
