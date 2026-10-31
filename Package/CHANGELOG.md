@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.7
+
+- Selling or recycling a socketed item no longer opens the shard window or reparents the player inventory into it. E at Haldor/recycle stays a sell/recycle confirm. The shard panel is only hosted when you open it on purpose, and it closes if that item leaves the bag.
+
 ## 1.3.6
 
 - `[Stats] LeftOverflow` balances two-column item tooltips by moving whole sections (set, magic, stats) between columns for similar height. Combat always stays on the left. `Set` allows set on the left; `SetThenMagic` (default) also allows magic. `Off` restores SeneaL's layout.

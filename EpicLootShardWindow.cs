@@ -53,6 +53,7 @@ namespace SeneaLHudLayout
         static ItemDrop.ItemData _cachedHover;
         static Inventory _cachedInv;
         static bool _allowEpicClose;
+        static bool _wantHost;
         static bool _openedThisFrame;
         static bool _socketsButtonRemoved;
         static Sprite _slotFrame;
@@ -163,7 +164,7 @@ namespace SeneaLHudLayout
 
         static bool BeforeTryGetPress(InventoryGui __0, ref ItemDrop.ItemData __1, ref bool __2, ref bool __result)
         {
-            if (!FeatureOn() || __0 == null || !HotkeyPressed())
+            if (!FeatureOn() || __0 == null || !HotkeyPressed() || TradeOrRecycleOpen())
             {
                 return true;
             }
@@ -183,24 +184,22 @@ namespace SeneaLHudLayout
 
         static bool BeforeEpicClose()
         {
-            if (!FeatureOn() || !_hosting || _allowEpicClose)
+            if (!FeatureOn() || !_hosting || _allowEpicClose || TradeOrRecycleOpen())
             {
                 return true;
             }
 
-            ItemDrop.ItemData item = _item ?? (_elItem != null ? _elItem.GetValue(null) as ItemDrop.ItemData : null);
-            Player player = Player.m_localPlayer;
-            if (item != null && player != null && player.GetInventory() != null && player.GetInventory().ContainsItem(item))
+            if (!HostedItemStillOwned())
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
 
         static void AfterEpicOpen(ItemDrop.ItemData item)
         {
-            if (!FeatureOn() || item == null)
+            if (!FeatureOn() || item == null || !_wantHost)
             {
                 return;
             }
@@ -221,7 +220,7 @@ namespace SeneaLHudLayout
 
         static bool BeforeUseItem(ItemDrop.ItemData item)
         {
-            if (!FeatureOn() || item == null || !InventoryGui.IsVisible() || !HotkeyPressed())
+            if (!FeatureOn() || item == null || !InventoryGui.IsVisible() || !HotkeyPressed() || TradeOrRecycleOpen())
             {
                 return true;
             }
@@ -273,11 +272,11 @@ namespace SeneaLHudLayout
             RemoveSocketsButton();
 
             bool inventoryOpen = InventoryGui.instance != null && InventoryGui.IsVisible();
-            if (!inventoryOpen)
+            if (!inventoryOpen || TradeOrRecycleOpen() || !HostedItemStillOwned())
             {
                 if (_hosting)
                 {
-                    CloseWindow(false);
+                    CloseWindow(true);
                 }
 
                 return;
@@ -303,7 +302,7 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            if (HotkeyPressed())
+            if (HotkeyPressed() && !TradeOrRecycleOpen())
             {
                 TryOpenHovered();
             }
@@ -373,6 +372,76 @@ namespace SeneaLHudLayout
             return Console.instance != null && Console.IsVisible();
         }
 
+        static bool TradeOrRecycleOpen()
+        {
+            if (StoreGui.instance != null && StoreGui.IsVisible())
+            {
+                return true;
+            }
+
+            Type recycle = AccessTools.TypeByName("SeneaLUI.Mods.Recycle");
+            if (recycle != null)
+            {
+                FieldInfo on = AccessTools.Field(recycle, "On");
+                if (on != null && on.GetValue(null) is bool recycleOn && recycleOn)
+                {
+                    FieldInfo item = AccessTools.Field(recycle, "Item");
+                    if (item != null && item.GetValue(null) != null)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        static bool HostedItemStillOwned()
+        {
+            if (!_hosting)
+            {
+                return true;
+            }
+
+            ItemDrop.ItemData item = _item ?? (_elItem != null ? _elItem.GetValue(null) as ItemDrop.ItemData : null);
+            Player player = Player.m_localPlayer;
+            return item != null && player != null && player.GetInventory() != null && player.GetInventory().ContainsItem(item);
+        }
+
+        static bool IsPlayerInventoryTransform(RectTransform root, object panel)
+        {
+            InventoryGui gui = InventoryGui.instance;
+            if (gui == null || root == null)
+            {
+                return false;
+            }
+
+            InventoryGrid playerGrid = gui.m_playerGrid;
+            if (playerGrid != null)
+            {
+                Transform grid = playerGrid.transform;
+                if (root == grid || root.IsChildOf(grid) || grid.IsChildOf(root))
+                {
+                    return true;
+                }
+            }
+
+            FieldInfo playerPanel = AccessTools.Field(_panelType, "_playerPanel");
+            if (playerPanel != null && panel != null)
+            {
+                var panelRt = playerPanel.GetValue(panel) as Transform;
+                if (root == panelRt)
+                {
+                    return true;
+                }
+            }
+
+            string name = root.name;
+            return name.IndexOf("Player", StringComparison.OrdinalIgnoreCase) >= 0
+                && name.IndexOf("Shard", StringComparison.OrdinalIgnoreCase) < 0
+                && name.IndexOf("Socket", StringComparison.OrdinalIgnoreCase) < 0;
+        }
+
         static bool CanClose()
         {
             if (SeneaLHudLayoutPlugin.ShardWindowRequireConfirmClose == null
@@ -405,11 +474,12 @@ namespace SeneaLHudLayout
         static void OpenFor(ItemDrop.ItemData item)
         {
             InventoryGui gui = InventoryGui.instance;
-            if (gui == null || item == null)
+            if (gui == null || item == null || TradeOrRecycleOpen())
             {
                 return;
             }
 
+            _wantHost = true;
             Host(item);
             try
             {
@@ -462,6 +532,7 @@ namespace SeneaLHudLayout
 
             RestoreParent();
             _hosting = false;
+            _wantHost = false;
             _item = null;
             if (_window != null)
             {
@@ -489,13 +560,13 @@ namespace SeneaLHudLayout
 
         static void Dock(object panel)
         {
-            if (!_hosting || _host == null || panel == null || _panelRoot == null)
+            if (!_hosting || !_wantHost || _host == null || panel == null || _panelRoot == null)
             {
                 return;
             }
 
             var root = _panelRoot.GetValue(panel) as RectTransform;
-            if (root == null)
+            if (root == null || IsPlayerInventoryTransform(root, panel))
             {
                 return;
             }

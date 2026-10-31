@@ -39,7 +39,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.3.6";
+        public const string VERSION = "1.3.7";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
