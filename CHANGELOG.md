@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.6
+
+- `[Stats] LeftOverflow` balances two-column item tooltips by moving whole sections (set, magic, stats) between columns for similar height. Combat always stays on the left. `Set` allows set on the left; `SetThenMagic` (default) also allows magic. `Off` restores SeneaL's layout.
+- Rebuilds from a snapshot of SeneaL's row order so toggling the setting and re-hovering an item is safe.
+
 ## 1.3.5
 
 - Shard window hint is only "Drag shard stones or runes into empty sockets."

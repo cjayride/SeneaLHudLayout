@@ -39,7 +39,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.3.5";
+        public const string VERSION = "1.3.6";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -123,6 +123,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> WishboneInKeySlot;
         public static ConfigEntry<float> BuildPanelScale;
         public static ConfigEntry<bool> StatValuesBesideLabels;
+        public static ConfigEntry<ItemTipLeftOverflow> ItemTipOverflow;
         public static ConfigEntry<bool> ShowPieceHealth;
         public static ConfigEntry<float> ShowPieceHealthSize;
         public static ConfigEntry<bool> ShowPieceHealthPercent;
@@ -364,6 +365,8 @@ namespace SeneaLHudLayout
                 "In the crafting window, click a requirement that is crafted at this same station to open its recipe. Back returns to the recipe you came from.");
             StatValuesBesideLabels = Config.Bind("Stats", "ValuesBesideLabels", true,
                 "Place stat numbers directly beside their names, such as pierce 8. Covers item tooltips and the item window. Off keeps SeneaL's right-aligned numbers.");
+            ItemTipOverflow = Config.Bind("Stats", "LeftOverflow", ItemTipLeftOverflow.SetThenMagic,
+                "Balance two-column item tooltips by moving whole sections (set, magic, stats) between columns for similar height. Combat always stays on the left. Set = set may move; SetThenMagic = set and magic may move. Off keeps SeneaL's layout.");
             SplitWalletForChest = Config.Bind("Wallet", "SplitForChest", true,
                 "Keep the coin purse out of chest deposits. Deposit All, Deposit Similar, and Stack All never take coins from the purse. Move coins into your inventory first if you want them in a chest. Turn this off to let those buttons take the purse.");
             WishboneInKeySlot = Config.Bind("Inventory", "WishboneInKeySlot", false,
@@ -407,6 +410,7 @@ namespace SeneaLHudLayout
             RepairTipPlace.Apply(harmony);
             BuildSearchMemory.Apply(harmony);
             StatValues.Apply(harmony);
+            TipColumnOverflow.Apply(harmony);
             CraftMaterials.Apply(harmony);
             StatusEffectsPlace.Apply(harmony);
             SkillRespendFix.Apply(harmony);

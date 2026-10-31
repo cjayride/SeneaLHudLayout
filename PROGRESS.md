@@ -1,11 +1,11 @@
-# PROGRESS — SeneaLHudLayout 1.3.5
+# PROGRESS — SeneaLHudLayout 1.3.6
 
 ## Goal
-Shorter shard hint text; gold border on shard slot cells.
+Balance two-column item tooltips via `[Stats] LeftOverflow`.
 
 ## Status
-Built 1.3.5.
+Released 1.3.6 (user confirmed in-game).
 
 ## Output
 - DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
-- Zip: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.3.5.zip`
+- Zip: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\Cjayride.SeneaLHudLayout-1.3.6.zip`
