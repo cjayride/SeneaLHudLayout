@@ -1,21 +1,18 @@
-# PROGRESS — SeneaLHudLayout 1.3.7
+# PROGRESS — SeneaLHudLayout 1.3.10
 
 ## Goal
-Fix shard window stealing the player inventory when selling/recycling socketed legendaries.
+Dragged shard icons must stay visible over the hosted shard window.
 
 ## Status
-Released 1.3.7.
+Released 1.3.10.
 
 ## Cause
-E is the shard hotkey and Haldor/recycle confirm. AfterEpicOpen hosted any ShardUI.Open and Dock reparented the Epic Loot panel (sometimes the player grid). After disconnect, `_hosting` stayed true.
+1.3.9 put the shard panel at ~29000. SeneaL `Inv.Selection` drag ghosts use 28000, so the icon slid under the panel and only appeared at the edges.
 
 ## Fix
-- Host only when we opened the window (`_wantHost`)
-- Ignore E while StoreGui or SeneaL recycle is open
-- Close if the hosted item is no longer in the bag
-- Never reparent the player inventory grid
-- CharacterAttributes stays out of the compile and is not ticked
+- Shard panel sort ~27000 (above inventory/craft, below drag).
+- While hosting, keep SeneaL selection layer and `InventoryGui.m_dragGo` at 28000.
 
 ## Output
 - DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
-- Zip (flat, no subfolders): `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\Cjayride.SeneaLHudLayout-1.3.7.zip`
+- Zip (flat): `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\Cjayride.SeneaLHudLayout-1.3.10.zip`

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.10
+
+- Dragged shard/item icons stay in front of the shard window (SeneaL drag layer 28000; panel is 27000).
+
+## 1.3.9
+
+- Shard window sorts above SeneaL inventory/craft (SeneaL selection layer is 28000; this panel is ~29000).
+
+## 1.3.8
+
+- Shard sockets open in the hosted SeneaL window again. Epic Loot's default panel is no longer left behind the crafting UI. Sell/recycle still does not open sockets.
+
 ## 1.3.7
 
 - Selling or recycling a socketed item no longer opens the shard window or reparents the player inventory into it. E at Haldor/recycle stays a sell/recycle confirm. The shard panel is only hosted when you open it on purpose, and it closes if that item leaves the bag.

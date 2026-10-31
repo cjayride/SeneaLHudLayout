@@ -20,6 +20,8 @@ namespace SeneaLHudLayout
         const string WindowName = "SeneaLHudLayout_ShardSockets";
         const string ButtonName = "SeneaLHudLayout_Sockets";
         const string HostName = "socketHost";
+        const int FrontSort = 27000;
+        const int DragSort = 28000;
 
         static bool _looked;
         static bool _available;
@@ -95,7 +97,7 @@ namespace SeneaLHudLayout
             Patch(harmony, AccessTools.Method(typeof(InventoryGui), nameof(InventoryGui.Hide)), nameof(BeforeHide), null);
             Patch(harmony, AccessTools.Method(_overlayInput, "TryGetPressTarget"), nameof(BeforeTryGetPress), null);
             Patch(harmony, AccessTools.Method(_shardUi, "Close", new[] { typeof(InventoryGui) }), nameof(BeforeEpicClose), null);
-            Patch(harmony, AccessTools.Method(_shardUi, "Open", new[] { typeof(InventoryGui), typeof(ItemDrop.ItemData) }), null, nameof(AfterEpicOpen));
+            Patch(harmony, AccessTools.Method(_shardUi, "Open", new[] { typeof(InventoryGui), typeof(ItemDrop.ItemData) }), nameof(BeforeEpicOpen), nameof(AfterEpicOpen));
             Patch(harmony, AccessTools.Method(typeof(InventoryGui), "OnEnterElement"), null, nameof(AfterEnterElement));
             Patch(harmony, AccessTools.Method(typeof(Humanoid), nameof(Humanoid.UseItem)), nameof(BeforeUseItem), null);
         }
@@ -178,8 +180,19 @@ namespace SeneaLHudLayout
             __1 = found;
             __2 = false;
             __result = true;
+            _wantHost = true;
             EatUse();
             return false;
+        }
+
+        static bool BeforeEpicOpen()
+        {
+            if (FeatureOn() && TradeOrRecycleOpen())
+            {
+                return false;
+            }
+
+            return true;
         }
 
         static bool BeforeEpicClose()
@@ -199,11 +212,12 @@ namespace SeneaLHudLayout
 
         static void AfterEpicOpen(ItemDrop.ItemData item)
         {
-            if (!FeatureOn() || item == null || !_wantHost)
+            if (!FeatureOn() || item == null || TradeOrRecycleOpen())
             {
                 return;
             }
 
+            _wantHost = true;
             Host(item);
         }
 
@@ -294,6 +308,8 @@ namespace SeneaLHudLayout
                     return;
                 }
 
+                BringToFront();
+                LiftDragIcons();
                 Dock(CurrentPanel());
             }
 
@@ -410,8 +426,20 @@ namespace SeneaLHudLayout
 
         static bool IsPlayerInventoryTransform(RectTransform root, object panel)
         {
+            if (root == null)
+            {
+                return false;
+            }
+
+            string name = root.name;
+            if (name.IndexOf("EpicLoot_Shard", StringComparison.OrdinalIgnoreCase) >= 0
+                || name.IndexOf("ShardSlots", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return false;
+            }
+
             InventoryGui gui = InventoryGui.instance;
-            if (gui == null || root == null)
+            if (gui == null)
             {
                 return false;
             }
@@ -436,7 +464,6 @@ namespace SeneaLHudLayout
                 }
             }
 
-            string name = root.name;
             return name.IndexOf("Player", StringComparison.OrdinalIgnoreCase) >= 0
                 && name.IndexOf("Shard", StringComparison.OrdinalIgnoreCase) < 0
                 && name.IndexOf("Socket", StringComparison.OrdinalIgnoreCase) < 0;
@@ -503,7 +530,7 @@ namespace SeneaLHudLayout
             _openedThisFrame = true;
             _allowEpicClose = false;
             _window.SetActive(true);
-            _window.transform.SetAsLastSibling();
+            BringToFront();
             PaintTitle(item);
             Dock(CurrentPanel());
         }
@@ -1046,9 +1073,10 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            Transform parent = InventoryGui.instance.transform;
-            var go = new GameObject(WindowName, typeof(RectTransform), typeof(Image));
+            Transform parent = BestParent() ?? InventoryGui.instance.transform;
+            var go = new GameObject(WindowName, typeof(RectTransform), typeof(Canvas), typeof(GraphicRaycaster), typeof(Image));
             go.transform.SetParent(parent, false);
+            ApplyFrontCanvas(go.GetComponent<Canvas>());
             var rt = (RectTransform)go.transform;
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
@@ -1086,6 +1114,135 @@ namespace SeneaLHudLayout
             _host.offsetMin = new Vector2(16f, 16f);
             _host.offsetMax = new Vector2(-16f, -72f);
             go.SetActive(false);
+        }
+
+        static Transform BestParent()
+        {
+            Type hudRoot = AccessTools.TypeByName("SeneaLUI.Hud.HudRoot");
+            FieldInfo rootField = AccessTools.Field(hudRoot, "Root");
+            var seneaL = rootField != null ? rootField.GetValue(null) as Transform : null;
+            if (seneaL != null)
+            {
+                return seneaL;
+            }
+
+            InventoryGui gui = InventoryGui.instance;
+            if (gui == null)
+            {
+                return null;
+            }
+
+            Canvas canvas = gui.GetComponentInParent<Canvas>();
+            return canvas != null ? canvas.transform : gui.transform;
+        }
+
+        static void ApplyFrontCanvas(Canvas canvas)
+        {
+            if (canvas == null)
+            {
+                return;
+            }
+
+            Canvas inherit = null;
+            Transform parent = canvas.transform.parent;
+            if (parent != null)
+            {
+                inherit = parent.GetComponentInParent<Canvas>();
+            }
+
+            if (inherit != null)
+            {
+                canvas.renderMode = inherit.renderMode;
+                canvas.worldCamera = inherit.worldCamera;
+                canvas.pixelPerfect = inherit.pixelPerfect;
+            }
+
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = FrontSortOrder(inherit);
+        }
+
+        static int FrontSortOrder(Canvas inherit)
+        {
+            int order = FrontSort;
+            if (inherit != null && inherit.sortingOrder + 20 > order && inherit.sortingOrder < DragSort)
+            {
+                order = inherit.sortingOrder + 20;
+            }
+
+            if (order >= DragSort)
+            {
+                order = DragSort - 50;
+            }
+
+            return order;
+        }
+
+        static void LiftDragIcons()
+        {
+            Type selection = AccessTools.TypeByName("SeneaLUI.Inv.Selection");
+            FieldInfo layerField = AccessTools.Field(selection, "_layer");
+            var layer = layerField != null ? layerField.GetValue(null) as Component : null;
+            RaiseCanvas(layer != null ? layer.gameObject : null, DragSort, false);
+
+            InventoryGui gui = InventoryGui.instance;
+            if (gui == null)
+            {
+                return;
+            }
+
+            FieldInfo dragField = AccessTools.Field(typeof(InventoryGui), "m_dragGo");
+            var dragGo = dragField != null ? dragField.GetValue(gui) as GameObject : null;
+            RaiseCanvas(dragGo, DragSort, false);
+        }
+
+        static void RaiseCanvas(GameObject go, int order, bool addRaycaster)
+        {
+            if (go == null)
+            {
+                return;
+            }
+
+            Canvas canvas = go.GetComponent<Canvas>();
+            if (canvas == null)
+            {
+                canvas = go.AddComponent<Canvas>();
+                Canvas inherit = go.GetComponentInParent<Canvas>();
+                if (inherit != null && inherit != canvas)
+                {
+                    canvas.renderMode = inherit.renderMode;
+                    canvas.worldCamera = inherit.worldCamera;
+                    canvas.pixelPerfect = inherit.pixelPerfect;
+                }
+            }
+
+            canvas.overrideSorting = true;
+            if (canvas.sortingOrder < order)
+            {
+                canvas.sortingOrder = order;
+            }
+
+            if (addRaycaster && go.GetComponent<GraphicRaycaster>() == null)
+            {
+                go.AddComponent<GraphicRaycaster>();
+            }
+        }
+
+        static void BringToFront()
+        {
+            if (_window == null)
+            {
+                return;
+            }
+
+            Transform parent = BestParent();
+            if (parent != null && _window.transform.parent != parent)
+            {
+                _window.transform.SetParent(parent, false);
+            }
+
+            _window.transform.SetAsLastSibling();
+            ApplyFrontCanvas(_window.GetComponent<Canvas>());
+            LiftDragIcons();
         }
 
         static void AddClose(RectTransform window)
