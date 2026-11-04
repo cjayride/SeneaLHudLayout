@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.29
+
+- New `[Chat] ChatSettingsEnabled` (off): master on/off for every Chat setting except `HideChat`. Off leaves shout prefix, last-used channel, shout capitalization, hide delay, and chat font at the game's own behavior. `HideChat` is unchanged.
+- `[Chat] RememberLastUsed` and `[Chat] chatMessageFontEnabled` now default off.
+
 ## 1.3.28
 
 - Removed the character Stats window (tab, hotkey, portrait). Tooltip `[Stats] ValuesBesideLabels` / `LeftOverflow` are unchanged.

@@ -196,7 +196,9 @@ namespace SeneaLHudLayout
 
         public static void Tick()
         {
-            if (SeneaLHudLayoutPlugin.ChatFontSettingOn == null || !SeneaLHudLayoutPlugin.ChatFontSettingOn.Value)
+            if (!SeneaLHudLayoutPlugin.ChatSettingsOn()
+                || SeneaLHudLayoutPlugin.ChatFontSettingOn == null
+                || !SeneaLHudLayoutPlugin.ChatFontSettingOn.Value)
             {
                 return;
             }

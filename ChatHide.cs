@@ -49,7 +49,7 @@ namespace SeneaLHudLayout
 
         static void ApplyHideDelay(Chat chat)
         {
-            if (SeneaLHudLayoutPlugin.HideChatPanelDelay == null)
+            if (!SeneaLHudLayoutPlugin.ChatSettingsOn() || SeneaLHudLayoutPlugin.HideChatPanelDelay == null)
             {
                 return;
             }

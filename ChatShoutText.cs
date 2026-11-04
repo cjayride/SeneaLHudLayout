@@ -139,6 +139,11 @@ namespace SeneaLHudLayout
                 return null;
             }
 
+            if (!SeneaLHudLayoutPlugin.ChatSettingsOn())
+            {
+                return text.ToUpper();
+            }
+
             bool keep = SeneaLHudLayoutPlugin.ShoutKeepsCapitalization != null
                 && SeneaLHudLayoutPlugin.ShoutKeepsCapitalization.Value;
             return keep ? text.ToUpper() : text;

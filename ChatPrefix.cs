@@ -262,12 +262,16 @@ namespace SeneaLHudLayout
 
         static bool Enabled()
         {
-            return SeneaLHudLayoutPlugin.DefaultToShout != null && SeneaLHudLayoutPlugin.DefaultToShout.Value;
+            return SeneaLHudLayoutPlugin.ChatSettingsOn()
+                && SeneaLHudLayoutPlugin.DefaultToShout != null
+                && SeneaLHudLayoutPlugin.DefaultToShout.Value;
         }
 
         static bool RememberLastUsedOn()
         {
-            return SeneaLHudLayoutPlugin.RememberLastUsed != null && SeneaLHudLayoutPlugin.RememberLastUsed.Value;
+            return SeneaLHudLayoutPlugin.ChatSettingsOn()
+                && SeneaLHudLayoutPlugin.RememberLastUsed != null
+                && SeneaLHudLayoutPlugin.RememberLastUsed.Value;
         }
 
         static bool UsesShout()

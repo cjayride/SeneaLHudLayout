@@ -39,7 +39,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.3.28";
+        public const string VERSION = "1.3.29";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -102,6 +102,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> ShowEquipQueue;
         public static ConfigEntry<bool> HideServerRules;
         public static ConfigEntry<bool> HideChat;
+        public static ConfigEntry<bool> ChatSettingsEnabled;
         public static ConfigEntry<bool> DefaultToShout;
         public static ConfigEntry<bool> RememberLastUsed;
         public static ConfigEntry<bool> ShoutKeepsCapitalization;
@@ -145,6 +146,11 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> ChatFontSettingOn;
         public static ConfigEntry<string> ChatFontAsset;
         public static ConfigEntry<float> ChatFontSize;
+
+        public static bool ChatSettingsOn()
+        {
+            return ChatSettingsEnabled != null && ChatSettingsEnabled.Value;
+        }
 
         void Awake()
         {
@@ -331,11 +337,14 @@ namespace SeneaLHudLayout
                 "Never show SeneaL UI's server-rules window when you enter a world.");
             HideChat = Config.Bind("Chat", "HideChat", false,
                 "Hide SeneaL UI's chat window. Chat messages still exist for another chat mod, such as Chatter.");
+            ChatSettingsEnabled = Config.Bind("Chat", "ChatSettingsEnabled", false,
+                "Master on/off for every Chat setting except HideChat. Off leaves Valheim/SeneaL chat as-is for "
+                + "DefaultToShout, RememberLastUsed, ShoutKeepsCapitalization, HideChatPanelDelay, and the chat font keys.");
             DefaultToShout = Config.Bind("Chat", "DefaultToShout", false,
                 "Off keeps Valheim's chat exactly as it is. On, the chat box opens with /s already typed in it, so your first Enter "
                 + "shouts (the long-range message above your character) and you never have to type the prefix. Delete the /s and the "
                 + "message is a normal close-range say, and the box stops prefilled until you type /s again.");
-            RememberLastUsed = Config.Bind("Chat", "RememberLastUsed", true,
+            RememberLastUsed = Config.Bind("Chat", "RememberLastUsed", false,
                 "With DefaultToShout on, the box prefills /s only while shout is the channel in use: after a message sent with /s, "
                 + "and not after one sent as plain text. Kept in the game's own prefs file, so it is still remembered after you quit. "
                 + "Off always prefills /s.");
@@ -348,7 +357,7 @@ namespace SeneaLHudLayout
                     "Seconds the chat panel stays visible after the last chat activity, written to the game's own chat hide timer. "
                     + "The game ships 10. Client-only.",
                     new AcceptableValueRange<float>(1f, 600f)));
-            ChatFontSettingOn = Config.Bind("Chat", "chatMessageFontEnabled", true,
+            ChatFontSettingOn = Config.Bind("Chat", "chatMessageFontEnabled", false,
                 "Apply the chat font and size below to the chat log text. Off leaves the font the chat UI (SeneaL UI, Chatter) chose.");
             ChatFontAsset = Config.Bind("Chat", "chatMessageTextFontAsset", "Valheim-AveriaSansLibre",
                 new ConfigDescription(

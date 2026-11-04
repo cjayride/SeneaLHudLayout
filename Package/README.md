@@ -90,6 +90,7 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 
 ### Chat
 
+- `ChatSettingsEnabled` (off by default) is the master switch for every Chat setting except `HideChat`. Turn it on to use shout prefix, last-used channel, shout capitalization, hide delay, and chat font.
 - `DefaultToShout` (off by default) opens the chat box with `/s ` already typed in it, so your first Enter shouts — the long-range message that shows above your character — and you never have to type the prefix.
 - Delete the `/s ` and the message is a normal close-range say, exactly Valheim's own `/s` and plain text. The box stops prefilled and stays that way until you type `/s` again.
 - `RememberLastUsed` keeps that channel between messages and across restarts, in the game's own player prefs file.
@@ -127,11 +128,12 @@ Settings are organized by category. Key options include:
 | Minimap | `HideWindAndServerDay` | Off |
 | Status Effects | `MoveToCorner` | Off |
 | Chat | `HideChat` | Off |
+| Chat | `ChatSettingsEnabled` | Off |
 | Chat | `DefaultToShout` | Off |
-| Chat | `RememberLastUsed` | On |
+| Chat | `RememberLastUsed` | Off |
 | Chat | `ShoutKeepsCapitalization` | Off |
 | Chat | `HideChatPanelDelay` | 10 |
-| Chat | `chatMessageFontEnabled` | On |
+| Chat | `chatMessageFontEnabled` | Off |
 | Chat | `chatMessageTextFontAsset` | Valheim-AveriaSansLibre |
 | Chat | `chatMessageTextFontSize` | 16 |
 | Wallet | `SplitForChest` | On |
