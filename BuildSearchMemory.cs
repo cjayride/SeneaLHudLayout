@@ -6,13 +6,17 @@ namespace SeneaLHudLayout
 {
     static class BuildSearchMemory
     {
+        const string HammerName = "$item_hammer";
+
         static FieldInfo _search;
         static FieldInfo _term;
         static FieldInfo _shown;
         static FieldInfo _pieceSig;
         static PropertyInfo _text;
         static MethodInfo _setText;
+        static MethodInfo _clear;
         static string _keep;
+        static bool _lastHammer = true;
 
         public static void Apply(Harmony harmony)
         {
@@ -30,6 +34,7 @@ namespace SeneaLHudLayout
             Type box = AccessTools.TypeByName("SeneaLUI.Components.SearchBox");
             _text = box != null ? AccessTools.Property(box, "Text") : null;
             _setText = box != null ? AccessTools.Method(box, "SetText") : null;
+            _clear = box != null ? AccessTools.Method(box, "Clear") : null;
             if (_search == null || _text == null || _setText == null)
             {
                 return;
@@ -42,6 +47,18 @@ namespace SeneaLHudLayout
 
         static void Before(object __instance)
         {
+            if (!HammerEquipped())
+            {
+                if (_lastHammer)
+                {
+                    ForgetSearch(__instance);
+                }
+
+                _lastHammer = false;
+                return;
+            }
+
+            _lastHammer = true;
             string text = Read(__instance);
             if (!string.IsNullOrEmpty(text))
             {
@@ -55,6 +72,12 @@ namespace SeneaLHudLayout
 
         static void After(object __instance)
         {
+            if (!HammerEquipped())
+            {
+                _keep = null;
+                return;
+            }
+
             if (string.IsNullOrEmpty(_keep) || !Shown(__instance))
             {
                 return;
@@ -80,6 +103,45 @@ namespace SeneaLHudLayout
             if (_pieceSig != null)
             {
                 _pieceSig.SetValue(__instance, int.MinValue);
+            }
+        }
+
+        static bool HammerEquipped()
+        {
+            Player player = Player.m_localPlayer;
+            if (player == null)
+            {
+                return false;
+            }
+
+            ItemDrop.ItemData item = player.RightItem;
+            return item != null && item.m_shared != null && item.m_shared.m_name == HammerName;
+        }
+
+        static void ForgetSearch(object menu)
+        {
+            _keep = null;
+            object box = _search.GetValue(menu);
+            if (box != null)
+            {
+                if (_clear != null)
+                {
+                    _clear.Invoke(box, null);
+                }
+                else
+                {
+                    _setText.Invoke(box, new object[] { string.Empty });
+                }
+            }
+
+            if (_term != null)
+            {
+                _term.SetValue(menu, string.Empty);
+            }
+
+            if (_pieceSig != null)
+            {
+                _pieceSig.SetValue(menu, int.MinValue);
             }
         }
 

@@ -1,18 +1,17 @@
-# PROGRESS — SeneaLHudLayout 1.3.10
+# Progress - SeneaLHudLayout
+
+## Current version: 1.3.28
 
 ## Goal
-Dragged shard icons must stay visible over the hosted shard window.
+Remove the character Stats window feature completely.
 
-## Status
-Released 1.3.10.
+## Status: completed (build + package)
 
-## Cause
-1.3.9 put the shard panel at ~29000. SeneaL `Inv.Selection` drag ghosts use 28000, so the icon slid under the panel and only appeared at the edges.
-
-## Fix
-- Shard panel sort ~27000 (above inventory/craft, below drag).
-- While hosting, keep SeneaL selection layer and `InventoryGui.m_dragGo` at 28000.
+## Change
+- Deleted `StatsWindow.cs` and leftover `CharacterAttributes.cs`.
+- Unbound `StatsTab` / `StatsHotkey` / `StatsPortrait`.
+- Left tooltip `[Stats] ValuesBesideLabels` and `LeftOverflow`.
 
 ## Output
-- DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
-- Zip (flat): `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\Cjayride.SeneaLHudLayout-1.3.10.zip`
+- `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll` 1.3.28
+- `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\1.3.28.zip`

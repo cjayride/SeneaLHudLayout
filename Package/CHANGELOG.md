@@ -1,5 +1,107 @@
 # Changelog
 
+## 1.3.28
+
+- Removed the character Stats window (tab, hotkey, portrait). Tooltip `[Stats] ValuesBesideLabels` / `LeftOverflow` are unchanged.
+
+## 1.3.27
+
+- `[Powers] HideSenealSlot` now hides SeneaL's guardian-power slot even when Passive Powers is not installed. With Passive Powers present, only the unused circle is hidden so the extra icons still layout.
+
+## 1.3.26
+
+- Removed chat window move and resize (handles, gold overlay, F1 Pos/Width/Height, lock/reset). Chat font, shout prefix, capitalization, hide delay, and HideChat stay.
+
+## 1.3.25
+
+- Chat drag follows the mouse in the panel's own plane (no more screen-pixel / local-offset mix that flung the window). Moving the chat moves the whole window — text, input, and background together. The gold frame covers that whole union. Corners still resize.
+
+## 1.3.24
+
+- Chat move/resize no longer depends on Unity UI handles. Hold left Ctrl and a gold IMGUI frame is drawn on the real SeneaL chat panel; drag the body to move, corners to resize. The panel is written into SeneaL's own `_tgtPos`/`_tgtSize` so Glide cannot fight it.
+- F1/`ChatWindowPosX`/`Width`/`Height` apply immediately. Width or Height 0 keeps the live size for that edge; you no longer need all four values set before anything moves.
+
+## 1.3.23
+
+- Chat adjust: holding left Ctrl (or right Ctrl) after opening chat with Enter now shows a gold frame on the visible chat panel so you can drag corners to resize and the body/edges to move. Left Control is detected even when the chat box has focus.
+- Chat window **PosX, PosY, Width, Height** are in the cfg (`[Chat] ChatWindowPosX/Y`, `ChatWindowWidth`, `ChatWindowHeight`). Dragging writes them; you can type values by hand. Width/Height 0 means "use the game's size until you set one".
+
+## 1.3.22
+
+- Build-menu search memory is hammer-only. Switching to the Hoe or Cultivator forgets the last hammer search and clears the box, so leftover text cannot empty those grids.
+
+## 1.3.21
+
+- Chat adjust: the handle canvas now has a GraphicRaycaster, a full-panel drag target while Ctrl (or RMB) is held, and StartAttack is skipped over the chat so the click resizes/moves the window instead of using the hotbar item. Gold handles only take clicks while you are actually adjusting.
+- Piece health labels assign a Valheim TMP font before the text component is created, so Unity no longer warns that LiberationSans SDF is missing on `SeneaLHudLayout_PieceHealth`.
+
+## 1.3.20
+
+- Chat window controls are on again: shout prefix, shout capitalization, chat font, hide delay, and move/resize handles (hold left Ctrl or the right mouse button; lock and reset hotkeys).
+- Stats window is on again. It lists your own worthwhile stats only (defense, vitals, mobility, resistances, effects, weapons, skills). The other-players comparison section is gone.
+- Stats tab search and row refresh avoid extra per-frame work so the inventory/stats UI stays cheap while you play.
+
+## 1.3.19
+
+- **New Stats window - a Diablo-style character sheet.** A new **Stats** button appears in the character window tab bar, on the left of Texts. It opens a draggable window with your **character name and Steam portrait at the top**, then **two organized columns** of stats:
+  - **Defense** (left): total armor and armor per piece (helmet/chest/shoulders/legs), vitals (health, stamina, eitr, adrenaline, carry weight, comfort), mobility (equipment move-speed and stealth modifiers), all eight resistances (slash, pierce, blunt, fire, frost, lightning, poison, spirit, colour-coded Weak/Normal/Resistant/Immune), and your active status effects with their timers.
+  - **Offense** (right): your equipped weapons with per-type damage and block power, all your skills sorted highest first, and an **"On the server"** section listing the other players online with their level and total skill so you can see how you stack up (green = you lead, red = they do).
+  - The window **drags by its title bar** and remembers where you put it (game prefs, never the config). It scrolls, sits above the inventory, and has its own close X.
+  - Registered through **SeneaL UI's own public mod API** (`SeneaL.API.CharacterTabs`), so the tab is SeneaL-styled, gets the `shield-outline` icon, and plays nice with other mods that add tabs. A small postfix reorders the tab strip so Stats lands left of Texts.
+  - Settings: `[Stats] StatsTab` (on, master switch), `[Stats] StatsHotkey` (unbound), `[Stats] StatsPortrait` (on), `[Stats] StatsRivals` (on). Client-only. Needs SeneaL UI for the tab button; the window itself reads only vanilla Valheim data.
+
+## 1.3.18
+
+- **The chat window handles are fixed.** They used to be parented to the chat window itself, which is why holding Ctrl showed nothing: the game hides that window about ten seconds after you open it, and SeneaL UI fades its canvas and covers it with its own panel, so the handles were invisible and unclickable. The handles now live on the chat canvas, above SeneaL UI's panel and above the fade, and they track the **visible chat panel's** on-screen rectangle - not the window node's. (Verified in game: with SeneaL UI, `Terminal::m_chatWindow` is a zero-size anchor node, so mirroring its corners drew the four corner handles as a dot at the screen centre - the "4 yellow squares around my crosshair".) The handles are always click-catchable and only their colour is toggled, so a press-and-drag always starts; the root hides with the chat and never draws over a hidden window. Open chat (and talk), hold the adjust key (left Ctrl) or press and hold the right mouse button, and the gold handles appear on the corners and edges; release to hide them. Corner handles resize, edge handles move.
+- New `[Chat] HideChatPanelDelay` (default **10**): how many seconds the chat panel stays visible after the last chat activity. It writes the game's own chat hide timer, so this is the value Valheim ships with; raise it to keep the panel up longer, lower it to close sooner. Client-only.
+- **`ShoutKeepsCapitalization` now reads the way it is named, and defaults to off.** Off (default) = the shout does NOT keep Valheim's shout capitalization: it shows the letters exactly the way you typed them, so a shout of "hello there" stays "hello there". On = Valheim's own ALL CAPS shout. Whispers stay lower case, as Valheim makes them.
+- A chat font that is not loaded now logs the font assets the game actually has loaded, so a wrong name is easy to spot in the log. The name match also accepts a loaded asset that starts with the name you set (the shipped `Valheim-AveriaSansLibre` object is not always named exactly that in game).
+
+## 1.3.17
+
+- New chat font settings, in the style of Chatter's own ChatMessage.Text.Font keys: [Chat] chatMessageTextFontAsset (default Valheim-AveriaSansLibre) and [Chat] chatMessageTextFontSize (default 16, range 6-64). They set the font and size of the chat log text. The asset name is matched against the TMP font assets loaded in the game, so any of Valheim's shipped fonts works (Valheim-AveriaSansLibre, Valheim-AveriaSerifLibre, Valheim-Norse, Valheim-Norsebold, Valheim-Prstartk, the NotoSans/NotoSerif language sets, LiberationSans SDF, and the rest), plus any font another mod loads. [Chat] chatMessageFontEnabled (on) turns the pair off if you want the chat UI's own font back. Chatter is not touched: its own keys keep driving Chatter's panel.
+- New: **resize the chat window by dragging a corner, move it by dragging an edge.** While the chat window is open, hold the adjust key (default left Ctrl) - or use the **right mouse button**, no key needed - and small gold handles appear on the window's corners and edges. Drag a corner handle to resize, drag an edge handle to move. The window stays on screen (clamped) and never smaller than a usable minimum. Position and size are saved in the game's own player prefs file, so they survive restarts, and they never dirty the config file. With SeneaL UI installed, a taller window also shows more chat lines (the visible line count follows the height).
+- New: **lock the chat window in place.** [Chat] ChatWindowLocked (off). While locked, dragging the handles does nothing and the saved position and size are re-applied every frame, so the window cannot drift. [Chat] ChatWindowLockKey (unbound by default) toggles the lock in game; [Chat] ChatWindowResetKey (unbound) puts the window back at the game's own placement and forgets the saved rect.
+- [Chat] ChatWindowAdjust (on) is the master switch for the drag/resize feature; off leaves the chat window exactly where SeneaL UI / Valheim put it. Client-side only; nothing about how chat is sent is changed.
+
+## 1.3.16
+
+- `HideChat` now defaults to **off**. SeneaL UI's chat window shows by default, and you turn it off yourself when a chat mod like Chatter is doing the showing.
+- Chat shout redone around Valheim's real commands. There is no `/y` in Valheim, so the `/y` alias is gone. `/s` is Valheim's shout and plain text is Valheim's say; this mod no longer invents or redirects anything.
+- With `[Chat] DefaultToShout` on, the chat box **opens with `/s ` typed in it**, so your first Enter shouts and you never type the prefix. Delete the `/s ` and the message is a normal close-range say.
+- `[Chat] RememberLastUsed` (on): the box prefills `/s ` only while shout is the channel in use — after a message sent with `/s`, and not after one sent as plain text. The channel is stored in the same player prefs file the game uses for its chat key binds, so it is still remembered after you quit and come back. Pressing Enter on an untouched `/s ` sends nothing, so it leaves no stray line in chat.
+- New `[Chat] ShoutKeepsCapitalization` (on by default): Valheim prints shouted chat in ALL CAPS, in the chat log and above your character. This keeps the letters the way the player typed them, so a shout of "hello there" stays "hello there". Whispers stay lower case, as Valheim makes them, and what reaches other players' wires is unchanged.
+- `[Chat] SlashSMeansSay` is gone, with the `/y` work it belonged to.
+- Off by default and client-side only: with `DefaultToShout` off the chat box is Valheim's, untouched.
+
+## 1.3.15
+
+- New `[Chat] DefaultToShout`, off by default. With it on, the chat box speaks the server's language: `/y` is yell (the long-range shout that shows above your character), `/s` is say (close range), and **a message with no prefix is sent as yell**, so you never have to type the prefix again. `/w` is left to Valheim, and nothing else in the chat box changes.
+- `[Chat] RememberLastUsed` (on): the next message with no prefix uses the channel you used last — yell after `/y` or `/shout`, say after `/s` or `/say`. It is stored in the same player prefs file the game uses for its chat key binds, so it is still remembered after you quit and come back.
+- The channel shows in the chat box. When Chatter is installed, its grey placeholder text moves to `/shout` when the next plain message will yell and `/say ` when it will say, using Chatter's own setter. Nothing in Chatter is patched.
+- `[Chat] SlashSMeansSay` (on): `/s` sends a close-range say, the way it reads on a server. Valheim's built-in `/s` has always meant shout, so turn this off to hand `/s` back to Valheim and keep `/y` as the only yell alias.
+- Nothing is invented. Valheim has no `y` command — this mod supplies it, and it yields the moment a server registers its own `/y`. The shout is sent through the game's own shout command, so the range check and the message RPC are Valheim's.
+- Off by default and client-side only: no behaviour change, no server-side change, and no change to any other mod's chat until you turn it on.
+
+## 1.3.14
+
+- The shard window is now wide enough for its own words. The panel width is measured from the item name (with rarity) and the socket hint line, so neither is cut off; long names widen the window up to a cap, and short ones stay compact.
+
+## 1.3.13
+
+- E works everywhere again. The shard hotkey releases the Use press whenever the crosshair is on a world `Interactable` (signs, portals, campfires, chests, carts, pieces) or on a creature, so nothing is swallowed for socketed-item windows. Items in a foreign container (chest, cart, Haldor) also keep their container mod's Use key: the real container flag is passed to Epic Loot, which yields the press exactly like its stock behaviour.
+- The shard panel now opens at the screen center and is draggable: left-click and drag the title bar to move it. The window stays on screen (clamped).
+- The panel is compact. Its width fits the item's socket count (plus a margin), and its height is title band, one socket row, hint, and padding — 1-2 socket items are much smaller than before.
+- The item's own icon now sits to the left of the item name in the panel title.
+
+## 1.3.12
+
+- The wishbone keeps working in a key slot. With `WishboneInKeySlot` on, the finder ping (the same equip effect a worn wishbone grants) now runs while the wishbone sits in a key slot, because the game only grants it to worn utility items. The effect is removed when the wishbone leaves the key slot, and vanilla takes over cleanly when you wear it in the charm cell.
+
+## 1.3.11
+
+- E sets portal tags again. The shard hotkey only runs while the inventory is open and the cursor is on a socketed item. It no longer swallows Use for the equipped item.
+
 ## 1.3.10
 
 - Dragged shard/item icons stay in front of the shard window (SeneaL drag layer 28000; panel is 27000).

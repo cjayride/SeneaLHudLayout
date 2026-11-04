@@ -26,28 +26,29 @@ namespace SeneaLHudLayout
         static readonly FieldInfo GuardianPowerField = AccessTools.Field(typeof(Player), "m_guardianPower");
         static readonly FieldInfo EffectTimeField = AccessTools.Field(typeof(StatusEffect), "m_time");
 
-        static bool _gpHidden;
-        static GameObject _gp;
+        static readonly List<GameObject> HiddenSlots = new List<GameObject>();
         static TMP_FontAsset _font;
         static Material _fontMaterial;
 
         public static void Apply(Hud hud, RectTransform senealRoot)
         {
-            if (!Chainloader.PluginInfos.TryGetValue(PassiveGuid, out PluginInfo plugin))
-            {
-                return;
-            }
+            bool hideSlot = SeneaLHudLayoutPlugin.HideSenealPower != null
+                && SeneaLHudLayoutPlugin.HideSenealPower.Value;
+            bool hasPassive = Chainloader.PluginInfos.TryGetValue(PassiveGuid, out PluginInfo plugin);
 
-            if (SeneaLHudLayoutPlugin.HideSenealPower.Value)
+            if (hideSlot)
             {
-                HideSenealSlot(senealRoot);
+                HideSenealSlot(hud, senealRoot, hasPassive);
             }
             else
             {
                 ShowSenealSlot();
             }
 
-            PlacePowers(hud, senealRoot, plugin.Instance.Config);
+            if (hasPassive)
+            {
+                PlacePowers(hud, senealRoot, plugin.Instance.Config);
+            }
         }
 
         public static void Restore(RectTransform senealRoot)
@@ -56,51 +57,80 @@ namespace SeneaLHudLayout
             ResetScale();
         }
 
-        static void HideSenealSlot(RectTransform senealRoot)
+        static void HideSenealSlot(Hud hud, RectTransform senealRoot, bool keepPassiveSlots)
         {
-            // Try multiple paths for guardian power element in SeneaL UI v1.2.5
-            Transform gp = senealRoot.Find("Health/vitals/gp");
-            if (gp == null) gp = senealRoot.Find("vitals/gp");
-            if (gp == null) gp = senealRoot.Find("Health/guardianPower");
-            if (gp == null) gp = senealRoot.Find("guardianPower");
-            if (gp == null) gp = senealRoot.Find("vitals/guardianPower");
-            if (gp == null) gp = senealRoot.Find("Health/vitals/guardianPower");
-            if (gp == null) gp = senealRoot.Find("Health/vitalsCluster/gp");
-            if (gp == null) gp = senealRoot.Find("vitalsCluster/gp");
-            if (gp == null) gp = senealRoot.Find("Health/vitals/guardianPowerIcon");
-            if (gp == null) gp = senealRoot.Find("vitals/guardianPowerIcon");
-            if (gp == null) gp = senealRoot.Find("Health/vitals/guardianPowerSlot");
-            if (gp == null) gp = senealRoot.Find("vitals/guardianPowerSlot");
-            if (gp == null) gp = senealRoot.Find("Health/vitals/guardianPowerContainer");
-            if (gp == null) gp = senealRoot.Find("vitals/guardianPowerContainer");
-            if (gp == null) gp = senealRoot.Find("Health/vitalsCluster/guardianPower");
-            if (gp == null) gp = senealRoot.Find("vitalsCluster/guardianPower");
-            if (gp == null) gp = senealRoot.Find("Health/guardianPowerContainer");
-            if (gp == null) gp = senealRoot.Find("guardianPowerContainer");
-            
-            if (gp == null)
+            ShowSenealSlot();
+
+            HideFound(senealRoot, "Health/vitals/gp");
+            HideFound(senealRoot, "vitals/gp");
+            HideFound(senealRoot, "Health/guardianPower");
+            HideFound(senealRoot, "guardianPower");
+            HideFound(senealRoot, "vitals/guardianPower");
+            HideFound(senealRoot, "Health/vitals/guardianPower");
+            HideFound(senealRoot, "Health/vitalsCluster/gp");
+            HideFound(senealRoot, "vitalsCluster/gp");
+            HideFound(senealRoot, "Health/vitals/guardianPowerIcon");
+            HideFound(senealRoot, "vitals/guardianPowerIcon");
+            HideFound(senealRoot, "Health/vitals/guardianPowerSlot");
+            HideFound(senealRoot, "vitals/guardianPowerSlot");
+            HideFound(senealRoot, "Health/vitals/guardianPowerContainer");
+            HideFound(senealRoot, "vitals/guardianPowerContainer");
+            HideFound(senealRoot, "Health/vitalsCluster/guardianPower");
+            HideFound(senealRoot, "vitalsCluster/guardianPower");
+            HideFound(senealRoot, "Health/guardianPowerContainer");
+            HideFound(senealRoot, "guardianPowerContainer");
+
+            if (!keepPassiveSlots)
             {
-                // Debug.LogWarning("[SeneaL HUD Layout] Guardian power element not found - hotkeys may not display correctly");
+                HideFound(senealRoot, "GuardianPower");
+                if (hud != null && hud.m_gpRoot != null)
+                {
+                    HideObject(hud.m_gpRoot.gameObject);
+                }
+            }
+        }
+
+        static void HideFound(RectTransform senealRoot, string path)
+        {
+            if (senealRoot == null)
+            {
                 return;
             }
 
-            _gp = gp.gameObject;
-            if (_gp.activeSelf)
+            Transform found = senealRoot.Find(path);
+            if (found != null)
             {
-                _gp.SetActive(false);
+                HideObject(found.gameObject);
+            }
+        }
+
+        static void HideObject(GameObject go)
+        {
+            if (go == null || HiddenSlots.Contains(go))
+            {
+                return;
             }
 
-            _gpHidden = true;
+            if (go.activeSelf)
+            {
+                go.SetActive(false);
+            }
+
+            HiddenSlots.Add(go);
         }
 
         static void ShowSenealSlot()
         {
-            if (_gpHidden && _gp != null)
+            for (int i = 0; i < HiddenSlots.Count; i++)
             {
-                _gp.SetActive(true);
+                GameObject go = HiddenSlots[i];
+                if (go != null)
+                {
+                    go.SetActive(true);
+                }
             }
 
-            _gpHidden = false;
+            HiddenSlots.Clear();
         }
 
         static void PlacePowers(Hud hud, RectTransform senealRoot, ConfigFile config)

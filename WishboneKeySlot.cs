@@ -9,12 +9,15 @@ namespace SeneaLHudLayout
     /// <summary>
     /// Optionally treat the wishbone as a dungeon key so it lives in a SeneaL key slot
     /// instead of the charm cell. Clicking it there picks it up; it does not swap with the belt.
+    /// While it sits in a key slot the mod keeps its equip status effect (the finder ping)
+    /// alive on the local player, since vanilla only grants it to worn utility items.
     /// </summary>
     static class WishboneKeySlot
     {
         const string Token = "$item_wishbone";
         const int CharmSlot = 7;
         const int ExtraCharmSlot = 14;
+        const double ScanSeconds = 1.0;
 
         static Type _slots;
         static Type _pouch;
@@ -26,6 +29,10 @@ namespace SeneaLHudLayout
         static FieldInfo _dragGo;
         static bool _looked;
         static bool _placing;
+        static DateTime _lastScan = DateTime.MinValue;
+        static bool _added;
+        static Character _target;
+        static StatusEffect _se;
 
         public static void Apply(Harmony harmony)
         {
@@ -241,6 +248,109 @@ namespace SeneaLHudLayout
             {
                 __result = true;
             }
+        }
+
+        public static void Tick()
+        {
+            if ((DateTime.Now - _lastScan).TotalSeconds < ScanSeconds)
+            {
+                return;
+            }
+
+            _lastScan = DateTime.Now;
+            try
+            {
+                Sync();
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        static void Sync()
+        {
+            Player player = Player.m_localPlayer;
+            if (player == null || player.IsDead() || player.GetSEMan() == null)
+            {
+                Stop(true);
+                return;
+            }
+
+            bool keep = false;
+            bool worn = false;
+            StatusEffect se = null;
+            if (On())
+            {
+                Lookup();
+                Inventory inv = player.GetInventory();
+                if (_isKeyCell != null && inv != null)
+                {
+                    List<ItemDrop.ItemData> items = inv.GetAllItems();
+                    if (items != null)
+                    {
+                        for (int i = 0; i < items.Count; i++)
+                        {
+                            ItemDrop.ItemData item = items[i];
+                            if (!IsWishbone(item) || item.m_shared == null)
+                            {
+                                continue;
+                            }
+
+                            if (item.m_equipped)
+                            {
+                                // Vanilla grants the effect to a worn wishbone; stay out of its way.
+                                worn = true;
+                                continue;
+                            }
+
+                            if ((bool)_isKeyCell.Invoke(null, new object[] { inv, item.m_gridPos.x, item.m_gridPos.y }))
+                            {
+                                se = item.m_shared.m_equipStatusEffect;
+                                keep = se != null;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!keep)
+            {
+                // When the wishbone is worn, the effect belongs to vanilla and must not be stripped.
+                Stop(!worn);
+                return;
+            }
+
+            SEMan seman = player.GetSEMan();
+            if (_added && _target == player && _se == se && seman.HaveStatusEffect(se))
+            {
+                return;
+            }
+
+            // Vanilla only grants this effect to a worn utility item, so a key-slot
+            // wishbone needs it applied by hand.
+            seman.AddStatusEffect(se, false, 0, 0f, -1);
+            _added = true;
+            _target = player;
+            _se = se;
+        }
+
+        static void Stop(bool remove)
+        {
+            if (!_added)
+            {
+                return;
+            }
+
+            Character player = _target;
+            if (remove && player != null && !player.IsDead() && player.GetSEMan() != null && _se != null)
+            {
+                player.GetSEMan().RemoveStatusEffect(_se.NameHash(), false);
+            }
+
+            _added = false;
+            _target = null;
+            _se = null;
         }
 
         static bool On()

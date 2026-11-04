@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
@@ -6,6 +7,8 @@ namespace SeneaLHudLayout
 {
     static class ChatHide
     {
+        static FieldInfo _hideDelayField;
+
         public static void Apply(Harmony harmony)
         {
             MethodInfo tick = AccessTools.Method("SeneaLUI.Hud.ChatSkin:Tick");
@@ -19,13 +22,20 @@ namespace SeneaLHudLayout
 
         public static void Tick()
         {
+            Chat chat = Chat.instance;
+            if (chat == null)
+            {
+                return;
+            }
+
+            ApplyHideDelay(chat);
+
             if (SeneaLHudLayoutPlugin.HideChat == null || !SeneaLHudLayoutPlugin.HideChat.Value)
             {
                 return;
             }
 
-            Chat chat = Chat.instance;
-            if (chat == null || chat.m_chatWindow == null)
+            if (chat.m_chatWindow == null)
             {
                 return;
             }
@@ -34,6 +44,33 @@ namespace SeneaLHudLayout
             if (window.activeSelf)
             {
                 window.SetActive(false);
+            }
+        }
+
+        static void ApplyHideDelay(Chat chat)
+        {
+            if (SeneaLHudLayoutPlugin.HideChatPanelDelay == null)
+            {
+                return;
+            }
+
+            float value = Mathf.Clamp(SeneaLHudLayoutPlugin.HideChatPanelDelay.Value, 1f, 600f);
+            try
+            {
+                FieldInfo delay = _hideDelayField ??= AccessTools.Field(typeof(Chat), "m_hideDelay");
+                if (delay == null)
+                {
+                    return;
+                }
+
+                object live = delay.GetValue(chat);
+                if (!(live is float current) || !Mathf.Approximately(current, value))
+                {
+                    delay.SetValue(chat, value);
+                }
+            }
+            catch (Exception)
+            {
             }
         }
 

@@ -39,7 +39,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.3.10";
+        public const string VERSION = "1.3.28";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -102,6 +102,10 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> ShowEquipQueue;
         public static ConfigEntry<bool> HideServerRules;
         public static ConfigEntry<bool> HideChat;
+        public static ConfigEntry<bool> DefaultToShout;
+        public static ConfigEntry<bool> RememberLastUsed;
+        public static ConfigEntry<bool> ShoutKeepsCapitalization;
+        public static ConfigEntry<float> HideChatPanelDelay;
         public static ConfigEntry<bool> ShowLevelCharacterWindow;
         public static ConfigEntry<bool> ShowTalentsButton;
         public static ConfigEntry<bool> KeepMapClosedOnAccept;
@@ -137,6 +141,10 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> ShardSocketWindow;
         public static ConfigEntry<KeyboardShortcut> ShardSocketHotkey;
         public static ConfigEntry<bool> ShardWindowRequireConfirmClose;
+        public static ConfigEntry<float> ShardWindowPanelScale;
+        public static ConfigEntry<bool> ChatFontSettingOn;
+        public static ConfigEntry<string> ChatFontAsset;
+        public static ConfigEntry<float> ChatFontSize;
 
         void Awake()
         {
@@ -196,7 +204,8 @@ namespace SeneaLHudLayout
                 "Send that large middle message into SeneaL's notification feed or capsules instead of the banner. Uses whatever [Notifications] Style is set to in SeneaL UI.");
 
             HideSenealPower = Config.Bind("Powers", "HideSenealSlot", true,
-                "Hide SeneaL UI's guardian-power circle and its F key. That key does not activate Passive Powers.");
+                "Hide SeneaL UI's guardian-power circle and its F key. Works with or without Passive Powers. "
+                + "When Passive Powers is installed, only the unused SeneaL circle is hidden; Passive Powers icons stay.");
             PowersGap = Config.Bind("Powers", "Gap", 12f,
                 new ConfigDescription("Pixels between the food column and the first Passive Powers icon, and between the two icons.",
                     new AcceptableValueRange<float>(0f, 200f)));
@@ -320,8 +329,37 @@ namespace SeneaLHudLayout
                 "Show SeneaL UI's number in the top left of an item icon while it is waiting to equip. That number is the queue position, 1 then 2, not a timer. Off hides it.");
             HideServerRules = Config.Bind("Notices", "HideServerRules", true,
                 "Never show SeneaL UI's server-rules window when you enter a world.");
-            HideChat = Config.Bind("Chat", "HideChat", true,
+            HideChat = Config.Bind("Chat", "HideChat", false,
                 "Hide SeneaL UI's chat window. Chat messages still exist for another chat mod, such as Chatter.");
+            DefaultToShout = Config.Bind("Chat", "DefaultToShout", false,
+                "Off keeps Valheim's chat exactly as it is. On, the chat box opens with /s already typed in it, so your first Enter "
+                + "shouts (the long-range message above your character) and you never have to type the prefix. Delete the /s and the "
+                + "message is a normal close-range say, and the box stops prefilled until you type /s again.");
+            RememberLastUsed = Config.Bind("Chat", "RememberLastUsed", true,
+                "With DefaultToShout on, the box prefills /s only while shout is the channel in use: after a message sent with /s, "
+                + "and not after one sent as plain text. Kept in the game's own prefs file, so it is still remembered after you quit. "
+                + "Off always prefills /s.");
+            ShoutKeepsCapitalization = Config.Bind("Chat", "ShoutKeepsCapitalization", false,
+                "Valheim prints shouted chat in ALL CAPS, in the chat log and above the character. Off (default) does NOT keep shout "
+                + "capitalization: the shout shows the letters exactly the way the player typed them. On keeps Valheim's ALL CAPS shout. "
+                + "Whispers stay lower case, as Valheim makes them.");
+            HideChatPanelDelay = Config.Bind("Chat", "HideChatPanelDelay", 10f,
+                new ConfigDescription(
+                    "Seconds the chat panel stays visible after the last chat activity, written to the game's own chat hide timer. "
+                    + "The game ships 10. Client-only.",
+                    new AcceptableValueRange<float>(1f, 600f)));
+            ChatFontSettingOn = Config.Bind("Chat", "chatMessageFontEnabled", true,
+                "Apply the chat font and size below to the chat log text. Off leaves the font the chat UI (SeneaL UI, Chatter) chose.");
+            ChatFontAsset = Config.Bind("Chat", "chatMessageTextFontAsset", "Valheim-AveriaSansLibre",
+                new ConfigDescription(
+                    "FontAsset (TMP) to use for chat message text. Any TMP font asset loaded in the game, matched by name; "
+                    + "the game ships Valheim-AveriaSansLibre, Valheim-AveriaSerifLibre, Valheim-Norse, Valheim-Norsebold, Valheim-Prstartk, "
+                    + "AveriaSansLibre-Bold SDF, LiberationSans SDF, the Fallback-Noto* set, the NotoSans/NotoSerif language sets, NotoEmoji, and Opensans - Fallback. "
+                    + "Empty keeps the font the chat UI chose. Client-only. Chatter's own ChatMessage.Text.Font keys still drive Chatter's panel.",
+                    new AcceptableValueList<string>(ChatFont.FontNames)));
+            ChatFontSize = Config.Bind("Chat", "chatMessageTextFontSize", 16f,
+                new ConfigDescription("The font size to use for chat messages.",
+                    new AcceptableValueRange<float>(ChatFont.MinFontSize, ChatFont.MaxFontSize)));
             ShowLevelCharacterWindow = Config.Bind("Character", "ShowLevelCharacterWindow", true,
                 "Show your SkillsReworked level in the top left of the character window (Skills, Texts, Trophies, and PvP).");
             ShowTalentsButton = Config.Bind("Character", "ShowTalentsButton", true,
@@ -370,7 +408,7 @@ namespace SeneaLHudLayout
             SplitWalletForChest = Config.Bind("Wallet", "SplitForChest", true,
                 "Keep the coin purse out of chest deposits. Deposit All, Deposit Similar, and Stack All never take coins from the purse. Move coins into your inventory first if you want them in a chest. Turn this off to let those buttons take the purse.");
             WishboneInKeySlot = Config.Bind("Inventory", "WishboneInKeySlot", false,
-                "Put the wishbone in a SeneaL dungeon-key slot instead of the charm / utility cell. Off (default) keeps SeneaL's normal wishbone slot. Needs key slots enabled in SeneaL UI. The wishbone is stored there, not worn, so its effect is off until you move it back to the charm cell.");
+                "Put the wishbone in a SeneaL dungeon-key slot instead of the charm / utility cell. Off (default) keeps SeneaL's normal wishbone slot. Needs key slots enabled in SeneaL UI. The wishbone is stored there, not worn; this mod keeps its finder ping effect running while it sits in a key slot, as long as it is not equipped. Turn off to return it to the charm cell.");
             BuildPanelScale = Config.Bind("BuildPanel", "Scale", 0.8f,
                 new ConfigDescription(
                     "Size of SeneaL's selected-piece BuildPanel (the hammer piece card). 1 is SeneaL's current size. 0.8 is this mod's default. SeneaL's own [Sizes] BuildPanel stays at 1 unless you change that too.",
@@ -392,6 +430,10 @@ namespace SeneaLHudLayout
                 "Opens the shard socket window for the inventory item under the mouse. Inventory must be open and the item must have Epic Loot shard sockets. Client-only. Default is E (same as Epic Loot's overlay shortcut; this mod then hosts the socket row in the window).");
             ShardWindowRequireConfirmClose = Config.Bind("EpicLoot", "ShardWindowRequireConfirmClose", false,
                 "If on, do not close the shard window while an inventory item is being dragged. Client-only. Off (default) closes with Esc, the X button, or closing inventory.");
+            ShardWindowPanelScale = Config.Bind("EpicLoot", "ShardWindowPanelScale", 1f,
+                new ConfigDescription(
+                    "Extra scale for the shard socket window, on top of the automatic size that fits the item's socket count. 1 is the compact auto-fit size; lower makes it smaller. Client-only.",
+                    new AcceptableValueRange<float>(0.5f, 1.5f)));
 
             Harmony harmony = new Harmony(GUID);
             ShudnalConfigBridge.Apply(harmony);
@@ -405,6 +447,8 @@ namespace SeneaLHudLayout
             AdventureJournal.Apply(harmony);
             RulesNotice.Apply(harmony);
             ChatHide.Apply(harmony);
+            ChatPrefix.Apply(harmony);
+            ChatShoutText.Apply(harmony);
             CenterMessageRoute.Apply(harmony);
             WalletStacks.Apply(harmony);
             RepairTipPlace.Apply(harmony);
@@ -433,7 +477,10 @@ namespace SeneaLHudLayout
             CraftMaterials.Tick();
             StatValues.Tick();
             ChatHide.Tick();
+            ChatPrefix.Tick();
+            ChatFont.Tick();
             BossStars.Tick();
+            WishboneKeySlot.Tick();
             if (Enabled == null || !Enabled.Value)
             {
                 HudLayout.Restore();

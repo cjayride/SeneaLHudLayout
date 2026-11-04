@@ -6,6 +6,7 @@ using BepInEx.Configuration;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace SeneaLHudLayout
@@ -59,14 +60,39 @@ namespace SeneaLHudLayout
         static bool _openedThisFrame;
         static bool _socketsButtonRemoved;
         static Sprite _slotFrame;
+        static FieldInfo _socketCount;
+        static MethodInfo _panelGrid;
 
         static GameObject _window;
         static Image _panelFill;
         static TextMeshProUGUI _title;
         static TextMeshProUGUI _hint;
+        static Image _icon;
         static RectTransform _host;
         static Transform _storedParent;
         static ItemDrop.ItemData _item;
+        static RectTransform _windowRt;
+        static Vector2 _dragPos;
+        static bool _hasDragPos;
+        static int _fittedKey = -1;
+        static float _textWidth;
+        static readonly Vector3[] _parentCorners = new Vector3[4];
+
+        const float TitleTop = 8f;
+        const float TitleHeight = 22f;
+        const float TitleRightPad = 44f;
+        const float GridTop = 38f;
+        const float TitleBand = 54f;
+        const float BottomPad = 10f;
+        const float SidePad = 16f;
+        const float GridPad = 20f;
+        const float MinPanelWidth = 220f;
+        const float MaxPanelWidth = 720f;
+        const float IconSize = 28f;
+        const float IconLeft = 12f;
+        const float IconGap = 8f;
+        const float HintTop = 32f;
+        const float HintHeight = 18f;
 
         public static void Apply(Harmony harmony)
         {
@@ -99,7 +125,6 @@ namespace SeneaLHudLayout
             Patch(harmony, AccessTools.Method(_shardUi, "Close", new[] { typeof(InventoryGui) }), nameof(BeforeEpicClose), null);
             Patch(harmony, AccessTools.Method(_shardUi, "Open", new[] { typeof(InventoryGui), typeof(ItemDrop.ItemData) }), nameof(BeforeEpicOpen), nameof(AfterEpicOpen));
             Patch(harmony, AccessTools.Method(typeof(InventoryGui), "OnEnterElement"), null, nameof(AfterEnterElement));
-            Patch(harmony, AccessTools.Method(typeof(Humanoid), nameof(Humanoid.UseItem)), nameof(BeforeUseItem), null);
         }
 
         static void Patch(Harmony harmony, MethodInfo original, string prefix, string postfix)
@@ -145,6 +170,8 @@ namespace SeneaLHudLayout
             _displayName = AccessTools.Method(_itemExt, "GetDisplayName", new[] { typeof(ItemDrop.ItemData) });
             _getRarity = AccessTools.Method(_itemExt, "GetRarity", new[] { typeof(ItemDrop.ItemData) });
             _magicHasSockets = AccessTools.Method(magic, "HasSockets");
+            _socketCount = AccessTools.Field(magic, "SocketCount");
+            _panelGrid = AccessTools.Method(_panelType, "get_Grid");
             _panelGet = AccessTools.Method(_panelType, "Get", new[] { typeof(InventoryGui) });
             _panelRoot = AccessTools.Field(_panelType, "_root");
             _elItem = AccessTools.Field(_shardUi, "_item");
@@ -166,23 +193,52 @@ namespace SeneaLHudLayout
 
         static bool BeforeTryGetPress(InventoryGui __0, ref ItemDrop.ItemData __1, ref bool __2, ref bool __result)
         {
-            if (!FeatureOn() || __0 == null || !HotkeyPressed() || TradeOrRecycleOpen())
+            if (!FeatureOn() || __0 == null || !InventoryGui.IsVisible() || !HotkeyPressed() || !CanClaimHotkey())
             {
                 return true;
             }
 
-            ItemDrop.ItemData found = ResolveItem(out bool container);
+            // Signs, portals, fires and every other world interaction own the Use key.
+            // Player::UpdateHover runs every frame, even with the inventory open, so this
+            // check is reliable; the world always wins.
+            if (WorldHoverOwnsUse())
+            {
+                return true;
+            }
+
+            ItemDrop.ItemData found = ResolveLiveHover(out bool container);
             if (found == null || !ItemHasSockets(found) || ItemBlocked(found, container))
             {
                 return true;
             }
 
             __1 = found;
-            __2 = false;
+            // Pass the real container flag through. Epic Loot's OnShortcut yields the Use
+            // press for items that live in a foreign container; forcing false here used to
+            // claim E and swallow the press for chest windows.
+            __2 = container;
             __result = true;
             _wantHost = true;
             EatUse();
             return false;
+        }
+
+        static bool WorldHoverOwnsUse()
+        {
+            Player player = Player.m_localPlayer;
+            if (player == null)
+            {
+                return false;
+            }
+
+            GameObject hovered = player.GetHoverObject();
+            if (hovered != null && hovered.GetComponentInParent<Interactable>() != null)
+            {
+                return true;
+            }
+
+            // Mounts, tamed and feedable creatures keep their Use key.
+            return player.GetHoverCreature() != null;
         }
 
         static bool BeforeEpicOpen()
@@ -232,26 +288,11 @@ namespace SeneaLHudLayout
             _cachedInv = __0.GetInventory();
         }
 
-        static bool BeforeUseItem(ItemDrop.ItemData item)
-        {
-            if (!FeatureOn() || item == null || !InventoryGui.IsVisible() || !HotkeyPressed() || TradeOrRecycleOpen())
-            {
-                return true;
-            }
-
-            if (!ItemHasSockets(item) || ItemBlocked(item, false))
-            {
-                return true;
-            }
-
-            EatUse();
-            OpenFor(item);
-            return false;
-        }
-
         static void BeforeHide()
         {
             _allowEpicClose = true;
+            _cachedHover = null;
+            _cachedInv = null;
             if (_hosting)
             {
                 CloseWindow(true);
@@ -318,7 +359,7 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            if (HotkeyPressed() && !TradeOrRecycleOpen())
+            if (HotkeyPressed() && CanClaimHotkey())
             {
                 TryOpenHovered();
             }
@@ -487,15 +528,79 @@ namespace SeneaLHudLayout
             return drag == null;
         }
 
+        static bool CanClaimHotkey()
+        {
+            if (TradeOrRecycleOpen() || ConsoleIsOpen() || TextInput.IsVisible())
+            {
+                return false;
+            }
+
+            // The world always owns the Use key: signs, portals, campfires, chests and
+            // every other Interactable keep their normal E.
+            if (WorldHoverOwnsUse())
+            {
+                return false;
+            }
+
+            return InventoryGui.instance != null && InventoryGui.IsVisible();
+        }
+
         static void TryOpenHovered()
         {
-            ItemDrop.ItemData item = ResolveItem(out bool container);
+            ItemDrop.ItemData item = ResolveLiveHover(out bool container);
             if (item == null || !ItemHasSockets(item) || ItemBlocked(item, container))
             {
                 return;
             }
 
             OpenFor(item);
+        }
+
+        static ItemDrop.ItemData ResolveLiveHover(out bool container)
+        {
+            container = false;
+            InventoryGui gui = InventoryGui.instance;
+            Player player = Player.m_localPlayer;
+            if (gui == null || player == null || !InventoryGui.IsVisible())
+            {
+                return null;
+            }
+
+            Inventory playerInv = player.GetInventory();
+            InventoryGrid[] grids = gui.GetComponentsInChildren<InventoryGrid>(true);
+            for (int i = 0; i < grids.Length; i++)
+            {
+                InventoryGrid grid = grids[i];
+                if (grid == null || !grid.gameObject.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                if (_isSlotGrid != null)
+                {
+                    try
+                    {
+                        if ((bool)_isSlotGrid.Invoke(null, new object[] { grid }))
+                        {
+                            continue;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+
+                if (!TryHover(grid, out ItemDrop.ItemData item))
+                {
+                    continue;
+                }
+
+                Inventory inv = grid.GetInventory();
+                container = playerInv != null && inv != playerInv;
+                return item;
+            }
+
+            return null;
         }
 
         static void OpenFor(ItemDrop.ItemData item)
@@ -529,6 +634,7 @@ namespace SeneaLHudLayout
             _hosting = true;
             _openedThisFrame = true;
             _allowEpicClose = false;
+            _fittedKey = -1;
             _window.SetActive(true);
             BringToFront();
             PaintTitle(item);
@@ -616,6 +722,257 @@ namespace SeneaLHudLayout
             root.localScale = Vector3.one;
             root.gameObject.SetActive(true);
             HideVanillaChrome(root);
+            FitPanel(panel);
+        }
+
+        static void FitPanel(object panel)
+        {
+            if (_windowRt == null)
+            {
+                return;
+            }
+
+            float space = SlotSpace(panel);
+            int count = SocketCount();
+            float textWidth = _textWidth;
+            int key = count * 1000000 + Mathf.RoundToInt(space) * 1000 + Mathf.RoundToInt(textWidth / 16f) * 10;
+            if (key != _fittedKey)
+            {
+                _fittedKey = key;
+                float width = Mathf.Max(MinPanelWidth, count * space + GridPad + 2f * SidePad, textWidth);
+                float height = TitleBand + space + BottomPad;
+                _windowRt.sizeDelta = new Vector2(Mathf.Min(width, MaxPanelWidth), height);
+                LayoutTitleBar();
+            }
+
+            CenterSocketGrid(panel, space, count);
+            ApplyPanelScale();
+            ApplyWindowPosition();
+        }
+
+        static float SlotSpace(object panel)
+        {
+            try
+            {
+                InventoryGrid grid = _panelGrid == null ? null : _panelGrid.Invoke(panel, null) as InventoryGrid;
+                if (grid != null)
+                {
+                    float s = grid.m_elementSpace;
+                    if (s > 8f && s < 256f)
+                    {
+                        return s;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+
+            return 64f;
+        }
+
+        static int SocketCount()
+        {
+            ItemDrop.ItemData item = _item ?? (_elItem != null ? _elItem.GetValue(null) as ItemDrop.ItemData : null);
+            if (item != null && _getMagic != null && _socketCount != null)
+            {
+                try
+                {
+                    object magic = _getMagic.Invoke(null, new object[] { item });
+                    if (magic != null && _socketCount.GetValue(magic) is int n && n > 0)
+                    {
+                        return Mathf.Min(n, 8);
+                    }
+                }
+                catch (Exception)
+                {
+                }
+            }
+
+            return 1;
+        }
+
+        static void CenterSocketGrid(object panel, float space, int count)
+        {
+            try
+            {
+                InventoryGrid grid = _panelGrid == null ? null : _panelGrid.Invoke(panel, null) as InventoryGrid;
+                RectTransform rt = grid != null ? grid.transform as RectTransform : null;
+                if (rt == null)
+                {
+                    return;
+                }
+
+                rt.anchorMin = new Vector2(0.5f, 1f);
+                rt.anchorMax = new Vector2(0.5f, 1f);
+                rt.pivot = new Vector2(0.5f, 1f);
+                rt.anchoredPosition = new Vector2(0f, -TitleBand);
+                rt.sizeDelta = new Vector2(Mathf.Max(space, count * space), space);
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        static void LayoutTitleBar()
+        {
+            if (_title == null || _windowRt == null)
+            {
+                return;
+            }
+
+            float textLeft = _icon != null && _icon.sprite != null ? IconLeft + IconSize + IconGap : IconLeft;
+            RectTransform rt = _title.rectTransform;
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = new Vector2(textLeft, -TitleTop);
+            rt.sizeDelta = new Vector2(-(textLeft + TitleRightPad), TitleHeight);
+            _title.alignment = TextAlignmentOptions.MidlineLeft;
+            _title.enableWordWrapping = false;
+            _title.overflowMode = TextOverflowModes.Ellipsis;
+
+            if (_hint != null)
+            {
+                RectTransform h = _hint.rectTransform;
+                h.anchorMin = new Vector2(0f, 1f);
+                h.anchorMax = new Vector2(1f, 1f);
+                h.pivot = new Vector2(0f, 1f);
+                h.anchoredPosition = new Vector2(textLeft, -HintTop);
+                h.sizeDelta = new Vector2(-(textLeft + TitleRightPad), HintHeight);
+                _hint.alignment = TextAlignmentOptions.MidlineLeft;
+                _hint.enableWordWrapping = false;
+                _hint.overflowMode = TextOverflowModes.Ellipsis;
+            }
+
+            if (_icon != null)
+            {
+                RectTransform ir = _icon.rectTransform;
+                ir.anchorMin = new Vector2(0f, 1f);
+                ir.anchorMax = new Vector2(0f, 1f);
+                ir.pivot = new Vector2(0f, 1f);
+                ir.anchoredPosition = new Vector2(IconLeft, -TitleTop);
+                ir.sizeDelta = new Vector2(IconSize, IconSize);
+            }
+        }
+
+        static void ApplyWindowPosition()
+        {
+            if (_windowRt == null)
+            {
+                return;
+            }
+
+            Vector2 pos = ClampToScreen(_windowRt, _hasDragPos ? _dragPos : Vector2.zero);
+            Vector2 current = _windowRt.anchoredPosition;
+            if (Mathf.Abs(current.x - pos.x) > 0.01f || Mathf.Abs(current.y - pos.y) > 0.01f)
+            {
+                _windowRt.anchoredPosition = pos;
+            }
+        }
+
+        static void ApplyPanelScale()
+        {
+            if (_windowRt == null)
+            {
+                return;
+            }
+
+            float scale = PanelScale();
+            if (!Mathf.Approximately(_windowRt.localScale.x, scale))
+            {
+                _windowRt.localScale = new Vector3(scale, scale, 1f);
+            }
+        }
+
+        static float PanelScale()
+        {
+            ConfigEntry<float> entry = SeneaLHudLayoutPlugin.ShardWindowPanelScale;
+            if (entry == null)
+            {
+                return 1f;
+            }
+
+            return Mathf.Clamp(entry.Value, 0.5f, 1.5f);
+        }
+
+        static Vector2 ClampToScreen(RectTransform rt, Vector2 pos)
+        {
+            RectTransform parent = rt.parent as RectTransform;
+            if (parent == null || parent.rect.width <= 0f || parent.rect.height <= 0f)
+            {
+                return pos;
+            }
+
+            float factor = CanvasScaleFactor(rt);
+            Vector2 size = SizeInParentUnits(rt, factor);
+            size.x *= Mathf.Max(0.01f, rt.localScale.x);
+            size.y *= Mathf.Max(0.01f, rt.localScale.y);
+            float maxX = Mathf.Max(0f, (parent.rect.width - size.x) * 0.5f);
+            float maxY = Mathf.Max(0f, (parent.rect.height - size.y) * 0.5f);
+            pos.x = Mathf.Clamp(pos.x, -maxX, maxX);
+            pos.y = Mathf.Clamp(pos.y, -maxY, maxY);
+            return pos;
+        }
+
+        static Vector2 SizeInParentUnits(RectTransform rt, float factor)
+        {
+            try
+            {
+                rt.GetWorldCorners(_parentCorners);
+                Canvas canvas = rt.GetComponentInParent<Canvas>();
+                Camera cam = CanvasCamera(canvas);
+                Vector2 a = RectTransformUtility.WorldToScreenPoint(cam, _parentCorners[0]);
+                Vector2 b = RectTransformUtility.WorldToScreenPoint(cam, _parentCorners[2]);
+                float width = Mathf.Abs(b.x - a.x) / Mathf.Max(0.01f, factor);
+                float height = Mathf.Abs(b.y - a.y) / Mathf.Max(0.01f, factor);
+                if (width > 1f && height > 1f)
+                {
+                    return new Vector2(width, height);
+                }
+            }
+            catch (Exception)
+            {
+            }
+
+            return new Vector2(rt.rect.width, rt.rect.height);
+        }
+
+        static Camera CanvasCamera(Canvas canvas)
+        {
+            if (canvas == null || canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+            {
+                return null;
+            }
+
+            if (canvas.worldCamera != null)
+            {
+                return canvas.worldCamera;
+            }
+
+            return canvas.rootCanvas != null ? canvas.rootCanvas.worldCamera : null;
+        }
+
+        static float CanvasScaleFactor(RectTransform rt)
+        {
+            RectTransform parent = rt.parent as RectTransform;
+            if (parent == null || parent.rect.width <= 0f)
+            {
+                return 1f;
+            }
+
+            parent.GetWorldCorners(_parentCorners);
+            Canvas canvas = parent.GetComponentInParent<Canvas>();
+            Camera cam = CanvasCamera(canvas);
+            Vector2 left = RectTransformUtility.WorldToScreenPoint(cam, _parentCorners[0]);
+            Vector2 right = RectTransformUtility.WorldToScreenPoint(cam, _parentCorners[2]);
+            float pixels = Mathf.Abs(right.x - left.x);
+            if (pixels <= 0f)
+            {
+                return 1f;
+            }
+
+            return Mathf.Max(0.01f, pixels / parent.rect.width);
         }
 
         static void HideVanillaChrome(RectTransform root)
@@ -1018,9 +1375,114 @@ namespace SeneaLHudLayout
                 _title.text = string.IsNullOrEmpty(rarity) ? name : name + "  ·  " + rarity;
             }
 
+            if (_icon != null)
+            {
+                Sprite icon = null;
+                try
+                {
+                    icon = item.GetIcon();
+                }
+                catch (Exception)
+                {
+                }
+
+                _icon.sprite = icon;
+                _icon.enabled = icon != null;
+            }
+
+            LayoutTitleBar();
+
             if (_hint != null)
             {
                 _hint.text = "Drag shard stones or runes into empty sockets.";
+            }
+
+            _textWidth = MeasureTextWidth();
+        }
+
+        static float MeasureTextWidth()
+        {
+            float titleWidth = PreferredWidth(_title);
+            float hintWidth = PreferredWidth(_hint);
+            float textLeft = _icon != null && _icon.sprite != null ? IconLeft + IconSize + IconGap : IconLeft;
+            float line = Mathf.Max(titleWidth, hintWidth);
+            if (line <= 0f)
+            {
+                return 0f;
+            }
+
+            return textLeft + line + TitleRightPad;
+        }
+
+        static float PreferredWidth(TextMeshProUGUI text)
+        {
+            if (text == null || string.IsNullOrEmpty(text.text))
+            {
+                return 0f;
+            }
+
+            try
+            {
+                text.ForceMeshUpdate();
+                float width = text.preferredWidth;
+                if (width > 0f && width < 4000f)
+                {
+                    return width;
+                }
+            }
+            catch (Exception)
+            {
+            }
+
+            // Fallback estimate when the TMP mesh is not measurable yet (canvas not laid out).
+            return Mathf.Min(3600f, text.text.Length * text.fontSize * 0.62f);
+        }
+
+        /// <summary>
+        /// Left-click drag on the title band moves the whole window. The socket grid area is
+        /// excluded so dragging shard stones out of a socket never moves the window.
+        /// </summary>
+        public sealed class ShardWindowDrag : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
+        {
+            bool _dragging;
+
+            public void OnPointerDown(PointerEventData eventData)
+            {
+                if (_windowRt == null || eventData.button != PointerEventData.InputButton.Left)
+                {
+                    _dragging = false;
+                    return;
+                }
+
+                RectTransform rect = _windowRt;
+                Canvas canvas = rect.GetComponentInParent<Canvas>();
+                Camera cam = canvas != null && canvas.rootCanvas != null ? canvas.rootCanvas.worldCamera : null;
+                if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(rect, eventData.position, cam, out Vector2 local))
+                {
+                    _dragging = false;
+                    return;
+                }
+
+                _dragging = local.y > rect.rect.yMax - TitleBand;
+            }
+
+            public void OnDrag(PointerEventData eventData)
+            {
+                if (!_dragging || _windowRt == null || eventData.button != PointerEventData.InputButton.Left)
+                {
+                    return;
+                }
+
+                float scale = CanvasScaleFactor(_windowRt);
+                Vector2 pos = _windowRt.anchoredPosition + eventData.delta / scale;
+                _dragPos = ClampToScreen(_windowRt, pos);
+                _hasDragPos = true;
+                _windowRt.anchoredPosition = _dragPos;
+            }
+
+            public void OnPointerUp(PointerEventData eventData)
+            {
+                _dragging = false;
             }
         }
 
@@ -1081,7 +1543,9 @@ namespace SeneaLHudLayout
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(520f, 280f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = new Vector2(MinPanelWidth, TitleBand + 64f + BottomPad);
+            _windowRt = rt;
             var border = go.GetComponent<Image>();
             border.sprite = CharacterExtras.Plate();
             border.color = new Color(0.62f, 0.48f, 0.28f, 1f);
@@ -1101,18 +1565,20 @@ namespace SeneaLHudLayout
             _panelFill.color = new Color(0.08f, 0.07f, 0.05f, 0.96f);
             _panelFill.raycastTarget = true;
 
-            _title = AddLabel(rt, "Shard sockets", 18f, new Vector2(0f, -14f), FontStyles.Bold);
+            _title = AddLabel(rt, "Shard sockets", 18f, new Vector2(0f, -TitleTop), FontStyles.Bold);
             _hint = AddLabel(rt, "", 13f, new Vector2(0f, -40f), FontStyles.Normal);
             _hint.color = new Color(0.78f, 0.72f, 0.6f, 1f);
+            _icon = AddIcon(rt);
             AddClose(rt);
+            go.AddComponent<ShardWindowDrag>();
 
             var hostGo = new GameObject(HostName, typeof(RectTransform));
             hostGo.transform.SetParent(rt, false);
             _host = (RectTransform)hostGo.transform;
-            _host.anchorMin = new Vector2(0f, 0f);
-            _host.anchorMax = new Vector2(1f, 1f);
-            _host.offsetMin = new Vector2(16f, 16f);
-            _host.offsetMax = new Vector2(-16f, -72f);
+            _host.anchorMin = Vector2.zero;
+            _host.anchorMax = Vector2.one;
+            _host.offsetMin = Vector2.zero;
+            _host.offsetMax = Vector2.zero;
             go.SetActive(false);
         }
 
@@ -1243,6 +1709,18 @@ namespace SeneaLHudLayout
             _window.transform.SetAsLastSibling();
             ApplyFrontCanvas(_window.GetComponent<Canvas>());
             LiftDragIcons();
+        }
+
+        static Image AddIcon(RectTransform parent)
+        {
+            var go = new GameObject("icon", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var img = go.GetComponent<Image>();
+            img.sprite = null;
+            img.preserveAspect = true;
+            img.enabled = false;
+            img.raycastTarget = false;
+            return img;
         }
 
         static void AddClose(RectTransform window)

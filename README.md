@@ -88,6 +88,16 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 - Improves the repair window layout to prevent unwanted text wrapping.
 - Supports additional EpicLoot interface adjustments, including legendary set ability buttons.
 
+### Chat
+
+- `DefaultToShout` (off by default) opens the chat box with `/s ` already typed in it, so your first Enter shouts — the long-range message that shows above your character — and you never have to type the prefix.
+- Delete the `/s ` and the message is a normal close-range say, exactly Valheim's own `/s` and plain text. The box stops prefilled and stays that way until you type `/s` again.
+- `RememberLastUsed` keeps that channel between messages and across restarts, in the game's own player prefs file.
+- `ShoutKeepsCapitalization` (off by default) reads exactly as named: off does NOT keep Valheim's shout capitalization, so a shout shows the letters the way you typed them ("hello there" stays "hello there"). On keeps Valheim's ALL CAPS shout. Whispers stay lower case, as Valheim makes them.
+- `HideChatPanelDelay` (10) is how many seconds the chat panel stays visible after the last chat activity. It is the game's own chat hide timer; Valheim ships 10.
+- With Chatter installed, the grey placeholder in its chat box follows the channel, showing `/shout` or `/say`.
+- `chatMessageTextFontAsset` and `chatMessageTextFontSize` set the chat log's font and size. Any TMP font asset the game has loaded is accepted by name — Valheim's own `Valheim-AveriaSansLibre` (default), `Valheim-AveriaSerifLibre`, `Valheim-Norse`, `Valheim-Norsebold`, `Valheim-Prstartk`, the `NotoSans`/`NotoSerif` language sets, `LiberationSans SDF`, and fonts other mods add. Size is 6–64 (default 16). `chatMessageFontEnabled` turns the pair off. Chatter is not touched; its own font keys keep driving Chatter's panel. If the name matches nothing loaded, the log lists the font assets the game actually has.
+
 ## Configuration
 
 Configuration file:
@@ -116,7 +126,14 @@ Settings are organized by category. Key options include:
 | Crafting | `ClickMaterials` | On |
 | Minimap | `HideWindAndServerDay` | Off |
 | Status Effects | `MoveToCorner` | Off |
-| Chat | `HideChat` | On |
+| Chat | `HideChat` | Off |
+| Chat | `DefaultToShout` | Off |
+| Chat | `RememberLastUsed` | On |
+| Chat | `ShoutKeepsCapitalization` | Off |
+| Chat | `HideChatPanelDelay` | 10 |
+| Chat | `chatMessageFontEnabled` | On |
+| Chat | `chatMessageTextFontAsset` | Valheim-AveriaSansLibre |
+| Chat | `chatMessageTextFontSize` | 16 |
 | Wallet | `SplitForChest` | On |
 | EpicLoot | `ShardSocketWindow` | On |
 

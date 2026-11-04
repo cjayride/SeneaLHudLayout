@@ -137,19 +137,17 @@ namespace SeneaLHudLayout
                 go.transform.SetParent(bar.parent, false);
             }
 
+            TmpFont.Ensure();
             TextMeshProUGUI tmp = go.GetComponent<TextMeshProUGUI>();
             if (!tmp)
             {
                 tmp = go.AddComponent<TextMeshProUGUI>();
             }
 
-            if (Hud.instance != null && Hud.instance.m_hoverName != null && Hud.instance.m_hoverName.font != null)
+            TmpFont.Apply(tmp);
+            if (tmp.font == null && Hud.instance != null && Hud.instance.m_hoverName != null && Hud.instance.m_hoverName.font != null)
             {
                 tmp.font = Hud.instance.m_hoverName.font;
-            }
-            else if (tmp.font == null && TMP_Settings.defaultFontAsset != null)
-            {
-                tmp.font = TMP_Settings.defaultFontAsset;
             }
 
             tmp.alignment = TextAlignmentOptions.MidlineRight;
