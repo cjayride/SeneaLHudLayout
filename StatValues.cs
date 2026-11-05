@@ -12,6 +12,8 @@ namespace SeneaLHudLayout
         const float Gap = 4f;
 
         static FieldInfo _cmp;
+        static FieldInfo _rowHead;
+        static bool _inMagicSection;
         static readonly List<Job> _jobs = new List<Job>();
         static readonly Dictionary<int, Snapshot> _original = new Dictionary<int, Snapshot>();
         static readonly List<TMP_Text> _tracked = new List<TMP_Text>();
@@ -41,6 +43,12 @@ namespace SeneaLHudLayout
         public static void Apply(Harmony harmony)
         {
             System.Type tooltip = AccessTools.TypeByName("SeneaLUI.Components.Tooltip");
+            MethodInfo build = tooltip != null ? AccessTools.Method(tooltip, "Build") : null;
+            if (build != null)
+            {
+                harmony.Patch(build, prefix: new HarmonyMethod(typeof(StatValues), nameof(BeforeTooltipBuild)));
+            }
+
             MethodInfo layRow = tooltip != null ? AccessTools.Method(tooltip, "LayRow") : null;
             if (layRow != null)
             {
@@ -83,11 +91,28 @@ namespace SeneaLHudLayout
             get { return SeneaLHudLayoutPlugin.StatValuesBesideLabels == null || SeneaLHudLayoutPlugin.StatValuesBesideLabels.Value; }
         }
 
+        static void BeforeTooltipBuild(object __0)
+        {
+            _inMagicSection = false;
+        }
+
         [HarmonyPriority(Priority.Last)]
         static void AfterLayRow(object __1)
         {
             if (__1 == null)
             {
+                return;
+            }
+
+            if (_rowHead == null)
+            {
+                _rowHead = AccessTools.Field(__1.GetType(), "Head");
+            }
+
+            if (_rowHead != null && _rowHead.GetValue(__1) is bool head && head)
+            {
+                TMP_Text headLabel = Text(__1, "Label");
+                _inMagicSection = TipColumnOverflow.IsMagicSectionHead(headLabel != null ? headLabel.text : null);
                 return;
             }
 
@@ -97,6 +122,12 @@ namespace SeneaLHudLayout
             if (On)
             {
                 Beside(label, value, small);
+                if (_inMagicSection)
+                {
+                    ForceSingleLine(label);
+                    ForceSingleLine(value);
+                    ForceSingleLine(small);
+                }
             }
             else
             {
@@ -104,6 +135,17 @@ namespace SeneaLHudLayout
                 Restore(value);
                 Restore(small);
             }
+        }
+
+        static void ForceSingleLine(TMP_Text text)
+        {
+            if (text == null)
+            {
+                return;
+            }
+
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.overflowMode = TextOverflowModes.Overflow;
         }
 
         [HarmonyPriority(Priority.Last)]

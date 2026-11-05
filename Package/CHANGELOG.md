@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0
+
+- **Character Stats sheet:** new tab on the SeneaL character panel with a live vitals, defense, buffs, and skills view. Settings: `[Stats] StatsTab` (on), `[Stats] StatsHotkey` (unbound), `[Stats] StatsPortrait` (Steam portrait, on). Client-only; reads vanilla player data.
+- **`[HealthFood] HealthBarMaxHeight`** (default 250): caps SeneaL player health bar height at very high max HP; fill still tracks current / max.
+- **Item tooltips:** descriptions wrap at normal width; width grows only for long Magic Effects rows. Repair tips still widen as before. Magic effect lines stay on one line where possible.
+- Item tooltip layout settings moved from `[Stats]` to **`[ItemTooltips]`** (`ValuesBesideLabels`, `LeftOverflow`). Existing `[Stats]` values migrate on first load.
+- Default `[Character] ShowLevelFoodBarOffsetX` is **-33** (was -63).
+
 ## 1.4.1
 
 - **Death pin on compass:** when you die, the grave pin is marked for the SeneaL compass automatically (`[Compass] DeathPinOnCompass`, on by default). Needed when SeneaL UI `[Map] CompassPins` is **Marked** — Valheim adds death pins unchecked, so they otherwise stay off the compass until you tick them in the pin dialog.

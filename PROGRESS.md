@@ -1,10 +1,14 @@
 # Progress - SeneaLHudLayout
 
-## Current version: 1.4.0
-
 ## Status
-Released 1.4.0 (consolidated changelog since 1.3.29). Git tag + dist zip for Thunderstore/Hexium.
+**1.5.0 release prep** — Character Stats, tooltips, health bar cap, config cleanup.
 
-## Output
-- `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
-- `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\1.4.0.zip`
+## 1.5.0 (release)
+- Character Stats tab/sheet (`StatsTab`, `StatsHotkey`, `StatsPortrait`)
+- `[HealthFood] HealthBarMaxHeight` default 250
+- Item tooltip width (wrap body; magic rows; repair widen)
+- `[ItemTooltips]` section (migrated from `[Stats]`)
+- `[Character] ShowLevelFoodBarOffsetX` default -33
+- Tag: `v1.5.0`
+- Thunderstore zip: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.5.0.zip`
+- DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`

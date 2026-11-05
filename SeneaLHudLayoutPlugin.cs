@@ -39,7 +39,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.4.1";
+        public const string VERSION = "1.5.0";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -48,6 +48,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> LiftHealthAboveHotbar;
         public static ConfigEntry<float> HealthFoodOffsetY;
         public static ConfigEntry<float> HealthFoodOffsetX;
+        public static ConfigEntry<float> HealthBarMaxHeight;
         public static ConfigEntry<float> MinimapOffsetX;
         public static ConfigEntry<float> MinimapOffsetY;
         public static ConfigEntry<float> BossOffsetY;
@@ -128,6 +129,9 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> SplitWalletForChest;
         public static ConfigEntry<bool> WishboneInKeySlot;
         public static ConfigEntry<float> BuildPanelScale;
+        public static ConfigEntry<bool> StatsTab;
+        public static ConfigEntry<KeyboardShortcut> StatsHotkey;
+        public static ConfigEntry<bool> StatsPortrait;
         public static ConfigEntry<bool> StatValuesBesideLabels;
         public static ConfigEntry<ItemTipLeftOverflow> ItemTipOverflow;
         public static ConfigEntry<bool> ShowPieceHealth;
@@ -188,6 +192,9 @@ namespace SeneaLHudLayout
             HealthFoodOffsetX = Config.Bind("HealthFood", "OffsetX", 54f,
                 new ConfigDescription("Extra horizontal spacing for the food bar relative to the health bar. Positive moves right.",
                     new AcceptableValueRange<float>(-2000f, 2000f)));
+            HealthBarMaxHeight = Config.Bind("HealthFood", "HealthBarMaxHeight", 250f,
+                new ConfigDescription("Cap the SeneaL player health bar height in pixels. At very high max HP the bar no longer grows past this; fill still shows current / max.",
+                    new AcceptableValueRange<float>(80f, 800f)));
 
             MinimapOffsetX = Config.Bind("Minimap", "OffsetX", -36f,
                 new ConfigDescription("Pixels to move the minimap, wind pill, and time pill. Negative moves left.",
@@ -420,7 +427,7 @@ namespace SeneaLHudLayout
                 "Let you spend points again in a skill that lost a partial level on death, such as Tenacity going from 30 to 29.1. Fractional levels are rounded down when the Skills window opens. Only works when both Smoothbrain Tenacity and SkillsReworked are installed. Otherwise it does nothing.");
             ShowLevelFoodBar = Config.Bind("Character", "ShowLevelFoodBar", true,
                 "Show your SkillsReworked level directly under the food timers.");
-            ShowLevelFoodBarOffsetX = Config.Bind("Character", "ShowLevelFoodBarOffsetX", -63f,
+            ShowLevelFoodBarOffsetX = Config.Bind("Character", "ShowLevelFoodBarOffsetX", -33f,
                 new ConfigDescription("Horizontal nudge for that food-bar level, in pixels. Positive moves right. The label stays centered under the food timers as the level number changes.",
                     new AcceptableValueRange<float>(-200f, 200f)));
             ShowLevelFoodBarOffsetY = Config.Bind("Character", "ShowLevelFoodBarOffsetY", -11f,
@@ -442,9 +449,29 @@ namespace SeneaLHudLayout
                 "Show an Items button on the crafting panel. It opens VNEI's full item search. The same button then says Close.");
             ClickMaterials = Config.Bind("Crafting", "ClickMaterials", true,
                 "In the crafting window, click a requirement that is crafted at this same station to open its recipe. Back returns to the recipe you came from.");
-            StatValuesBesideLabels = Config.Bind("Stats", "ValuesBesideLabels", true,
+            StatsTab = Config.Bind("Stats", "StatsTab", true,
+                "Add a Stats tab on the character panel (person icon) with a live vitals and defense sheet.");
+            StatsHotkey = Config.Bind("Stats", "StatsHotkey", new KeyboardShortcut(KeyCode.None),
+                "Open or close the Stats sheet while the inventory is open. Unbound by default.");
+            StatsPortrait = Config.Bind("Stats", "StatsPortrait", true,
+                "Show a square Steam portrait next to your name on the Stats sheet.");
+            bool valuesBesideDefault = ConfigDefault(
+                Config,
+                "ItemTooltips",
+                "ValuesBesideLabels",
+                "Stats",
+                "ValuesBesideLabels",
+                true);
+            StatValuesBesideLabels = Config.Bind("ItemTooltips", "ValuesBesideLabels", valuesBesideDefault,
                 "Place stat numbers directly beside their names, such as pierce 8. Covers item tooltips and the item window. Off keeps SeneaL's right-aligned numbers.");
-            ItemTipOverflow = Config.Bind("Stats", "LeftOverflow", ItemTipLeftOverflow.SetThenMagic,
+            ItemTipLeftOverflow overflowDefault = ConfigDefault(
+                Config,
+                "ItemTooltips",
+                "LeftOverflow",
+                "Stats",
+                "LeftOverflow",
+                ItemTipLeftOverflow.SetThenMagic);
+            ItemTipOverflow = Config.Bind("ItemTooltips", "LeftOverflow", overflowDefault,
                 "Balance two-column item tooltips by moving whole sections (set, magic, stats) between columns for similar height. Combat always stays on the left. Set = set may move; SetThenMagic = set and magic may move. Off keeps SeneaL's layout.");
             SplitWalletForChest = Config.Bind("Wallet", "SplitForChest", true,
                 "Keep the coin purse out of chest deposits. Deposit All, Deposit Similar, and Stack All never take coins from the purse. Move coins into your inventory first if you want them in a chest. Turn this off to let those buttons take the purse.");
@@ -481,6 +508,7 @@ namespace SeneaLHudLayout
             CompassPin.Apply(harmony);
             CompassLivePins.Apply(harmony);
             DeathPinCompass.Apply(harmony);
+            StatsWindow.Apply(harmony);
             DrawerPreview.Apply(harmony);
             PieceHealthLabel.Apply(harmony);
             WorldHealthText.Apply(harmony);
@@ -515,6 +543,7 @@ namespace SeneaLHudLayout
             SlotCue.Tick();
             CharacterExtras.Tick();
             AdventureJournal.Tick();
+            StatsWindow.Tick();
             EpicLootShardWindow.Tick();
             VneiSearch.Tick();
             CraftMaterials.Tick();
@@ -532,6 +561,27 @@ namespace SeneaLHudLayout
             }
 
             HudLayout.Apply();
+        }
+
+        static T ConfigDefault<T>(
+            ConfigFile config,
+            string section,
+            string key,
+            string legacySection,
+            string legacyKey,
+            T fallback)
+        {
+            if (config.TryGetEntry(section, key, out ConfigEntry<T> current))
+            {
+                return current.Value;
+            }
+
+            if (config.TryGetEntry(legacySection, legacyKey, out ConfigEntry<T> legacy))
+            {
+                return legacy.Value;
+            }
+
+            return fallback;
         }
     }
 }

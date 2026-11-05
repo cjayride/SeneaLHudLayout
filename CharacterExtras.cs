@@ -576,7 +576,7 @@ namespace SeneaLHudLayout
             _foodLevel.alignment = TextAlignmentOptions.Midline;
             _foodLevel.ForceMeshUpdate();
             float width = Mathf.Ceil(_foodLevel.preferredWidth) + 6f;
-            float nudgeX = SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX != null ? SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX.Value : -63f;
+            float nudgeX = SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX != null ? SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX.Value : -33f;
             float nudgeY = SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetY != null ? SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetY.Value : -20.4f;
             RectTransform plate = _foodPlate.rectTransform;
             plate.pivot = new Vector2(0.5f, 1f);
@@ -604,6 +604,66 @@ namespace SeneaLHudLayout
         public static Sprite Plate()
         {
             return Pixel();
+        }
+
+        /// <summary>SeneaL crafting panel inner fill (sampled from the live craft UI when open).</summary>
+        public static Color CraftPanelInnerFill()
+        {
+            return TrySampleCraftInnerFill(out Color color) ? color : new Color(0.07f, 0.05f, 0.03f, 0.72f);
+        }
+
+        public static bool TrySampleCraftInnerFill(out Color color)
+        {
+            color = default;
+            InventoryGui gui = InventoryGui.instance;
+            if (gui == null)
+            {
+                return false;
+            }
+
+            Transform[] transforms = gui.GetComponentsInChildren<Transform>(true);
+            Color best = default;
+            float bestScore = -1f;
+            for (int i = 0; i < transforms.Length; i++)
+            {
+                Transform candidate = transforms[i];
+                if (candidate.name != "craft" || candidate.Find("search") == null || candidate.Find("orn") == null)
+                {
+                    continue;
+                }
+
+                Image[] images = candidate.GetComponentsInChildren<Image>(true);
+                for (int j = 0; j < images.Length; j++)
+                {
+                    Image img = images[j];
+                    if (img == null || img.color.a < 0.4f)
+                    {
+                        continue;
+                    }
+
+                    Color c = img.color;
+                    float luma = 0.299f * c.r + 0.587f * c.g + 0.114f * c.b;
+                    if (luma > 0.28f)
+                    {
+                        continue;
+                    }
+
+                    float score = (1f - luma) * c.a;
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        best = c;
+                    }
+                }
+
+                if (bestScore >= 0f)
+                {
+                    color = best;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         static Sprite Pixel()

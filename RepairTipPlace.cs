@@ -24,6 +24,9 @@ static FieldInfo _arrowOn;
     const float ScreenPadding = 8f;
     const float MinimumWidth = 256f;
     const float MaximumWidth = 900f;
+    const float ItemMagicMaxWidth = 380f;
+    const float DefaultTipInner = 228f;
+    const float MagicWidthSlack = 36f;
     const float ContentPadding = 44f;
 
     static float _repairWidth;
@@ -87,15 +90,15 @@ static FieldInfo _arrowOn;
 
     static void BeforeBuild(object __0)
     {
-        PrepareRepairWidth(__0);
+        PrepareTipWidth(__0);
     }
 
     static void BeforeLayout(object __0)
     {
-        PrepareRepairWidth(__0);
+        PrepareTipWidth(__0);
     }
 
-    static void PrepareRepairWidth(object tip)
+    static void PrepareTipWidth(object tip)
     {
         _repairWidth = 0f;
 
@@ -103,11 +106,28 @@ static FieldInfo _arrowOn;
             return;
 
         RectTransform anchor = Get<RectTransform>(_anchor);
+        bool repair = anchor != null && IsRepair(anchor);
 
-        if (anchor == null || !IsRepair(anchor))
+        if (!repair)
+        {
+            ClearTipWidth(tip);
+            float magicNeed = MeasureMagicRowsWidth(tip);
+            if (magicNeed <= DefaultTipInner + 4f)
+            {
+                return;
+            }
+
+            float required = Mathf.Clamp(
+                magicNeed,
+                MinimumWidth,
+                ItemMagicMaxWidth
+            );
+
+            SetTipWidth(tip, required);
             return;
+        }
 
-        float required = MeasureTip(tip) + 100f;
+        float requiredRepair = MeasureTip(tip) + 100f;
         RectTransform root = Get<RectTransform>(_root);
 
         if (root != null)
@@ -117,27 +137,110 @@ static FieldInfo _arrowOn;
                 root.rect.width - ScreenPadding * 2f
             );
 
-            required = Mathf.Min(required, maxWidth);
+            requiredRepair = Mathf.Min(requiredRepair, maxWidth);
         }
 
-        required = Mathf.Clamp(
-            required,
+        requiredRepair = Mathf.Clamp(
+            requiredRepair,
             MinimumWidth,
             MaximumWidth
         );
 
-        _repairWidth = required;
-
-        FieldInfo tipWidth = AccessTools.Field(
-            tip.GetType(),
-            "Width"
-        );
-
-        if (tipWidth != null &&
-            tipWidth.FieldType == typeof(float?))
+        if (requiredRepair <= DefaultTipInner + 4f)
         {
-            tipWidth.SetValue(tip, (float?)required);
+            ClearTipWidth(tip);
+            return;
         }
+
+        _repairWidth = requiredRepair;
+        SetTipWidth(tip, requiredRepair);
+    }
+
+    static void SetTipWidth(object tip, float width)
+    {
+        FieldInfo tipWidth = AccessTools.Field(tip.GetType(), "Width");
+        if (tipWidth != null && tipWidth.FieldType == typeof(float?))
+        {
+            tipWidth.SetValue(tip, (float?)width);
+        }
+    }
+
+    static void ClearTipWidth(object tip)
+    {
+        FieldInfo tipWidth = AccessTools.Field(tip.GetType(), "Width");
+        if (tipWidth != null && tipWidth.FieldType == typeof(float?))
+        {
+            tipWidth.SetValue(tip, null);
+        }
+    }
+
+    static float MeasureMagicRowsWidth(object tip)
+    {
+        RectTransform panel = Get<RectTransform>(_panel);
+        if (panel == null)
+        {
+            return DefaultTipInner;
+        }
+
+        FieldInfo rowsField = AccessTools.Field(tip.GetType(), "Rows");
+        if (rowsField == null || rowsField.GetValue(tip) is not IEnumerable rows)
+        {
+            return DefaultTipInner;
+        }
+
+        FieldInfo headField = AccessTools.Field(
+            AccessTools.TypeByName("SeneaLUI.Components.Tip+Row")
+                ?? AccessTools.Inner(AccessTools.TypeByName("SeneaLUI.Components.Tip"), "Row"),
+            "Head");
+        FieldInfo labelField = AccessTools.Field(
+            AccessTools.TypeByName("SeneaLUI.Components.Tip+Row")
+                ?? AccessTools.Inner(AccessTools.TypeByName("SeneaLUI.Components.Tip"), "Row"),
+            "Label");
+
+        TMP_Text[] texts = panel.GetComponentsInChildren<TMP_Text>(true);
+        bool inMagic = false;
+        float required = DefaultTipInner + MagicWidthSlack;
+        const float rowGap = 8f;
+
+        foreach (object row in rows)
+        {
+            if (row == null)
+            {
+                continue;
+            }
+
+            if (headField != null && headField.GetValue(row) is bool head && head)
+            {
+                string headLabel = labelField?.GetValue(row) as string;
+                inMagic = TipColumnOverflow.IsMagicSectionHead(headLabel);
+                continue;
+            }
+
+            if (!inMagic)
+            {
+                continue;
+            }
+
+            string label = ReadString(row, "Label");
+            string rowValue = ReadString(row, "Value");
+            string small = ReadString(row, "Small");
+
+            float rowWidth = ContentPadding;
+            rowWidth += MeasureString(texts, panel, label);
+            if (!string.IsNullOrEmpty(rowValue))
+            {
+                rowWidth += rowGap + MeasureString(texts, panel, rowValue);
+            }
+
+            if (!string.IsNullOrEmpty(small))
+            {
+                rowWidth += rowGap + MeasureString(texts, panel, small);
+            }
+
+            required = Mathf.Max(required, rowWidth);
+        }
+
+        return required;
     }
 
     // Tooltip.Layout normally forces its content width to 228 pixels.
@@ -268,6 +371,7 @@ static FieldInfo _arrowOn;
         if (rowsField != null &&
             rowsField.GetValue(tip) is IEnumerable rows)
         {
+            const float rowGap = 8f;
             foreach (object row in rows)
             {
                 if (row == null)
@@ -277,43 +381,56 @@ static FieldInfo _arrowOn;
                 string rowValue = ReadString(row, "Value");
                 string small = ReadString(row, "Small");
 
-                foreach (string value in new[]
+                float rowWidth = ContentPadding;
+                rowWidth += MeasureString(texts, panel, label);
+                if (!string.IsNullOrEmpty(rowValue))
                 {
-                    label,
-                    rowValue,
-                    small
-                })
-                {
-                    if (string.IsNullOrEmpty(value))
-                        continue;
-
-                    foreach (TMP_Text text in texts)
-                    {
-                        if (text == null)
-                            continue;
-
-                        float preferred = text.GetPreferredValues(
-                            value,
-                            10000f,
-                            0f
-                        ).x;
-
-                        float scale =
-                            text.rectTransform.lossyScale.x > 0.0001f
-                                ? panel.lossyScale.x /
-                                  text.rectTransform.lossyScale.x
-                                : 1f;
-
-                        required = Mathf.Max(
-                            required,
-                            preferred * scale + ContentPadding
-                        );
-                    }
+                    rowWidth += rowGap + MeasureString(texts, panel, rowValue);
                 }
+
+                if (!string.IsNullOrEmpty(small))
+                {
+                    rowWidth += rowGap + MeasureString(texts, panel, small);
+                }
+
+                required = Mathf.Max(required, rowWidth);
             }
         }
 
         return required;
+    }
+
+    static float MeasureString(TMP_Text[] texts, RectTransform panel, string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return 0f;
+        }
+
+        float best = 0f;
+        foreach (TMP_Text text in texts)
+        {
+            if (text == null)
+            {
+                continue;
+            }
+
+            float preferred = text.GetPreferredValues(
+                value,
+                10000f,
+                0f
+            ).x;
+
+            float scale =
+                text.rectTransform.lossyScale.x > 0.0001f
+                    ? panel.lossyScale.x /
+                      text.rectTransform.lossyScale.x
+                    : 1f;
+
+            best = Mathf.Max(best, preferred * scale);
+        }
+
+        return best;
     }
 
     static string ReadString(object instance, string name)

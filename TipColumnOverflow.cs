@@ -598,6 +598,12 @@ namespace SeneaLHudLayout
             return get == null ? null : get.Invoke(null, null) as string;
         }
 
+        internal static bool IsMagicSectionHead(string label)
+        {
+            RefreshLoc();
+            return Match(label, _effects);
+        }
+
         static bool Match(string label, string expect)
         {
             if (string.IsNullOrEmpty(label) || string.IsNullOrEmpty(expect))

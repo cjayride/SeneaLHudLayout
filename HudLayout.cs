@@ -262,6 +262,8 @@ namespace SeneaLHudLayout
             if (SeneaLHudLayoutPlugin.SyncVitalsSize.Value)
                 ApplyVitalsSync(root);
 
+            HealthBarCap.Apply(root);
+
             float extra = SeneaLHudLayoutPlugin.HotbarBottomLeft.Value
                 ? SeneaLHudLayoutPlugin.HealthFoodOffsetY.Value
                 : 0f;
