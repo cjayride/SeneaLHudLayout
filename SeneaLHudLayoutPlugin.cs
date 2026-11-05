@@ -39,7 +39,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.3.29";
+        public const string VERSION = "1.4.0";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -146,6 +146,16 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> ChatFontSettingOn;
         public static ConfigEntry<string> ChatFontAsset;
         public static ConfigEntry<float> ChatFontSize;
+        public static ConfigEntry<bool> ChatWindowRecommendedLayout;
+        public static ConfigEntry<int> ChatWindowPosX;
+        public static ConfigEntry<int> ChatWindowPosY;
+        public static ConfigEntry<int> ChatWindowWidth;
+        public static ConfigEntry<int> ChatWindowHeight;
+
+        public const int ChatWindowRecommendedPosX = 84;
+        public const int ChatWindowRecommendedPosY = -88;
+        public const int ChatWindowRecommendedWidth = -88;
+        public const int ChatWindowRecommendedHeight = -9;
 
         public static bool ChatSettingsOn()
         {
@@ -338,7 +348,7 @@ namespace SeneaLHudLayout
             HideChat = Config.Bind("Chat", "HideChat", false,
                 "Hide SeneaL UI's chat window. Chat messages still exist for another chat mod, such as Chatter.");
             ChatSettingsEnabled = Config.Bind("Chat", "ChatSettingsEnabled", false,
-                "Master on/off for every Chat setting except HideChat. Off leaves Valheim/SeneaL chat as-is for "
+                "Master on/off for every Chat setting except HideChat, ChatWindowRecommendedLayout, and the ChatWindow Pos/Width/Height keys. Off leaves Valheim/SeneaL chat as-is for "
                 + "DefaultToShout, RememberLastUsed, ShoutKeepsCapitalization, HideChatPanelDelay, and the chat font keys.");
             DefaultToShout = Config.Bind("Chat", "DefaultToShout", false,
                 "Off keeps Valheim's chat exactly as it is. On, the chat box opens with /s already typed in it, so your first Enter "
@@ -369,6 +379,25 @@ namespace SeneaLHudLayout
             ChatFontSize = Config.Bind("Chat", "chatMessageTextFontSize", 16f,
                 new ConfigDescription("The font size to use for chat messages.",
                     new AcceptableValueRange<float>(ChatFont.MinFontSize, ChatFont.MaxFontSize)));
+            ChatWindowRecommendedLayout = Config.Bind("Chat", "ChatWindowRecommendedLayout", false,
+                "Built-in recommended chat layout: PosX 84, PosY -88, Width -88, Height -9. "
+                + "While on, ChatWindowPosX/Y/Width/Height are ignored (your values stay in the cfg for when you turn this off). Client-only.");
+            ChatWindowPosX = Config.Bind("Chat", "ChatWindowPosX", 0,
+                new ConfigDescription(
+                    "Pixels to move the whole chat from SeneaL's original window. 0 is that original. Positive is right. Any integer (for example -76). Client-only.",
+                    new AcceptableValueRange<int>(-400, 400)));
+            ChatWindowPosY = Config.Bind("Chat", "ChatWindowPosY", 0,
+                new ConfigDescription(
+                    "Pixels to move the whole chat from SeneaL's original window. 0 is that original. Positive is up. Any integer (for example -76). Client-only.",
+                    new AcceptableValueRange<int>(-400, 400)));
+            ChatWindowWidth = Config.Bind("Chat", "ChatWindowWidth", 0,
+                new ConfigDescription(
+                    "Added width in pixels vs SeneaL's original chat. 0 is original. Negative makes it narrower. Any integer works (for example -10). Client-only.",
+                    new AcceptableValueRange<int>(-400, 400)));
+            ChatWindowHeight = Config.Bind("Chat", "ChatWindowHeight", 0,
+                new ConfigDescription(
+                    "Added height in pixels vs SeneaL's original chat. 0 is original. Negative makes it shorter. Any integer works (for example -10). Client-only.",
+                    new AcceptableValueRange<int>(-400, 400)));
             ShowLevelCharacterWindow = Config.Bind("Character", "ShowLevelCharacterWindow", true,
                 "Show your SkillsReworked level in the top left of the character window (Skills, Texts, Trophies, and PvP).");
             ShowTalentsButton = Config.Bind("Character", "ShowTalentsButton", true,
@@ -456,6 +485,7 @@ namespace SeneaLHudLayout
             AdventureJournal.Apply(harmony);
             RulesNotice.Apply(harmony);
             ChatHide.Apply(harmony);
+            ChatWindowLayout.Apply(harmony);
             ChatPrefix.Apply(harmony);
             ChatShoutText.Apply(harmony);
             CenterMessageRoute.Apply(harmony);
@@ -486,6 +516,7 @@ namespace SeneaLHudLayout
             CraftMaterials.Tick();
             StatValues.Tick();
             ChatHide.Tick();
+            ChatWindowLayout.Tick();
             ChatPrefix.Tick();
             ChatFont.Tick();
             BossStars.Tick();

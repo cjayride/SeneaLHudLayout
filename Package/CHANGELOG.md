@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0
+
+- **Chat window layout** (`ChatWindowPosX`, `ChatWindowPosY`, `ChatWindowWidth`, `ChatWindowHeight`): move and resize the whole SeneaL chat — glass, log, and typing bar together. **0 is SeneaL's original** on each axis; negative width/height shrinks. Values are **integer pixels** with 1-step F1 sliders (-400..400).
+- Shorter height **clips the log** inside the window and **pins the newest lines** above the input bar. **Reset all four keys to 0** rebuilds SeneaL's original chat, including after a restart once the panel has settled.
+- **`ChatWindowRecommendedLayout`**: optional preset (PosX 84, PosY -88, Width -88, Height -9). While on, the four manual keys are ignored but remain saved in the cfg.
+
 ## 1.3.29
 
 - New `[Chat] ChatSettingsEnabled` (off): master on/off for every Chat setting except `HideChat`. Off leaves shout prefix, last-used channel, shout capitalization, hide delay, and chat font at the game's own behavior. `HideChat` is unchanged.

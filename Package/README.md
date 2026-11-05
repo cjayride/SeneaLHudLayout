@@ -90,7 +90,9 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 
 ### Chat
 
-- `ChatSettingsEnabled` (off by default) is the master switch for every Chat setting except `HideChat`. Turn it on to use shout prefix, last-used channel, shout capitalization, hide delay, and chat font.
+- `ChatSettingsEnabled` (off by default) is the master switch for every Chat setting except `HideChat`, `ChatWindowRecommendedLayout`, and the chat window size/position keys. Turn it on to use shout prefix, last-used channel, shout capitalization, hide delay, and chat font.
+- `ChatWindowRecommendedLayout` (off by default): one switch for a built-in recommended chat layout (PosX 84, PosY -88, Width -88, Height -9). While on, the four keys below are ignored; your manual values stay in the cfg for when you turn it off.
+- `ChatWindowPosX` / `ChatWindowPosY` / `ChatWindowWidth` / `ChatWindowHeight`: **0 is SeneaL's original chat.** All four are pixel integers (1-step in F1, for example PosY -76). Pos moves the background, log, and input together. Negative width/height shrinks. Resetting all four to 0 rebuilds the original window. Client-only.
 - `DefaultToShout` (off by default) opens the chat box with `/s ` already typed in it, so your first Enter shouts — the long-range message that shows above your character — and you never have to type the prefix.
 - Delete the `/s ` and the message is a normal close-range say, exactly Valheim's own `/s` and plain text. The box stops prefilled and stays that way until you type `/s` again.
 - `RememberLastUsed` keeps that channel between messages and across restarts, in the game's own player prefs file.
@@ -136,6 +138,11 @@ Settings are organized by category. Key options include:
 | Chat | `chatMessageFontEnabled` | Off |
 | Chat | `chatMessageTextFontAsset` | Valheim-AveriaSansLibre |
 | Chat | `chatMessageTextFontSize` | 16 |
+| Chat | `ChatWindowRecommendedLayout` | Off |
+| Chat | `ChatWindowPosX` | 0 |
+| Chat | `ChatWindowPosY` | 0 |
+| Chat | `ChatWindowWidth` | 0 |
+| Chat | `ChatWindowHeight` | 0 |
 | Wallet | `SplitForChest` | On |
 | EpicLoot | `ShardSocketWindow` | On |
 
