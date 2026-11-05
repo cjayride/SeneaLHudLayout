@@ -573,19 +573,14 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            _foodLevel.alignment = TextAlignmentOptions.MidlineLeft;
-            string shown = _foodLevel.text;
-            _foodLevel.text = "Level 00";
-            _foodLevel.ForceMeshUpdate();
-            float reference = Mathf.Ceil(_foodLevel.preferredWidth) + 6f;
-            _foodLevel.text = shown;
+            _foodLevel.alignment = TextAlignmentOptions.Midline;
             _foodLevel.ForceMeshUpdate();
             float width = Mathf.Ceil(_foodLevel.preferredWidth) + 6f;
-            float nudgeX = SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX != null ? SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX.Value : -39f;
+            float nudgeX = SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX != null ? SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX.Value : -63f;
             float nudgeY = SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetY != null ? SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetY.Value : -20.4f;
             RectTransform plate = _foodPlate.rectTransform;
-            plate.pivot = new Vector2(0f, 1f);
-            plate.anchoredPosition = new Vector2(_foodCenterX + nudgeX - reference * 0.5f, _foodUnder + nudgeY);
+            plate.pivot = new Vector2(0.5f, 1f);
+            plate.anchoredPosition = new Vector2(_foodCenterX + nudgeX, _foodUnder + nudgeY);
             plate.sizeDelta = new Vector2(Mathf.Max(8f, width), 16f);
         }
 

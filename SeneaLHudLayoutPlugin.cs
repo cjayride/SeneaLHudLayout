@@ -39,7 +39,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.4.0";
+        public const string VERSION = "1.4.1";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -56,6 +56,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> ShipsOnCompass;
         public static ConfigEntry<bool> CartsOnCompass;
         public static ConfigEntry<bool> PortalsOnCompass;
+        public static ConfigEntry<bool> DeathPinOnCompass;
         public static ConfigEntry<float> CenterMessageGap;
         public static ConfigEntry<float> CenterMessageScale;
         public static ConfigEntry<bool> CenterMessageToNotices;
@@ -210,6 +211,8 @@ namespace SeneaLHudLayout
                 "Show the cart markers SeneaL UI's [Map] LiveCarts adds on the compass. Off keeps them on the map and minimap only.");
             PortalsOnCompass = Config.Bind("Compass", "ShowPortals", false,
                 "Show the portal markers SeneaL UI's [Map] LivePortals adds on the compass. Off keeps them on the map and minimap only.");
+            DeathPinOnCompass = Config.Bind("Compass", "DeathPinOnCompass", true,
+                "When you die, mark the grave pin for the SeneaL compass automatically. Helps when SeneaL UI [Map] CompassPins is Marked (the game adds death pins unchecked by default).");
             CenterMessageGap = Config.Bind("CenterMessage", "Gap", 110f,
                 new ConfigDescription("Pixels between the slain / biome banner and whatever is above it: the compass, or the boss bar when one is showing.",
                     new AcceptableValueRange<float>(0f, 400f)));
@@ -417,8 +420,8 @@ namespace SeneaLHudLayout
                 "Let you spend points again in a skill that lost a partial level on death, such as Tenacity going from 30 to 29.1. Fractional levels are rounded down when the Skills window opens. Only works when both Smoothbrain Tenacity and SkillsReworked are installed. Otherwise it does nothing.");
             ShowLevelFoodBar = Config.Bind("Character", "ShowLevelFoodBar", true,
                 "Show your SkillsReworked level directly under the food timers.");
-            ShowLevelFoodBarOffsetX = Config.Bind("Character", "ShowLevelFoodBarOffsetX", -57f,
-                new ConfigDescription("Horizontal nudge for that food-bar level, in pixels. Positive moves right. Longer levels grow to the right.",
+            ShowLevelFoodBarOffsetX = Config.Bind("Character", "ShowLevelFoodBarOffsetX", -63f,
+                new ConfigDescription("Horizontal nudge for that food-bar level, in pixels. Positive moves right. The label stays centered under the food timers as the level number changes.",
                     new AcceptableValueRange<float>(-200f, 200f)));
             ShowLevelFoodBarOffsetY = Config.Bind("Character", "ShowLevelFoodBarOffsetY", -11f,
                 new ConfigDescription("Vertical nudge for that food-bar level, in pixels. Positive moves up.",
@@ -477,6 +480,7 @@ namespace SeneaLHudLayout
             ShudnalConfigBridge.Apply(harmony);
             CompassPin.Apply(harmony);
             CompassLivePins.Apply(harmony);
+            DeathPinCompass.Apply(harmony);
             DrawerPreview.Apply(harmony);
             PieceHealthLabel.Apply(harmony);
             WorldHealthText.Apply(harmony);

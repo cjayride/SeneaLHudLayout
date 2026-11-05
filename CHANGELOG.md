@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.1
+
+- **Death pin on compass:** when you die, the grave pin is marked for the SeneaL compass automatically (`[Compass] DeathPinOnCompass`, on by default). Needed when SeneaL UI `[Map] CompassPins` is **Marked** — Valheim adds death pins unchecked, so they otherwise stay off the compass until you tick them in the pin dialog.
+- Food-bar SkillsReworked level stays centered under the timers as the digit count changes. Default `[Character] ShowLevelFoodBarOffsetX` is **-63**.
+
 ## 1.4.0
 
 - **Chat window layout** (`ChatWindowPosX`, `ChatWindowPosY`, `ChatWindowWidth`, `ChatWindowHeight`): move and resize the whole SeneaL chat — glass, log, and typing bar together. **0 is SeneaL's original** on each axis; negative width/height shrinks. Values are **integer pixels** with 1-step F1 sliders (-400..400).

@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>1.4.0</Version>
-    <AssemblyVersion>1.4.0</AssemblyVersion>
-    <FileVersion>1.4.0</FileVersion>
-    <InformationalVersion>1.4.0</InformationalVersion>
+    <Version>1.4.1</Version>
+    <AssemblyVersion>1.4.1</AssemblyVersion>
+    <FileVersion>1.4.1</FileVersion>
+    <InformationalVersion>1.4.1</InformationalVersion>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
@@ -11,6 +11,9 @@
   <Import Project="$(MSBuildThisFileDirectory)valheim.targets" />
   <ItemGroup>
     <Compile Remove="tools\**" />
+    <Compile Remove="StatsWindow.cs" />
+    <Compile Remove="StatsSteamPortrait.cs" />
+    <Compile Remove="StatsTalentFocus.cs" />
     <None Include="tools\**" />
   </ItemGroup>
 </Project>

@@ -19,6 +19,7 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 - Moves the hotbar, action slots, and food quick slots to the bottom-left corner.
 - Positions health, food, and guardian power elements above the hotbar.
 - Keeps the compass pinned to the top of the screen.
+- Marks your death/grave pin for the SeneaL compass automatically (`[Compass] DeathPinOnCompass`).
 - Adjusts boss bars, center messages, and event banners to prevent overlapping.
 - Shifts the minimap cluster to the left.
 - Positions Passive Powers icons beside the food column.
