@@ -20,8 +20,15 @@ namespace SeneaLHudLayout
         static TextMeshProUGUI _level;
         static TextMeshProUGUI _foodLevel;
         static Image _foodPlate;
-        static float _foodCenterX = 58f;
+        static float _foodCenterX;
         static float _foodUnder;
+        static bool _foodBoundsKnown;
+        static int _foodLayoutStamp = int.MinValue;
+        static string _foodPlacedText;
+        static float _foodPlacedNudgeX = float.NaN;
+        static float _foodPlacedNudgeY = float.NaN;
+        static float _foodPlacedWidth;
+        static readonly Vector3[] FoodCorners = new Vector3[4];
         static Sprite _pixel;
         static MethodInfo _getLevel;
         static bool _levelLookup;
@@ -414,8 +421,6 @@ namespace SeneaLHudLayout
                 _foodLevel.text = text;
             }
 
-            FitFoodPlate();
-
             if (_foodPlate != null && !_foodPlate.gameObject.activeSelf)
             {
                 _foodPlate.gameObject.SetActive(true);
@@ -482,7 +487,7 @@ namespace SeneaLHudLayout
                     textGo.transform.SetParent(plateGo.transform, false);
                     _foodLevel = textGo.AddComponent<TextMeshProUGUI>();
                     _foodLevel.raycastTarget = false;
-                    _foodLevel.alignment = TextAlignmentOptions.MidlineLeft;
+                    _foodLevel.alignment = TextAlignmentOptions.Midline;
                     _foodLevel.textWrappingMode = TextWrappingModes.NoWrap;
                     _foodLevel.overflowMode = TextOverflowModes.Overflow;
                     _foodLevel.fontSize = 13f;
@@ -492,8 +497,8 @@ namespace SeneaLHudLayout
                     RectTransform textRt = _foodLevel.rectTransform;
                     textRt.anchorMin = Vector2.zero;
                     textRt.anchorMax = Vector2.one;
-                    textRt.offsetMin = new Vector2(3f, 0f);
-                    textRt.offsetMax = new Vector2(-3f, 0f);
+                    textRt.offsetMin = new Vector2(2f, 0f);
+                    textRt.offsetMax = new Vector2(-2f, 0f);
 
                     TMP_Text sample = null;
                     Transform timer = food.Find("time2");
@@ -533,55 +538,135 @@ namespace SeneaLHudLayout
 
         static void PlaceFoodPlate(RectTransform food)
         {
-            RectTransform timer = food.Find("time2") as RectTransform;
             RectTransform plate = _foodPlate.rectTransform;
-            plate.anchorMin = new Vector2(0f, 0f);
-            plate.anchorMax = new Vector2(0f, 0f);
-            plate.pivot = new Vector2(0f, 1f);
-            float centerX = 58f;
-            float under = 0f;
-            if (timer != null)
-            {
-                float width = timer.rect.width;
-                if (width < 4f || width > 80f)
-                {
-                    width = 40f;
-                }
-
-                float height = timer.rect.height;
-                if (height < 4f || height > 28f)
-                {
-                    height = 14f;
-                }
-
-                centerX = timer.anchoredPosition.x + width * (0.5f - timer.pivot.x);
-                under = timer.anchoredPosition.y - height * timer.pivot.y - 1f;
-            }
-
-            _foodCenterX = centerX;
-            _foodUnder = under;
+            plate.anchorMin = Vector2.zero;
+            plate.anchorMax = Vector2.zero;
+            plate.pivot = new Vector2(0.5f, 1f);
             plate.localScale = Vector3.one;
             plate.localRotation = Quaternion.identity;
             plate.SetAsLastSibling();
-            FitFoodPlate();
+
+            int stamp = StampFoodTimers(food);
+            bool layoutChanged = stamp != _foodLayoutStamp;
+            if (layoutChanged)
+            {
+                _foodLayoutStamp = stamp;
+                if (TryFoodTimerBounds(food, plate, out float centerX, out float under))
+                {
+                    _foodCenterX = centerX;
+                    _foodUnder = under;
+                    _foodBoundsKnown = true;
+                }
+            }
+
+            FitFoodPlate(layoutChanged);
         }
 
-        static void FitFoodPlate()
+        static int StampFoodTimers(RectTransform food)
+        {
+            int hash = 17;
+            hash = hash * 31 + food.childCount;
+            Vector2 size = food.rect.size;
+            hash = hash * 31 + Mathf.RoundToInt(size.x * 4f);
+            hash = hash * 31 + Mathf.RoundToInt(size.y * 4f);
+            for (int i = 0; i < food.childCount; i++)
+            {
+                Transform child = food.GetChild(i);
+                if (!IsFoodTimer(child))
+                {
+                    continue;
+                }
+
+                var timer = (RectTransform)child;
+                hash = hash * 31 + (timer.gameObject.activeSelf ? 1 : 0);
+                Vector2 pos = timer.anchoredPosition;
+                Vector2 rect = timer.rect.size;
+                hash = hash * 31 + Mathf.RoundToInt(pos.x * 4f);
+                hash = hash * 31 + Mathf.RoundToInt(pos.y * 4f);
+                hash = hash * 31 + Mathf.RoundToInt(rect.x * 4f);
+                hash = hash * 31 + Mathf.RoundToInt(rect.y * 4f);
+            }
+
+            return hash;
+        }
+
+        static bool IsFoodTimer(Transform child)
+        {
+            return child is RectTransform && child.name.StartsWith("time", StringComparison.Ordinal);
+        }
+
+        static bool TryFoodTimerBounds(RectTransform food, RectTransform plate, out float centerX, out float under)
+        {
+            centerX = 0f;
+            under = 0f;
+            float minX = float.MaxValue;
+            float maxX = float.MinValue;
+            float minY = float.MaxValue;
+            int count = 0;
+            for (int i = 0; i < food.childCount; i++)
+            {
+                Transform child = food.GetChild(i);
+                if (!IsFoodTimer(child) || child == plate.transform)
+                {
+                    continue;
+                }
+
+                var timer = (RectTransform)child;
+                timer.GetWorldCorners(FoodCorners);
+                for (int c = 0; c < 4; c++)
+                {
+                    Vector3 local = food.InverseTransformPoint(FoodCorners[c]);
+                    minX = Mathf.Min(minX, local.x);
+                    maxX = Mathf.Max(maxX, local.x);
+                    minY = Mathf.Min(minY, local.y);
+                }
+
+                count++;
+            }
+
+            if (count == 0)
+            {
+                return _foodBoundsKnown;
+            }
+
+            centerX = (minX + maxX) * 0.5f;
+            under = minY - 1f;
+            return true;
+        }
+
+        static void FitFoodPlate(bool layoutChanged)
         {
             if (_foodPlate == null || _foodLevel == null)
             {
                 return;
             }
 
+            float nudgeX = SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX != null ? SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX.Value : -45f;
+            float nudgeY = SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetY != null ? SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetY.Value : -11f;
+            bool textChanged = !string.Equals(_foodPlacedText, _foodLevel.text, StringComparison.Ordinal);
+            bool nudgeChanged = !Mathf.Approximately(nudgeX, _foodPlacedNudgeX) || !Mathf.Approximately(nudgeY, _foodPlacedNudgeY);
+            if (!layoutChanged && !textChanged && !nudgeChanged)
+            {
+                return;
+            }
+
             _foodLevel.alignment = TextAlignmentOptions.Midline;
-            _foodLevel.ForceMeshUpdate();
-            float width = Mathf.Ceil(_foodLevel.preferredWidth) + 6f;
-            float nudgeX = SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX != null ? SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX.Value : -33f;
-            float nudgeY = SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetY != null ? SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetY.Value : -20.4f;
+            float width = _foodPlacedWidth;
+            if (textChanged || width < 8f)
+            {
+                _foodLevel.ForceMeshUpdate();
+                width = Mathf.Max(8f, Mathf.Ceil(_foodLevel.preferredWidth) + 6f);
+                _foodPlacedText = _foodLevel.text;
+                _foodPlacedWidth = width;
+            }
+
             RectTransform plate = _foodPlate.rectTransform;
             plate.pivot = new Vector2(0.5f, 1f);
             plate.anchoredPosition = new Vector2(_foodCenterX + nudgeX, _foodUnder + nudgeY);
-            plate.sizeDelta = new Vector2(Mathf.Max(8f, width), 16f);
+            plate.sizeDelta = new Vector2(width, 16f);
+
+            _foodPlacedNudgeX = nudgeX;
+            _foodPlacedNudgeY = nudgeY;
         }
 
         public static void Frame(Image plate)

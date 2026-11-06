@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.3
+
+- Default `[Character] ShowLevelFoodBarOffsetX` is **-45**.
+
+## 1.5.2
+
+- Food-bar level uses the same bottom-left anchor space as the food timers, so the label centers on the timer group at `ShowLevelFoodBarOffsetX = 0` instead of sitting ~30px too far right.
+
+## 1.5.1
+
+- Food-bar level stays centered under all food timers when HP, food, or death state change the HUD. Reset `[Character] ShowLevelFoodBarOffsetX` to **0** (old -33 / -63 defaults are migrated). Offset keys are only a manual nudge now.
+
 ## 1.5.0
 
 - **Character Stats sheet:** new tab on the SeneaL character panel with a live vitals, defense, buffs, and skills view. Settings: `[Stats] StatsTab` (on), `[Stats] StatsHotkey` (unbound), `[Stats] StatsPortrait` (Steam portrait, on). Client-only; reads vanilla player data.
