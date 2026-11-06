@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.10
+
+- Food-bar level no longer slides left when you eat. It follows the food **icon slots**, not the `time*` labels that appear and move on eat/death. OffsetX/Y stay a manual nudge. The food HUD itself can still move.
+- Item tooltips no longer show a Path of Valheiman (Buck & Doe) icon on every stat line.
+- Fixed Harmony warning: `Tooltip.RowUi` has no `Head` field — that flag is on `Tip.Row`.
+
 ## 1.5.9
 
 - Thunderstore package no longer includes `config/cjayride.SeneaLHudLayout.cfg`. BepInEx still generates it on first run.

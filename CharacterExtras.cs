@@ -23,7 +23,6 @@ namespace SeneaLHudLayout
         static float _foodCenterX;
         static float _foodUnder;
         static bool _foodBoundsKnown;
-        static int _foodTimerSlots;
         static int _foodLayoutStamp = int.MinValue;
         static string _foodPlacedText;
         static float _foodPlacedNudgeX = float.NaN;
@@ -531,6 +530,8 @@ namespace SeneaLHudLayout
             if (_foodPlate.transform.parent != food)
             {
                 _foodPlate.transform.SetParent(food, false);
+                _foodBoundsKnown = false;
+                _foodLayoutStamp = int.MinValue;
             }
 
             IgnoreFoodLayout(_foodPlate.gameObject);
@@ -564,12 +565,12 @@ namespace SeneaLHudLayout
             plate.localRotation = Quaternion.identity;
             plate.SetAsLastSibling();
 
-            int stamp = StampFoodTimers(food);
+            int stamp = StampFoodSlots(food, plate);
             bool layoutChanged = stamp != _foodLayoutStamp;
             if (layoutChanged)
             {
                 _foodLayoutStamp = stamp;
-                if (TryFoodTimerBounds(food, plate, out float centerX, out float under))
+                if (TryFoodSlotBounds(food, plate, out float centerX, out float under))
                 {
                     _foodCenterX = centerX;
                     _foodUnder = under;
@@ -580,14 +581,14 @@ namespace SeneaLHudLayout
             FitFoodPlate(layoutChanged);
         }
 
-        static int StampFoodTimers(RectTransform food)
+        static int StampFoodSlots(RectTransform food, RectTransform plate)
         {
             int hash = 17;
-            hash = hash * 31 + food.childCount;
+            int count = 0;
             for (int i = 0; i < food.childCount; i++)
             {
                 Transform child = food.GetChild(i);
-                if (!IsFoodTimer(child))
+                if (!IsFoodSlot(child, plate))
                 {
                     continue;
                 }
@@ -595,9 +596,10 @@ namespace SeneaLHudLayout
                 Vector2 pos = ((RectTransform)child).anchoredPosition;
                 hash = hash * 31 + Mathf.RoundToInt(pos.x * 4f);
                 hash = hash * 31 + Mathf.RoundToInt(pos.y * 4f);
+                count++;
             }
 
-            return hash;
+            return hash * 31 + count;
         }
 
         static bool IsFoodTimer(Transform child)
@@ -605,7 +607,22 @@ namespace SeneaLHudLayout
             return child is RectTransform && child.name.StartsWith("time", StringComparison.Ordinal);
         }
 
-        static bool TryFoodTimerBounds(RectTransform food, RectTransform plate, out float centerX, out float under)
+        static bool IsFoodSlot(Transform child, RectTransform plate)
+        {
+            if (!(child is RectTransform) || child == plate.transform)
+            {
+                return false;
+            }
+
+            if (child.name.StartsWith("SeneaLHudLayout", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            return !IsFoodTimer(child);
+        }
+
+        static bool TryFoodSlotBounds(RectTransform food, RectTransform plate, out float centerX, out float under)
         {
             centerX = _foodCenterX;
             under = _foodUnder;
@@ -616,7 +633,7 @@ namespace SeneaLHudLayout
             for (int i = 0; i < food.childCount; i++)
             {
                 Transform child = food.GetChild(i);
-                if (!IsFoodTimer(child) || child == plate.transform)
+                if (!IsFoodSlot(child, plate))
                 {
                     continue;
                 }
@@ -633,12 +650,6 @@ namespace SeneaLHudLayout
                 return _foodBoundsKnown;
             }
 
-            if (_foodBoundsKnown && count < _foodTimerSlots)
-            {
-                return true;
-            }
-
-            _foodTimerSlots = count;
             centerX = (minX + maxX) * 0.5f;
             under = minY - 1f;
             return true;

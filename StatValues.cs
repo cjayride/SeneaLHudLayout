@@ -4,6 +4,7 @@ using System.Reflection;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace SeneaLHudLayout
 {
@@ -13,6 +14,9 @@ namespace SeneaLHudLayout
 
         static FieldInfo _cmp;
         static FieldInfo _rowHead;
+        static FieldInfo _rowIcon;
+        static FieldInfo _rowUiIcon;
+        static FieldInfo _tipRows;
         static bool _inMagicSection;
         static readonly List<Job> _jobs = new List<Job>();
         static readonly Dictionary<int, Snapshot> _original = new Dictionary<int, Snapshot>();
@@ -43,6 +47,15 @@ namespace SeneaLHudLayout
         public static void Apply(Harmony harmony)
         {
             System.Type tooltip = AccessTools.TypeByName("SeneaLUI.Components.Tooltip");
+            System.Type tip = AccessTools.TypeByName("SeneaLUI.Components.Tip");
+            System.Type row = AccessTools.TypeByName("SeneaLUI.Components.Tip+Row")
+                ?? (tip != null ? AccessTools.Inner(tip, "Row") : null);
+            System.Type rowUi = tooltip != null ? AccessTools.Inner(tooltip, "RowUi") : null;
+            _rowHead = row != null ? AccessTools.Field(row, "Head") : null;
+            _rowIcon = row != null ? AccessTools.Field(row, "Icon") : null;
+            _rowUiIcon = rowUi != null ? AccessTools.Field(rowUi, "Icon") : null;
+            _tipRows = tip != null ? AccessTools.Field(tip, "Rows") : null;
+
             MethodInfo build = tooltip != null ? AccessTools.Method(tooltip, "Build") : null;
             if (build != null)
             {
@@ -53,6 +66,13 @@ namespace SeneaLHudLayout
             if (layRow != null)
             {
                 harmony.Patch(layRow, postfix: new HarmonyMethod(typeof(StatValues), nameof(AfterLayRow)));
+            }
+
+            System.Type tips = AccessTools.TypeByName("SeneaLUI.Inv.Tips");
+            MethodInfo povRows = tips != null ? AccessTools.Method(tips, "PovRows") : null;
+            if (povRows != null)
+            {
+                harmony.Patch(povRows, postfix: new HarmonyMethod(typeof(StatValues), nameof(AfterPovRows)));
             }
 
             System.Type craft = AccessTools.TypeByName("SeneaLUI.Inv.CraftView");
@@ -96,20 +116,48 @@ namespace SeneaLHudLayout
             _inMagicSection = false;
         }
 
-        [HarmonyPriority(Priority.Last)]
-        static void AfterLayRow(object __1)
+        static void AfterPovRows(object __0)
         {
+            ClearRowIcons(__0);
+        }
+
+        static void ClearRowIcons(object tip)
+        {
+            if (tip == null || _tipRows == null || _rowIcon == null)
+            {
+                return;
+            }
+
+            IList rows = _tipRows.GetValue(tip) as IList;
+            if (rows == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                object row = rows[i];
+                if (row == null)
+                {
+                    continue;
+                }
+
+                _rowIcon.SetValue(row, null);
+                rows[i] = row;
+            }
+        }
+
+        [HarmonyPriority(Priority.Last)]
+        static void AfterLayRow(object __0, object __1)
+        {
+            HideRowIcon(__1);
+
             if (__1 == null)
             {
                 return;
             }
 
-            if (_rowHead == null)
-            {
-                _rowHead = AccessTools.Field(__1.GetType(), "Head");
-            }
-
-            if (_rowHead != null && _rowHead.GetValue(__1) is bool head && head)
+            if (_rowHead != null && __0 != null && _rowHead.GetValue(__0) is bool head && head)
             {
                 TMP_Text headLabel = Text(__1, "Label");
                 _inMagicSection = TipColumnOverflow.IsMagicSectionHead(headLabel != null ? headLabel.text : null);
@@ -490,6 +538,20 @@ namespace SeneaLHudLayout
         static bool Shown(TMP_Text text)
         {
             return text != null && text.gameObject.activeSelf && !string.IsNullOrEmpty(text.text);
+        }
+
+        static void HideRowIcon(object rowUi)
+        {
+            if (rowUi == null || _rowUiIcon == null)
+            {
+                return;
+            }
+
+            Image icon = _rowUiIcon.GetValue(rowUi) as Image;
+            if (icon != null && icon.gameObject.activeSelf)
+            {
+                icon.gameObject.SetActive(false);
+            }
         }
 
         static TMP_Text Text(object row, string field)
