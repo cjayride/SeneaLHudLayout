@@ -7,3 +7,6 @@ dist/
 Package/*.dll
 
 Package/*.zip
+
+lib/
+tools/

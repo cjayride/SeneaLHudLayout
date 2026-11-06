@@ -159,6 +159,8 @@ To restore SeneaL UI's original placement behavior, set `[General] Enabled` to `
 3. Launch Valheim once to generate the configuration file.
 4. Customize settings in `BepInEx/config/cjayride.SeneaLHudLayout.cfg`.
 
+The Thunderstore zip does **not** ship a config file; BepInEx creates it when the game runs.
+
 Install on each client that needs the layout changes.
 
 ## Credits

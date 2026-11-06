@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.5.9
+
+- Thunderstore package no longer includes `config/cjayride.SeneaLHudLayout.cfg`. BepInEx still generates it on first run.
+
+## 1.5.8
+
+- Default `[Character] ShowLevelFoodBarOffsetX` is **12** (slight right nudge from slot center). Existing configs keep their saved value.
+
+## 1.5.7
+
+- Default `[Character] ShowLevelFoodBarOffsetX` is **0** (was -45). Existing configs keep their saved value. With slot-based centering from 1.5.6, 0 is the intended neutral.
+
+## 1.5.6
+
+- Default `[HealthFood] OffsetY` is **-75** (was -54). Existing configs keep their saved value.
+- Food-bar level (`ShowLevelFoodBar`) is pinned to the food-timer *slots* (anchored positions), not the live text/mesh bounds. Digit changes, dying, and shrinking the label no longer slide `ShowLevelFoodBarOffsetX`.
+
+## 1.5.5
+
+- **`[HealthFood] HealthBarMaxHeight` (default 250):** clamp SeneaL's HealthCapacity bar length *after* it is calculated, then let fill / ghost / keep-space run as current / max of that height. No more snapping the RectTransform (that caused flicker). SeneaL ticks, numbers, shapes, and Path of Valheiman shield overlay stay as SeneaL draws them.
+
+## 1.5.4
+
+- **`HealthBarMaxHeight`:** stop fighting SeneaL's health-bar lerp (that was the flicker at 250+ HP). The cap is now SeneaL's own max bar height; fill stays current / max in that same space. HP numbers and tick marks still show extra capacity.
+
 ## 1.5.3
 
 - Default `[Character] ShowLevelFoodBarOffsetX` is **-45**.

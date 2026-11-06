@@ -23,12 +23,12 @@ namespace SeneaLHudLayout
         static float _foodCenterX;
         static float _foodUnder;
         static bool _foodBoundsKnown;
+        static int _foodTimerSlots;
         static int _foodLayoutStamp = int.MinValue;
         static string _foodPlacedText;
         static float _foodPlacedNudgeX = float.NaN;
         static float _foodPlacedNudgeY = float.NaN;
         static float _foodPlacedWidth;
-        static readonly Vector3[] FoodCorners = new Vector3[4];
         static Sprite _pixel;
         static MethodInfo _getLevel;
         static bool _levelLookup;
@@ -479,6 +479,7 @@ namespace SeneaLHudLayout
                     plateGo.transform.SetParent(food, false);
                     _foodPlate = plateGo.AddComponent<Image>();
                     _foodPlate.raycastTarget = false;
+                    IgnoreFoodLayout(_foodPlate.gameObject);
                     _foodPlate.sprite = Pixel();
                     _foodPlate.color = new Color(0.07f, 0.05f, 0.03f, 0.62f);
                     _foodPlate.type = Image.Type.Simple;
@@ -487,7 +488,7 @@ namespace SeneaLHudLayout
                     textGo.transform.SetParent(plateGo.transform, false);
                     _foodLevel = textGo.AddComponent<TextMeshProUGUI>();
                     _foodLevel.raycastTarget = false;
-                    _foodLevel.alignment = TextAlignmentOptions.Midline;
+                    _foodLevel.alignment = TextAlignmentOptions.Center;
                     _foodLevel.textWrappingMode = TextWrappingModes.NoWrap;
                     _foodLevel.overflowMode = TextOverflowModes.Overflow;
                     _foodLevel.fontSize = 13f;
@@ -532,8 +533,25 @@ namespace SeneaLHudLayout
                 _foodPlate.transform.SetParent(food, false);
             }
 
+            IgnoreFoodLayout(_foodPlate.gameObject);
             PlaceFoodPlate(food);
             return true;
+        }
+
+        static void IgnoreFoodLayout(GameObject go)
+        {
+            if (go == null)
+            {
+                return;
+            }
+
+            LayoutElement layout = go.GetComponent<LayoutElement>();
+            if (layout == null)
+            {
+                layout = go.AddComponent<LayoutElement>();
+            }
+
+            layout.ignoreLayout = true;
         }
 
         static void PlaceFoodPlate(RectTransform food)
@@ -566,9 +584,6 @@ namespace SeneaLHudLayout
         {
             int hash = 17;
             hash = hash * 31 + food.childCount;
-            Vector2 size = food.rect.size;
-            hash = hash * 31 + Mathf.RoundToInt(size.x * 4f);
-            hash = hash * 31 + Mathf.RoundToInt(size.y * 4f);
             for (int i = 0; i < food.childCount; i++)
             {
                 Transform child = food.GetChild(i);
@@ -577,14 +592,9 @@ namespace SeneaLHudLayout
                     continue;
                 }
 
-                var timer = (RectTransform)child;
-                hash = hash * 31 + (timer.gameObject.activeSelf ? 1 : 0);
-                Vector2 pos = timer.anchoredPosition;
-                Vector2 rect = timer.rect.size;
+                Vector2 pos = ((RectTransform)child).anchoredPosition;
                 hash = hash * 31 + Mathf.RoundToInt(pos.x * 4f);
                 hash = hash * 31 + Mathf.RoundToInt(pos.y * 4f);
-                hash = hash * 31 + Mathf.RoundToInt(rect.x * 4f);
-                hash = hash * 31 + Mathf.RoundToInt(rect.y * 4f);
             }
 
             return hash;
@@ -597,8 +607,8 @@ namespace SeneaLHudLayout
 
         static bool TryFoodTimerBounds(RectTransform food, RectTransform plate, out float centerX, out float under)
         {
-            centerX = 0f;
-            under = 0f;
+            centerX = _foodCenterX;
+            under = _foodUnder;
             float minX = float.MaxValue;
             float maxX = float.MinValue;
             float minY = float.MaxValue;
@@ -611,16 +621,10 @@ namespace SeneaLHudLayout
                     continue;
                 }
 
-                var timer = (RectTransform)child;
-                timer.GetWorldCorners(FoodCorners);
-                for (int c = 0; c < 4; c++)
-                {
-                    Vector3 local = food.InverseTransformPoint(FoodCorners[c]);
-                    minX = Mathf.Min(minX, local.x);
-                    maxX = Mathf.Max(maxX, local.x);
-                    minY = Mathf.Min(minY, local.y);
-                }
-
+                Vector2 pos = ((RectTransform)child).anchoredPosition;
+                minX = Mathf.Min(minX, pos.x);
+                maxX = Mathf.Max(maxX, pos.x);
+                minY = Mathf.Min(minY, pos.y);
                 count++;
             }
 
@@ -629,6 +633,12 @@ namespace SeneaLHudLayout
                 return _foodBoundsKnown;
             }
 
+            if (_foodBoundsKnown && count < _foodTimerSlots)
+            {
+                return true;
+            }
+
+            _foodTimerSlots = count;
             centerX = (minX + maxX) * 0.5f;
             under = minY - 1f;
             return true;
@@ -641,7 +651,7 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            float nudgeX = SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX != null ? SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX.Value : -45f;
+            float nudgeX = SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX != null ? SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetX.Value : 12f;
             float nudgeY = SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetY != null ? SeneaLHudLayoutPlugin.ShowLevelFoodBarOffsetY.Value : -11f;
             bool textChanged = !string.Equals(_foodPlacedText, _foodLevel.text, StringComparison.Ordinal);
             bool nudgeChanged = !Mathf.Approximately(nudgeX, _foodPlacedNudgeX) || !Mathf.Approximately(nudgeY, _foodPlacedNudgeY);
@@ -650,7 +660,7 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            _foodLevel.alignment = TextAlignmentOptions.Midline;
+            _foodLevel.alignment = TextAlignmentOptions.Center;
             float width = _foodPlacedWidth;
             if (textChanged || width < 8f)
             {

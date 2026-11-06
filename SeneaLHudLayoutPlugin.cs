@@ -39,7 +39,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.5.3";
+        public const string VERSION = "1.5.9";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -186,14 +186,14 @@ namespace SeneaLHudLayout
 
             LiftHealthAboveHotbar = Config.Bind("HealthFood", "LiftAboveHotbar", true,
                 "Raise the health, food, and guardian-power cluster so it sits above the relocated hotbar.");
-            HealthFoodOffsetY = Config.Bind("HealthFood", "OffsetY", -54f,
+            HealthFoodOffsetY = Config.Bind("HealthFood", "OffsetY", -75f,
                 new ConfigDescription("Extra pixels to raise the health and food cluster. Positive moves up. Applied on top of LiftAboveHotbar.",
                     new AcceptableValueRange<float>(-2000f, 2000f)));
             HealthFoodOffsetX = Config.Bind("HealthFood", "OffsetX", 54f,
                 new ConfigDescription("Extra horizontal spacing for the food bar relative to the health bar. Positive moves right.",
                     new AcceptableValueRange<float>(-2000f, 2000f)));
             HealthBarMaxHeight = Config.Bind("HealthFood", "HealthBarMaxHeight", 250f,
-                new ConfigDescription("Cap the SeneaL player health bar height in pixels. At very high max HP the bar no longer grows past this; fill still shows current / max.",
+                new ConfigDescription("Max pixel height of the SeneaL player health bar after HealthCapacity sizing. The bar still grows with max HP up to this cap, then stays this tall. Fill is always current / max of that height (updates with HP). SeneaL ticks, keep-space hatch, numbers, shapes, and rune shield are unchanged. HUD editor Fixed length is also capped. 80–800.",
                     new AcceptableValueRange<float>(80f, 800f)));
 
             MinimapOffsetX = Config.Bind("Minimap", "OffsetX", -36f,
@@ -427,8 +427,8 @@ namespace SeneaLHudLayout
                 "Let you spend points again in a skill that lost a partial level on death, such as Tenacity going from 30 to 29.1. Fractional levels are rounded down when the Skills window opens. Only works when both Smoothbrain Tenacity and SkillsReworked are installed. Otherwise it does nothing.");
             ShowLevelFoodBar = Config.Bind("Character", "ShowLevelFoodBar", true,
                 "Show your SkillsReworked level directly under the food timers.");
-            ShowLevelFoodBarOffsetX = Config.Bind("Character", "ShowLevelFoodBarOffsetX", -45f,
-                new ConfigDescription("Horizontal nudge for that food-bar level, in pixels. Positive moves right.",
+            ShowLevelFoodBarOffsetX = Config.Bind("Character", "ShowLevelFoodBarOffsetX", 12f,
+                new ConfigDescription("Horizontal nudge for that food-bar level, in pixels. Positive moves right. Default 12 nudges slightly right from slot center (1.5.8+).",
                     new AcceptableValueRange<float>(-200f, 200f)));
             ShowLevelFoodBarOffsetY = Config.Bind("Character", "ShowLevelFoodBarOffsetY", -11f,
                 new ConfigDescription("Vertical nudge for that food-bar level, in pixels. Positive moves up.",
@@ -504,6 +504,7 @@ namespace SeneaLHudLayout
                     new AcceptableValueRange<float>(0.5f, 1.5f)));
 
             Harmony harmony = new Harmony(GUID);
+            HealthBarCap.Apply(harmony);
             ShudnalConfigBridge.Apply(harmony);
             CompassPin.Apply(harmony);
             CompassLivePins.Apply(harmony);
