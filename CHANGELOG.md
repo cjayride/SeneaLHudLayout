@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.12
+
+- Thunderstore: use the correct `icon.png` in the package (replacing the placeholder from 1.5.11).
+
 ## 1.5.11
 
 - Character Stats: fixed HarmonyX console warning `Could not find method ... StatusEffect.GetRemainingTime`. Remaining status time now uses Valheim’s `m_ttl` and `m_time` fields (there is no `GetRemainingTime` on `StatusEffect`).
