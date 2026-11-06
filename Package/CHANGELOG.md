@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.11
+
+- Character Stats: fixed HarmonyX console warning `Could not find method ... StatusEffect.GetRemainingTime`. Remaining status time now uses Valheim’s `m_ttl` and `m_time` fields (there is no `GetRemainingTime` on `StatusEffect`).
+
 ## 1.5.10
 
 - Food-bar level no longer slides left when you eat. It follows the food **icon slots**, not the `time*` labels that appear and move on eat/death. OffsetX/Y stay a manual nudge. The food HUD itself can still move.

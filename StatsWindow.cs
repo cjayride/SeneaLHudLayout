@@ -31,6 +31,7 @@ namespace SeneaLHudLayout
         static readonly Color TitleFill = ScrollTrackFill;
         static readonly Color SectionTitleColor = new Color(0.9f, 0.78f, 0.48f, 1f);
         static readonly Color SectionIconColor = new Color(0.05f, 0.05f, 0.05f, 1f);
+        static readonly FieldInfo StatusEffectTimeField = AccessTools.Field(typeof(StatusEffect), "m_time");
         static float HeaderStackHeight => HeaderBodyHeight + HeaderRuleHeight + HeaderBottomGap;
 
         static GameObject _window;
@@ -1493,25 +1494,14 @@ namespace SeneaLHudLayout
 
         static float StatusTime(StatusEffect se)
         {
-            MethodInfo method = AccessTools.Method(typeof(StatusEffect), "GetRemainingTime");
-            if (method != null)
+            // Valheim has no GetRemainingTime(); remaining duration is m_ttl - m_time (same as PowersLayout).
+            if (se == null || se.m_ttl <= 0f)
             {
-                try
-                {
-                    return (float)method.Invoke(se, null);
-                }
-                catch (Exception)
-                {
-                }
+                return 0f;
             }
 
-            FieldInfo time = AccessTools.Field(typeof(StatusEffect), "m_time");
-            if (time != null && time.FieldType == typeof(float))
-            {
-                return (float)time.GetValue(se);
-            }
-
-            return 0f;
+            float elapsed = StatusEffectTimeField?.GetValue(se) is float time ? time : 0f;
+            return Mathf.Max(0f, se.m_ttl - elapsed);
         }
 
         static string FormatTime(float seconds)
