@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.18
+
+- Removed experimental `[Performance] SeneaLFpsTweaks` (no noticeable FPS gain in testing).
+
+## 1.5.17
+
+- Item tooltips: actually strip per-row icons (Block armor, stats, magic effects, etc.). The previous skip did not attach to SeneaL's row-icon method. The type-line item sprite is unchanged.
+
 ## 1.5.16
 
 - `[Performance] SeneaLFpsTweaks` is **experimental** and **off by default** (was on in 1.5.15). No noticeable FPS gain reported in testing.

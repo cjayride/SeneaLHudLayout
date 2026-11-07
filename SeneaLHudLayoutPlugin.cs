@@ -39,9 +39,8 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.5.16";
+        public const string VERSION = "1.5.18";
         public static ConfigEntry<bool> Enabled;
-        public static ConfigEntry<bool> SeneaLFpsTweaksOn;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
         public static ConfigEntry<float> HotbarOffsetX;
@@ -174,10 +173,6 @@ namespace SeneaLHudLayout
         {
             Enabled = Config.Bind("General", "Enabled", true,
                 "Apply the layout offsets below. Turn this off to restore SeneaL UI's own placement.");
-            SeneaLFpsTweaksOn = Config.Bind("Performance", "SeneaLFpsTweaks", false,
-                "Experimental. Off by default. When on, throttles optional SeneaL UI work (ore scout, map pin ticks, text sizers, debug/inspector, inventory skin while the inventory is closed). "
-                + "Vitals, hotbar, hover text, enemy HUD, and messages stay every frame. May not improve FPS noticeably; turn off if anything looks delayed.");
-
             HotbarBottomLeft = Config.Bind("Hotbar", "BottomLeft", true,
                 "Move the hotbar, action slots, and food quick slots to the bottom left. They are drawn at the top left by SeneaL UI.");
             HotbarBottomMargin = Config.Bind("Hotbar", "BottomMargin", 16f,
@@ -514,7 +509,6 @@ namespace SeneaLHudLayout
                     new AcceptableValueRange<float>(0.5f, 1.5f)));
 
             Harmony harmony = new Harmony(GUID);
-            SeneaLFpsTweaks.Apply(harmony);
             HealthBarCap.Apply(harmony);
             ShudnalConfigBridge.Apply(harmony);
             CompassPin.Apply(harmony);

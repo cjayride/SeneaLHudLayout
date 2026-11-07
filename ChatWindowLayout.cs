@@ -626,10 +626,7 @@ namespace SeneaLHudLayout
                     chat.m_output.alignment = TextAlignmentOptions.BottomLeft;
                     chat.m_output.overflowMode = TextOverflowModes.Overflow;
                     chat.m_output.textWrappingMode = TextWrappingModes.Normal;
-                    if (!SeneaLFpsTweaks.On)
-                    {
-                        chat.m_output.ForceMeshUpdate(true, true);
-                    }
+                    chat.m_output.ForceMeshUpdate(true, true);
                 }
 
                 if (_haveInput && chat.m_input != null && chat.m_input.transform is RectTransform input)

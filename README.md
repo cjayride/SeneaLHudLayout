@@ -24,8 +24,6 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 - Shifts the minimap cluster to the left.
 - Positions Passive Powers icons beside the food column.
 - Optionally hides SeneaL UI's unused guardian power slot and F-key hint.
-- Experimental `[Performance] SeneaLFpsTweaks` (off): may throttle extra SeneaL UI ticks; no obvious FPS gain in testing — try if you want.
-
 ### Vitals
 
 - Optional always-visible stamina, Eitr, and adrenaline bars.
@@ -117,7 +115,6 @@ Settings are organized by category. Key options include:
 | Category | Setting | Default |
 | --- | --- | --- |
 | General | `Enabled` | On |
-| Performance | `SeneaLFpsTweaks` | Off (experimental) |
 | Vitals | `SyncVitalsSize` | On |
 | Vitals | `AlwaysShowStamina` | Off |
 | Vitals | `AlwaysShowEitr` | Off |

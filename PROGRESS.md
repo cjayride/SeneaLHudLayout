@@ -1,11 +1,11 @@
 # Progress - SeneaLHudLayout
 
 ## Goal
-1.5.16: SeneaLFpsTweaks experimental, default off.
+1.5.18: remove SeneaLFpsTweaks; ship 1.5.17 tooltip row-icon fix; release to GitHub.
 
 ## Status
-Built and packaged. Not committed.
+Built, packaged, committing.
 
 ## Output
 - **DLL:** `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
-- **Zip:** `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.5.16.zip`
+- **Zip:** `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.5.18.zip`

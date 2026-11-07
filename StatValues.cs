@@ -17,6 +17,8 @@ namespace SeneaLHudLayout
         static FieldInfo _rowIcon;
         static FieldInfo _rowUiIcon;
         static FieldInfo _tipRows;
+        static FieldInfo _rowUiList;
+        static FieldInfo _panel;
         static bool _inMagicSection;
         static readonly List<Job> _jobs = new List<Job>();
         static readonly Dictionary<int, Snapshot> _original = new Dictionary<int, Snapshot>();
@@ -55,6 +57,8 @@ namespace SeneaLHudLayout
             _rowIcon = row != null ? AccessTools.Field(row, "Icon") : null;
             _rowUiIcon = rowUi != null ? AccessTools.Field(rowUi, "Icon") : null;
             _tipRows = tip != null ? AccessTools.Field(tip, "Rows") : null;
+            _rowUiList = tooltip != null ? AccessTools.Field(tooltip, "Rows") : null;
+            _panel = tooltip != null ? AccessTools.Field(tooltip, "_panel") : null;
 
             MethodInfo build = tooltip != null ? AccessTools.Method(tooltip, "Build") : null;
             if (build != null)
@@ -72,6 +76,15 @@ namespace SeneaLHudLayout
             if (rowIcon != null)
             {
                 harmony.Patch(rowIcon, prefix: new HarmonyMethod(typeof(StatValues), nameof(SkipRowIcon)));
+            }
+
+            MethodInfo layout = tooltip != null ? AccessTools.Method(tooltip, "Layout") : null;
+            if (layout != null)
+            {
+                harmony.Patch(layout, postfix: new HarmonyMethod(typeof(StatValues), nameof(AfterTooltipLayout))
+                {
+                    priority = Priority.Last
+                });
             }
 
             System.Type tips = AccessTools.TypeByName("SeneaLUI.Inv.Tips");
@@ -123,10 +136,15 @@ namespace SeneaLHudLayout
             ClearRowIcons(__0);
         }
 
-        static bool SkipRowIcon(object __1)
+        static bool SkipRowIcon()
         {
-            HideRowIcon(__1);
             return false;
+        }
+
+        [HarmonyPriority(Priority.Last)]
+        static void AfterTooltipLayout()
+        {
+            HideAllRowIcons();
         }
 
         static void AfterPovRows(object __0)
@@ -164,6 +182,7 @@ namespace SeneaLHudLayout
         static void AfterLayRow(object __0, object __1)
         {
             HideRowIcon(__1);
+            HideAllRowIcons();
 
             if (__1 == null)
             {
@@ -553,6 +572,55 @@ namespace SeneaLHudLayout
             return text != null && text.gameObject.activeSelf && !string.IsNullOrEmpty(text.text);
         }
 
+        static void HideAllRowIcons()
+        {
+            if (_rowUiList != null)
+            {
+                try
+                {
+                    IList list = _rowUiList.GetValue(null) as IList;
+                    if (list != null)
+                    {
+                        for (int i = 0; i < list.Count; i++)
+                        {
+                            HideRowIcon(list[i]);
+                        }
+                    }
+                }
+                catch (System.Exception)
+                {
+                }
+            }
+
+            RectTransform panel = null;
+            try
+            {
+                panel = _panel != null ? _panel.GetValue(null) as RectTransform : null;
+            }
+            catch (System.Exception)
+            {
+            }
+
+            if (panel == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < panel.childCount; i++)
+            {
+                Transform child = panel.GetChild(i);
+                if (child == null || child.name != "ri")
+                {
+                    continue;
+                }
+
+                if (child.gameObject.activeSelf)
+                {
+                    child.gameObject.SetActive(false);
+                }
+            }
+        }
+
         static void HideRowIcon(object rowUi)
         {
             if (rowUi == null || _rowUiIcon == null)
@@ -564,6 +632,7 @@ namespace SeneaLHudLayout
             if (icon != null)
             {
                 icon.enabled = false;
+                icon.sprite = null;
                 if (icon.gameObject.activeSelf)
                 {
                     icon.gameObject.SetActive(false);
