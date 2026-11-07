@@ -68,6 +68,12 @@ namespace SeneaLHudLayout
                 harmony.Patch(layRow, postfix: new HarmonyMethod(typeof(StatValues), nameof(AfterLayRow)));
             }
 
+            MethodInfo rowIcon = tooltip != null ? AccessTools.Method(tooltip, "RowIconAt") : null;
+            if (rowIcon != null)
+            {
+                harmony.Patch(rowIcon, prefix: new HarmonyMethod(typeof(StatValues), nameof(SkipRowIcon)));
+            }
+
             System.Type tips = AccessTools.TypeByName("SeneaLUI.Inv.Tips");
             MethodInfo povRows = tips != null ? AccessTools.Method(tips, "PovRows") : null;
             if (povRows != null)
@@ -114,6 +120,13 @@ namespace SeneaLHudLayout
         static void BeforeTooltipBuild(object __0)
         {
             _inMagicSection = false;
+            ClearRowIcons(__0);
+        }
+
+        static bool SkipRowIcon(object __1)
+        {
+            HideRowIcon(__1);
+            return false;
         }
 
         static void AfterPovRows(object __0)
@@ -548,9 +561,13 @@ namespace SeneaLHudLayout
             }
 
             Image icon = _rowUiIcon.GetValue(rowUi) as Image;
-            if (icon != null && icon.gameObject.activeSelf)
+            if (icon != null)
             {
-                icon.gameObject.SetActive(false);
+                icon.enabled = false;
+                if (icon.gameObject.activeSelf)
+                {
+                    icon.gameObject.SetActive(false);
+                }
             }
         }
 

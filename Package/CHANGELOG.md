@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.5.16
+
+- `[Performance] SeneaLFpsTweaks` is **experimental** and **off by default** (was on in 1.5.15). No noticeable FPS gain reported in testing.
+
+## 1.5.15
+
+- `[Performance] SeneaLFpsTweaks` (on): throttle optional SeneaL UI ticks (ore scout, map pins, text sizers, debug/inspector, inventory skin while closed). Vitals, hotbar, hover, and messages stay every frame. Turn off if something looks delayed.
+
+## 1.5.14
+
+- Item tooltips show a small item sprite on the type line (`[ItemTooltips] ShowItemIcon`, on). Same row height; not SeneaL's large 52px TooltipIcon box.
+
+## 1.5.13
+
+- Hide shouted chat above player heads (`[Chat] HideShoutOverHead`, on by default). Shouts still appear in the chat log.
+- Chat log can scroll again after shrinking/moving the window: mouse wheel, and Page Up / Page Down while the chat box is open.
+- Item tooltip bullet/stat lines no longer show a shield (or other) icon in front of each row.
+
 ## 1.5.12
 
 - Thunderstore: use the correct `icon.png` in the package (replacing the placeholder from 1.5.11).

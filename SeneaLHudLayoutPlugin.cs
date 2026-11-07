@@ -39,8 +39,9 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.5.12";
+        public const string VERSION = "1.5.16";
         public static ConfigEntry<bool> Enabled;
+        public static ConfigEntry<bool> SeneaLFpsTweaksOn;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
         public static ConfigEntry<float> HotbarOffsetX;
@@ -108,6 +109,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> DefaultToShout;
         public static ConfigEntry<bool> RememberLastUsed;
         public static ConfigEntry<bool> ShoutKeepsCapitalization;
+        public static ConfigEntry<bool> HideShoutOverHead;
         public static ConfigEntry<float> HideChatPanelDelay;
         public static ConfigEntry<bool> ShowLevelCharacterWindow;
         public static ConfigEntry<bool> ShowTalentsButton;
@@ -134,6 +136,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> StatsPortrait;
         public static ConfigEntry<bool> StatValuesBesideLabels;
         public static ConfigEntry<ItemTipLeftOverflow> ItemTipOverflow;
+        public static ConfigEntry<bool> ShowTooltipItemIcon;
         public static ConfigEntry<bool> ShowPieceHealth;
         public static ConfigEntry<float> ShowPieceHealthSize;
         public static ConfigEntry<bool> ShowPieceHealthPercent;
@@ -171,6 +174,9 @@ namespace SeneaLHudLayout
         {
             Enabled = Config.Bind("General", "Enabled", true,
                 "Apply the layout offsets below. Turn this off to restore SeneaL UI's own placement.");
+            SeneaLFpsTweaksOn = Config.Bind("Performance", "SeneaLFpsTweaks", false,
+                "Experimental. Off by default. When on, throttles optional SeneaL UI work (ore scout, map pin ticks, text sizers, debug/inspector, inventory skin while the inventory is closed). "
+                + "Vitals, hotbar, hover text, enemy HUD, and messages stay every frame. May not improve FPS noticeably; turn off if anything looks delayed.");
 
             HotbarBottomLeft = Config.Bind("Hotbar", "BottomLeft", true,
                 "Move the hotbar, action slots, and food quick slots to the bottom left. They are drawn at the top left by SeneaL UI.");
@@ -358,7 +364,7 @@ namespace SeneaLHudLayout
             HideChat = Config.Bind("Chat", "HideChat", false,
                 "Hide SeneaL UI's chat window. Chat messages still exist for another chat mod, such as Chatter.");
             ChatSettingsEnabled = Config.Bind("Chat", "ChatSettingsEnabled", false,
-                "Master on/off for every Chat setting except HideChat, ChatWindowRecommendedLayout, and the ChatWindow Pos/Width/Height keys. Off leaves Valheim/SeneaL chat as-is for "
+                "Master on/off for every Chat setting except HideChat, HideShoutOverHead, ChatWindowRecommendedLayout, and the ChatWindow Pos/Width/Height keys. Off leaves Valheim/SeneaL chat as-is for "
                 + "DefaultToShout, RememberLastUsed, ShoutKeepsCapitalization, HideChatPanelDelay, and the chat font keys.");
             DefaultToShout = Config.Bind("Chat", "DefaultToShout", false,
                 "Off keeps Valheim's chat exactly as it is. On, the chat box opens with /s already typed in it, so your first Enter "
@@ -372,6 +378,8 @@ namespace SeneaLHudLayout
                 "Valheim prints shouted chat in ALL CAPS, in the chat log and above the character. Off (default) does NOT keep shout "
                 + "capitalization: the shout shows the letters exactly the way the player typed them. On keeps Valheim's ALL CAPS shout. "
                 + "Whispers stay lower case, as Valheim makes them.");
+            HideShoutOverHead = Config.Bind("Chat", "HideShoutOverHead", true,
+                "Hide shouted chat (yell) above player heads. The shout still appears in the chat log. Independent of ChatSettingsEnabled. Client-only.");
             HideChatPanelDelay = Config.Bind("Chat", "HideChatPanelDelay", 10f,
                 new ConfigDescription(
                     "Seconds the chat panel stays visible after the last chat activity, written to the game's own chat hide timer. "
@@ -473,6 +481,8 @@ namespace SeneaLHudLayout
                 ItemTipLeftOverflow.SetThenMagic);
             ItemTipOverflow = Config.Bind("ItemTooltips", "LeftOverflow", overflowDefault,
                 "Balance two-column item tooltips by moving whole sections (set, magic, stats) between columns for similar height. Combat always stays on the left. Set = set may move; SetThenMagic = set and magic may move. Off keeps SeneaL's layout.");
+            ShowTooltipItemIcon = Config.Bind("ItemTooltips", "ShowItemIcon", true,
+                "Show the item's own sprite on the type line (for example [hoe] Tool). Small, same row height. Not SeneaL's large TooltipIcon box.");
             SplitWalletForChest = Config.Bind("Wallet", "SplitForChest", true,
                 "Keep the coin purse out of chest deposits. Deposit All, Deposit Similar, and Stack All never take coins from the purse. Move coins into your inventory first if you want them in a chest. Turn this off to let those buttons take the purse.");
             WishboneInKeySlot = Config.Bind("Inventory", "WishboneInKeySlot", false,
@@ -504,6 +514,7 @@ namespace SeneaLHudLayout
                     new AcceptableValueRange<float>(0.5f, 1.5f)));
 
             Harmony harmony = new Harmony(GUID);
+            SeneaLFpsTweaks.Apply(harmony);
             HealthBarCap.Apply(harmony);
             ShudnalConfigBridge.Apply(harmony);
             CompassPin.Apply(harmony);
@@ -526,6 +537,7 @@ namespace SeneaLHudLayout
             RepairTipPlace.Apply(harmony);
             BuildSearchMemory.Apply(harmony);
             StatValues.Apply(harmony);
+            TipItemIcon.Apply(harmony);
             TipColumnOverflow.Apply(harmony);
             CraftMaterials.Apply(harmony);
             StatusEffectsPlace.Apply(harmony);

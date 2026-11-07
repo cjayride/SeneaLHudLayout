@@ -40,6 +40,18 @@ namespace SeneaLHudLayout
                     _applied = true;
                 }
             }
+
+            MethodInfo inworld = AccessTools.Method(typeof(Chat), "AddInworldText");
+            if (inworld != null)
+            {
+                try
+                {
+                    harmony.Patch(inworld, prefix: new HarmonyMethod(typeof(ChatShoutText), nameof(HideOverHead)));
+                }
+                catch (Exception)
+                {
+                }
+            }
         }
 
         public static bool Applied
@@ -132,6 +144,17 @@ namespace SeneaLHudLayout
         /// exactly as the player typed it. The transpiler is always installed, so the setting
         /// works live without re-patching.
         /// </summary>
+        static bool HideOverHead(Talker.Type type)
+        {
+            if (type != Talker.Type.Shout)
+            {
+                return true;
+            }
+
+            return SeneaLHudLayoutPlugin.HideShoutOverHead == null
+                || !SeneaLHudLayoutPlugin.HideShoutOverHead.Value;
+        }
+
         public static string KeepTypedCase(string text)
         {
             if (text == null)

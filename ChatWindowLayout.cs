@@ -25,6 +25,7 @@ namespace SeneaLHudLayout
         static MethodInfo _detach;
         static MethodInfo _attach;
         static FieldInfo _scrollHeight;
+        static FieldInfo _chatBuffer;
         static FieldInfo _maxVisible;
         static FieldInfo _updateChat;
         static FieldInfo _budget;
@@ -83,6 +84,7 @@ namespace SeneaLHudLayout
             _detach = AccessTools.Method(skin, "Detach");
             _attach = AccessTools.Method(skin, "Attach", new[] { typeof(Chat) });
             _scrollHeight = AccessTools.Field(typeof(Terminal), "m_scrollHeight");
+            _chatBuffer = AccessTools.Field(typeof(Terminal), "m_chatBuffer");
             _maxVisible = AccessTools.Field(typeof(Terminal), "m_maxVisibleBufferLength");
             _updateChat = AccessTools.Field(skin, "UpdateChat");
             _budget = AccessTools.Field(skin, "_budget");
@@ -179,6 +181,7 @@ namespace SeneaLHudLayout
 
             if (!UserOn() || !_haveBase)
             {
+                HandleKeys(chat);
                 return;
             }
 
@@ -189,6 +192,7 @@ namespace SeneaLHudLayout
             }
 
             KeepInput(panel, input);
+            HandleKeys(chat);
         }
 
         static void Bind(BepInEx.Configuration.ConfigEntry<float> entry)
@@ -410,7 +414,7 @@ namespace SeneaLHudLayout
 
         static void PinLatest(Chat chat, int lines)
         {
-            SetBudget(lines);
+            bool budgetChanged = SetBudget(lines);
             if (_maxVisible != null && chat != null)
             {
                 try
@@ -427,7 +431,69 @@ namespace SeneaLHudLayout
                 }
             }
 
-            RefreshLog(chat, true);
+            if (budgetChanged)
+            {
+                RefreshLog(chat, false);
+            }
+        }
+
+        static void HandleKeys(Chat chat)
+        {
+            if (chat == null || chat.m_input == null || !chat.m_input.gameObject.activeInHierarchy)
+            {
+                return;
+            }
+
+            int step = _clipLines > 0 ? _clipLines : 5;
+            int delta = 0;
+            if (ZInput.GetKeyDown(KeyCode.PageUp))
+            {
+                delta += step;
+            }
+
+            if (ZInput.GetKeyDown(KeyCode.PageDown))
+            {
+                delta -= step;
+            }
+
+            if (delta == 0)
+            {
+                return;
+            }
+
+            ShiftScroll(chat, delta);
+        }
+
+        static void ShiftScroll(Chat chat, int delta)
+        {
+            if (_scrollHeight == null || chat == null)
+            {
+                return;
+            }
+
+            try
+            {
+                int current = (int)_scrollHeight.GetValue(chat);
+                int count = 0;
+                if (_chatBuffer != null && _chatBuffer.GetValue(chat) is System.Collections.IList buf)
+                {
+                    count = buf.Count;
+                }
+
+                int vis = _clipLines > 0 ? _clipLines : 5;
+                int max = Mathf.Max(0, count - vis);
+                int next = Mathf.Clamp(current + delta, 0, max);
+                if (next == current)
+                {
+                    return;
+                }
+
+                _scrollHeight.SetValue(chat, next);
+                RefreshLog(chat, false);
+            }
+            catch (Exception)
+            {
+            }
         }
 
         static bool SetBudget(int lines)
@@ -557,15 +623,13 @@ namespace SeneaLHudLayout
             {
                 if (_clipped && chat.m_output != null)
                 {
-                    if (_clipLines > 0)
-                    {
-                        PinLatest(chat, _clipLines);
-                    }
-
                     chat.m_output.alignment = TextAlignmentOptions.BottomLeft;
                     chat.m_output.overflowMode = TextOverflowModes.Overflow;
                     chat.m_output.textWrappingMode = TextWrappingModes.Normal;
-                    chat.m_output.ForceMeshUpdate(true, true);
+                    if (!SeneaLFpsTweaks.On)
+                    {
+                        chat.m_output.ForceMeshUpdate(true, true);
+                    }
                 }
 
                 if (_haveInput && chat.m_input != null && chat.m_input.transform is RectTransform input)

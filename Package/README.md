@@ -24,6 +24,7 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 - Shifts the minimap cluster to the left.
 - Positions Passive Powers icons beside the food column.
 - Optionally hides SeneaL UI's unused guardian power slot and F-key hint.
+- Experimental `[Performance] SeneaLFpsTweaks` (off): may throttle extra SeneaL UI ticks; no obvious FPS gain in testing — try if you want.
 
 ### Vitals
 
@@ -80,6 +81,7 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 - Prevents chest deposit operations from taking coins directly out of the coin purse.
 - Positions stat values beside their labels in item tooltips and crafting panels.
 - Balances two-column item tooltips by moving whole sections between columns for similar height (`[ItemTooltips] LeftOverflow`).
+- Shows a small item sprite on the tooltip type line (`[ItemTooltips] ShowItemIcon`), for example a hoe next to **Tool**.
 - With Epic Loot loaded, opens shard (and rune) sockets in a dedicated window so they can be filled or emptied while SeneaL CustomUI is on. Hover the gear and press E. Turn `[EpicLoot] ShardSocketWindow` off to leave this to Epic Loot alone.
 
 ### Interface & Notifications
@@ -92,7 +94,8 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 
 ### Chat
 
-- `ChatSettingsEnabled` (off by default) is the master switch for every Chat setting except `HideChat`, `ChatWindowRecommendedLayout`, and the chat window size/position keys. Turn it on to use shout prefix, last-used channel, shout capitalization, hide delay, and chat font.
+- `ChatSettingsEnabled` (off by default) is the master switch for every Chat setting except `HideChat`, `HideShoutOverHead`, `ChatWindowRecommendedLayout`, and the chat window size/position keys. Turn it on to use shout prefix, last-used channel, shout capitalization, hide delay, and chat font.
+- `HideShoutOverHead` (on by default) hides the yellow shout/yell text above player heads. The shout still goes to the chat log.
 - `ChatWindowRecommendedLayout` (off by default): one switch for a built-in recommended chat layout (PosX 84, PosY -88, Width -88, Height -9). While on, the four keys below are ignored; your manual values stay in the cfg for when you turn it off.
 - `ChatWindowPosX` / `ChatWindowPosY` / `ChatWindowWidth` / `ChatWindowHeight`: **0 is SeneaL's original chat.** All four are pixel integers (1-step in F1, for example PosY -76). Pos moves the background, log, and input together. Negative width/height shrinks. Resetting all four to 0 rebuilds the original window. Client-only.
 - `DefaultToShout` (off by default) opens the chat box with `/s ` already typed in it, so your first Enter shouts — the long-range message that shows above your character — and you never have to type the prefix.
@@ -114,6 +117,7 @@ Settings are organized by category. Key options include:
 | Category | Setting | Default |
 | --- | --- | --- |
 | General | `Enabled` | On |
+| Performance | `SeneaLFpsTweaks` | Off (experimental) |
 | Vitals | `SyncVitalsSize` | On |
 | Vitals | `AlwaysShowStamina` | Off |
 | Vitals | `AlwaysShowEitr` | Off |
@@ -132,6 +136,7 @@ Settings are organized by category. Key options include:
 | Minimap | `HideWindAndServerDay` | Off |
 | Status Effects | `MoveToCorner` | Off |
 | Chat | `HideChat` | Off |
+| Chat | `HideShoutOverHead` | On |
 | Chat | `ChatSettingsEnabled` | Off |
 | Chat | `DefaultToShout` | Off |
 | Chat | `RememberLastUsed` | Off |

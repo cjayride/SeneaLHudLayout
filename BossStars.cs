@@ -13,6 +13,11 @@ namespace SeneaLHudLayout
                 return;
             }
 
+            if (SeneaLFpsTweaks.On && Time.frameCount % 10 != 0)
+            {
+                return;
+            }
+
             if (_bosses == null)
             {
                 Hud hud = Hud.instance;
