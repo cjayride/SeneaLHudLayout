@@ -19,7 +19,6 @@ namespace SeneaLHudLayout
         static FieldInfo _tipRows;
         static FieldInfo _rowUiList;
         static FieldInfo _panel;
-        static bool _inMagicSection;
         static readonly List<Job> _jobs = new List<Job>();
         static readonly Dictionary<int, Snapshot> _original = new Dictionary<int, Snapshot>();
         static readonly List<TMP_Text> _tracked = new List<TMP_Text>();
@@ -72,10 +71,15 @@ namespace SeneaLHudLayout
                 harmony.Patch(layRow, postfix: new HarmonyMethod(typeof(StatValues), nameof(AfterLayRow)));
             }
 
-            MethodInfo rowIcon = tooltip != null ? AccessTools.Method(tooltip, "RowIconAt") : null;
+            MethodInfo rowIcon = tooltip != null
+                ? AccessTools.Method(tooltip, "RowIconAt", new[] { row, rowUi, typeof(float), typeof(float), typeof(float) })
+                : null;
             if (rowIcon != null)
             {
-                harmony.Patch(rowIcon, prefix: new HarmonyMethod(typeof(StatValues), nameof(SkipRowIcon)));
+                harmony.Patch(
+                    rowIcon,
+                    prefix: new HarmonyMethod(typeof(StatValues), nameof(SkipRowIcon)),
+                    postfix: new HarmonyMethod(typeof(StatValues), nameof(AfterRowIconAt)));
             }
 
             MethodInfo layout = tooltip != null ? AccessTools.Method(tooltip, "Layout") : null;
@@ -132,7 +136,6 @@ namespace SeneaLHudLayout
 
         static void BeforeTooltipBuild(object __0)
         {
-            _inMagicSection = false;
             ClearRowIcons(__0);
         }
 
@@ -178,6 +181,11 @@ namespace SeneaLHudLayout
             }
         }
 
+        static void AfterRowIconAt(object __1)
+        {
+            HideRowIcon(__1);
+        }
+
         [HarmonyPriority(Priority.Last)]
         static void AfterLayRow(object __0, object __1)
         {
@@ -189,31 +197,30 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            if (_rowHead != null && __0 != null && _rowHead.GetValue(__0) is bool head && head)
-            {
-                TMP_Text headLabel = Text(__1, "Label");
-                _inMagicSection = TipColumnOverflow.IsMagicSectionHead(headLabel != null ? headLabel.text : null);
-                return;
-            }
-
             TMP_Text label = Text(__1, "Label");
             TMP_Text value = Text(__1, "Value");
             TMP_Text small = Text(__1, "Small");
+            ForceSingleLine(label);
+            ForceSingleLine(value);
+            ForceSingleLine(small);
+
+            if (_rowHead != null && __0 != null && _rowHead.GetValue(__0) is bool head && head)
+            {
+                return;
+            }
+
             if (On)
             {
                 Beside(label, value, small);
-                if (_inMagicSection)
-                {
-                    ForceSingleLine(label);
-                    ForceSingleLine(value);
-                    ForceSingleLine(small);
-                }
             }
             else
             {
                 Restore(label);
                 Restore(value);
                 Restore(small);
+                ForceSingleLine(label);
+                ForceSingleLine(value);
+                ForceSingleLine(small);
             }
         }
 
@@ -403,6 +410,7 @@ namespace SeneaLHudLayout
 
         public static void Tick()
         {
+            HideAllRowIcons();
             if (!On)
             {
                 return;
@@ -601,22 +609,25 @@ namespace SeneaLHudLayout
             {
             }
 
-            if (panel == null)
+            if (panel == null || !panel.gameObject.activeInHierarchy)
             {
                 return;
             }
 
-            for (int i = 0; i < panel.childCount; i++)
+            Image[] images = panel.GetComponentsInChildren<Image>(true);
+            for (int i = 0; i < images.Length; i++)
             {
-                Transform child = panel.GetChild(i);
-                if (child == null || child.name != "ri")
+                Image image = images[i];
+                if (image == null || image.gameObject.name != "ri")
                 {
                     continue;
                 }
 
-                if (child.gameObject.activeSelf)
+                image.enabled = false;
+                image.sprite = null;
+                if (image.gameObject.activeSelf)
                 {
-                    child.gameObject.SetActive(false);
+                    image.gameObject.SetActive(false);
                 }
             }
         }

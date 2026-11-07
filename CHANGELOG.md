@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.19
+
+- Item tooltips: attribute/stat rows no longer wrap (window grows up to 900px). Only the item description body wraps. Per-row list icons are skipped and kept hidden while the tooltip is open.
+
 ## 1.5.18
 
 - Removed experimental `[Performance] SeneaLFpsTweaks` (no noticeable FPS gain in testing).

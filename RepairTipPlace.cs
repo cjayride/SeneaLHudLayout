@@ -24,9 +24,7 @@ static FieldInfo _arrowOn;
     const float ScreenPadding = 8f;
     const float MinimumWidth = 256f;
     const float MaximumWidth = 900f;
-    const float ItemMagicMaxWidth = 380f;
     const float DefaultTipInner = 228f;
-    const float MagicWidthSlack = 36f;
     const float ContentPadding = 44f;
 
     static float _repairWidth;
@@ -110,20 +108,14 @@ static FieldInfo _arrowOn;
 
         if (!repair)
         {
-            ClearTipWidth(tip);
-            float magicNeed = MeasureMagicRowsWidth(tip);
-            if (magicNeed <= DefaultTipInner + 4f)
+            float need = MeasureTip(tip);
+            if (need <= DefaultTipInner + 4f)
             {
+                ClearTipWidth(tip);
                 return;
             }
 
-            float required = Mathf.Clamp(
-                magicNeed,
-                MinimumWidth,
-                ItemMagicMaxWidth
-            );
-
-            SetTipWidth(tip, required);
+            SetTipWidth(tip, Mathf.Clamp(need, MinimumWidth, MaximumWidth));
             return;
         }
 
@@ -172,75 +164,6 @@ static FieldInfo _arrowOn;
         {
             tipWidth.SetValue(tip, null);
         }
-    }
-
-    static float MeasureMagicRowsWidth(object tip)
-    {
-        RectTransform panel = Get<RectTransform>(_panel);
-        if (panel == null)
-        {
-            return DefaultTipInner;
-        }
-
-        FieldInfo rowsField = AccessTools.Field(tip.GetType(), "Rows");
-        if (rowsField == null || rowsField.GetValue(tip) is not IEnumerable rows)
-        {
-            return DefaultTipInner;
-        }
-
-        FieldInfo headField = AccessTools.Field(
-            AccessTools.TypeByName("SeneaLUI.Components.Tip+Row")
-                ?? AccessTools.Inner(AccessTools.TypeByName("SeneaLUI.Components.Tip"), "Row"),
-            "Head");
-        FieldInfo labelField = AccessTools.Field(
-            AccessTools.TypeByName("SeneaLUI.Components.Tip+Row")
-                ?? AccessTools.Inner(AccessTools.TypeByName("SeneaLUI.Components.Tip"), "Row"),
-            "Label");
-
-        TMP_Text[] texts = panel.GetComponentsInChildren<TMP_Text>(true);
-        bool inMagic = false;
-        float required = DefaultTipInner + MagicWidthSlack;
-        const float rowGap = 8f;
-
-        foreach (object row in rows)
-        {
-            if (row == null)
-            {
-                continue;
-            }
-
-            if (headField != null && headField.GetValue(row) is bool head && head)
-            {
-                string headLabel = labelField?.GetValue(row) as string;
-                inMagic = TipColumnOverflow.IsMagicSectionHead(headLabel);
-                continue;
-            }
-
-            if (!inMagic)
-            {
-                continue;
-            }
-
-            string label = ReadString(row, "Label");
-            string rowValue = ReadString(row, "Value");
-            string small = ReadString(row, "Small");
-
-            float rowWidth = ContentPadding;
-            rowWidth += MeasureString(texts, panel, label);
-            if (!string.IsNullOrEmpty(rowValue))
-            {
-                rowWidth += rowGap + MeasureString(texts, panel, rowValue);
-            }
-
-            if (!string.IsNullOrEmpty(small))
-            {
-                rowWidth += rowGap + MeasureString(texts, panel, small);
-            }
-
-            required = Mathf.Max(required, rowWidth);
-        }
-
-        return required;
     }
 
     // Tooltip.Layout normally forces its content width to 228 pixels.

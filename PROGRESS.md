@@ -1,11 +1,11 @@
 # Progress - SeneaLHudLayout
 
 ## Goal
-1.5.18: remove SeneaLFpsTweaks; ship 1.5.17 tooltip row-icon fix; release to GitHub.
+1.5.19: tooltip attribute rows stay one line (tooltip grows); no per-row list icons.
 
 ## Status
-Built, packaged, committing.
+Built and packaged.
 
 ## Output
 - **DLL:** `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
-- **Zip:** `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.5.18.zip`
+- **Zip:** `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.5.19.zip`
