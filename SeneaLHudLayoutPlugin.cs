@@ -39,7 +39,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.5.20";
+        public const string VERSION = "1.5.25";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -103,12 +103,14 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> ShowGearBarCue;
         public static ConfigEntry<bool> ShowEquipQueue;
         public static ConfigEntry<bool> HideServerRules;
+        public static ConfigEntry<bool> ShowKillXp;
         public static ConfigEntry<bool> HideChat;
         public static ConfigEntry<bool> ChatSettingsEnabled;
         public static ConfigEntry<bool> DefaultToShout;
         public static ConfigEntry<bool> RememberLastUsed;
         public static ConfigEntry<bool> ShoutKeepsCapitalization;
         public static ConfigEntry<bool> HideShoutOverHead;
+        public static ConfigEntry<bool> ChatAutoScrollOnNewMessage;
         public static ConfigEntry<float> HideChatPanelDelay;
         public static ConfigEntry<bool> ShowLevelCharacterWindow;
         public static ConfigEntry<bool> ShowTalentsButton;
@@ -196,6 +198,20 @@ namespace SeneaLHudLayout
             HealthBarMaxHeight = Config.Bind("HealthFood", "HealthBarMaxHeight", 250f,
                 new ConfigDescription("Max pixel height of the SeneaL player health bar after HealthCapacity sizing. The bar still grows with max HP up to this cap, then stays this tall. Fill is always current / max of that height (updates with HP). SeneaL ticks, keep-space hatch, numbers, shapes, and rune shield are unchanged. HUD editor Fixed length is also capped. 80–800.",
                     new AcceptableValueRange<float>(80f, 800f)));
+            bool showLevelFoodBarDefault = ConfigDefault(
+                Config, "HealthFood", "ShowLevelFoodBar", "Character", "ShowLevelFoodBar", true);
+            ShowLevelFoodBar = Config.Bind("HealthFood", "ShowLevelFoodBar", showLevelFoodBarDefault,
+                "Show your SkillsReworked level directly under the food timers.");
+            float showLevelFoodBarOffsetXDefault = ConfigDefault(
+                Config, "HealthFood", "ShowLevelFoodBarOffsetX", "Character", "ShowLevelFoodBarOffsetX", 12f);
+            ShowLevelFoodBarOffsetX = Config.Bind("HealthFood", "ShowLevelFoodBarOffsetX", showLevelFoodBarOffsetXDefault,
+                new ConfigDescription("Horizontal nudge for that food-bar level, in pixels. Positive moves right. Default 12 nudges slightly right from slot center (1.5.8+).",
+                    new AcceptableValueRange<float>(-200f, 200f)));
+            float showLevelFoodBarOffsetYDefault = ConfigDefault(
+                Config, "HealthFood", "ShowLevelFoodBarOffsetY", "Character", "ShowLevelFoodBarOffsetY", -11f);
+            ShowLevelFoodBarOffsetY = Config.Bind("HealthFood", "ShowLevelFoodBarOffsetY", showLevelFoodBarOffsetYDefault,
+                new ConfigDescription("Vertical nudge for that food-bar level, in pixels. Positive moves up.",
+                    new AcceptableValueRange<float>(-200f, 200f)));
 
             MinimapOffsetX = Config.Bind("Minimap", "OffsetX", -36f,
                 new ConfigDescription("Pixels to move the minimap, wind pill, and time pill. Negative moves left.",
@@ -356,10 +372,12 @@ namespace SeneaLHudLayout
                 "Show SeneaL UI's number in the top left of an item icon while it is waiting to equip. That number is the queue position, 1 then 2, not a timer. Off hides it.");
             HideServerRules = Config.Bind("Notices", "HideServerRules", true,
                 "Never show SeneaL UI's server-rules window when you enter a world.");
+            ShowKillXp = Config.Bind("Notices", "ShowKillXp", true,
+                "When a creature dies, add the SkillsReworked Level XP from that kill to the damage-share message (or show both together if no share line appears). Off leaves the damage percent as-is.");
             HideChat = Config.Bind("Chat", "HideChat", false,
                 "Hide SeneaL UI's chat window. Chat messages still exist for another chat mod, such as Chatter.");
             ChatSettingsEnabled = Config.Bind("Chat", "ChatSettingsEnabled", false,
-                "Master on/off for every Chat setting except HideChat, HideShoutOverHead, ChatWindowRecommendedLayout, and the ChatWindow Pos/Width/Height keys. Off leaves Valheim/SeneaL chat as-is for "
+                "Master on/off for every Chat setting except HideChat, HideShoutOverHead, ChatAutoScrollOnNewMessage, ChatWindowRecommendedLayout, and the ChatWindow Pos/Width/Height keys. Off leaves Valheim/SeneaL chat as-is for "
                 + "DefaultToShout, RememberLastUsed, ShoutKeepsCapitalization, HideChatPanelDelay, and the chat font keys.");
             DefaultToShout = Config.Bind("Chat", "DefaultToShout", false,
                 "Off keeps Valheim's chat exactly as it is. On, the chat box opens with /s already typed in it, so your first Enter "
@@ -375,6 +393,8 @@ namespace SeneaLHudLayout
                 + "Whispers stay lower case, as Valheim makes them.");
             HideShoutOverHead = Config.Bind("Chat", "HideShoutOverHead", true,
                 "Hide shouted chat (yell) above player heads. The shout still appears in the chat log. Independent of ChatSettingsEnabled. Client-only.");
+            ChatAutoScrollOnNewMessage = Config.Bind("Chat", "ChatAutoScrollOnNewMessage", true,
+                "When the chat input is closed and a new message arrives, jump the log to the latest lines. Stops you missing chat after scrolling up and clicking away. While the input is open, scroll position is kept. Independent of ChatSettingsEnabled. Client-only.");
             HideChatPanelDelay = Config.Bind("Chat", "HideChatPanelDelay", 10f,
                 new ConfigDescription(
                     "Seconds the chat panel stays visible after the last chat activity, written to the game's own chat hide timer. "
@@ -411,9 +431,13 @@ namespace SeneaLHudLayout
                 new ConfigDescription(
                     "Added height in pixels vs SeneaL's original chat. 0 is original. Negative makes it shorter. Any integer works (for example -10). Client-only.",
                     new AcceptableValueRange<int>(-400, 400)));
-            ShowLevelCharacterWindow = Config.Bind("Character", "ShowLevelCharacterWindow", true,
+            bool showLevelCharacterWindowDefault = ConfigDefault(
+                Config, "Character Window", "ShowLevelCharacterWindow", "Character", "ShowLevelCharacterWindow", true);
+            ShowLevelCharacterWindow = Config.Bind("Character Window", "ShowLevelCharacterWindow", showLevelCharacterWindowDefault,
                 "Show your SkillsReworked level in the top left of the character window (Skills, Texts, Trophies, and PvP).");
-            ShowTalentsButton = Config.Bind("Character", "ShowTalentsButton", true,
+            bool showTalentsButtonDefault = ConfigDefault(
+                Config, "Character Window", "ShowTalentsButton", "Character", "ShowTalentsButton", true);
+            ShowTalentsButton = Config.Bind("Character Window", "ShowTalentsButton", showTalentsButtonDefault,
                 "Show a Talents button at the top right of the character window, left of the settings gear. It opens TalentTree. Needs TalentTree installed.");
             KeepMapClosedOnAccept = Config.Bind("Quests", "KeepMapClosedOnAccept", true,
                 "Buying a bounty or treasure map from the trader does not open the world map.");
@@ -424,18 +448,14 @@ namespace SeneaLHudLayout
                     new AcceptableValueRange<float>(0f, 1f)));
             QuestBackground.SettingChanged += (_, __) => AdventureJournal.PaintBackground();
             QuestBackgroundAlpha.SettingChanged += (_, __) => AdventureJournal.PaintBackground();
-            ShowLevelXpBar = Config.Bind("Character", "ShowLevelXpBar", true,
+            bool showLevelXpBarDefault = ConfigDefault(
+                Config, "Character Window", "ShowLevelXpBar", "Character", "ShowLevelXpBar", true);
+            ShowLevelXpBar = Config.Bind("Character Window", "ShowLevelXpBar", showLevelXpBarDefault,
                 "Show a 100 pixel SkillsReworked XP bar under that character-window level.");
-            FixSkillRespendAfterDeath = Config.Bind("Character", "FixSkillRespendAfterDeath", true,
+            bool fixSkillRespendDefault = ConfigDefault(
+                Config, "Character Window", "FixSkillRespendAfterDeath", "Character", "FixSkillRespendAfterDeath", true);
+            FixSkillRespendAfterDeath = Config.Bind("Character Window", "FixSkillRespendAfterDeath", fixSkillRespendDefault,
                 "Let you spend points again in a skill that lost a partial level on death, such as Tenacity going from 30 to 29.1. Fractional levels are rounded down when the Skills window opens. Only works when both Smoothbrain Tenacity and SkillsReworked are installed. Otherwise it does nothing.");
-            ShowLevelFoodBar = Config.Bind("Character", "ShowLevelFoodBar", true,
-                "Show your SkillsReworked level directly under the food timers.");
-            ShowLevelFoodBarOffsetX = Config.Bind("Character", "ShowLevelFoodBarOffsetX", 12f,
-                new ConfigDescription("Horizontal nudge for that food-bar level, in pixels. Positive moves right. Default 12 nudges slightly right from slot center (1.5.8+).",
-                    new AcceptableValueRange<float>(-200f, 200f)));
-            ShowLevelFoodBarOffsetY = Config.Bind("Character", "ShowLevelFoodBarOffsetY", -11f,
-                new ConfigDescription("Vertical nudge for that food-bar level, in pixels. Positive moves up.",
-                    new AcceptableValueRange<float>(-200f, 200f)));
             HideMinimapStats = Config.Bind("Minimap", "HideWindAndServerDay", true,
                 "Hide the wind and day/time pills under the minimap. The biome name on the map stays.");
             StatusMove = Config.Bind("Status Effects", "MoveToCorner", false,
@@ -538,6 +558,7 @@ namespace SeneaLHudLayout
             SkillRespendFix.Apply(harmony);
             VanillaSkillsWindow.Apply(harmony);
             RebirthNotice.Apply(harmony);
+            KillXpNotice.Apply(harmony);
             EquipQueueMark.Apply(harmony);
             WishboneKeySlot.Apply(harmony);
             EpicLootShardWindow.Apply(harmony);
@@ -549,6 +570,7 @@ namespace SeneaLHudLayout
             ResourceBars.Apply();
             SlotCue.Tick();
             CharacterExtras.Tick();
+            KillXpNotice.Tick();
             AdventureJournal.Tick();
             StatsWindow.Tick();
             EpicLootShardWindow.Tick();

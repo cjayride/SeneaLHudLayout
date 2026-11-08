@@ -56,8 +56,9 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 ### Character & Skills
 
 - **Character Stats** tab on the SeneaL character panel: live health, stamina, eitr, armor, resists, food, status effects, weapon skills, and more (`[Stats] StatsTab`, optional hotkey and Steam portrait).
-- Displays the SkillsReworked level in the character window.
-- Optionally displays the level beneath food timers, beside the health number.
+- Displays the SkillsReworked level in the character window (`[Character Window]`).
+- Optionally displays that level under the food timers (`[HealthFood] ShowLevelFoodBar` and offset keys).
+- On a creature kill, shows how much SkillsReworked Level XP you gained next to the damage-share percent (`[Notices] ShowKillXp`).
 
 ### Crafting & Building
 
@@ -92,8 +93,9 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 
 ### Chat
 
-- `ChatSettingsEnabled` (off by default) is the master switch for every Chat setting except `HideChat`, `HideShoutOverHead`, `ChatWindowRecommendedLayout`, and the chat window size/position keys. Turn it on to use shout prefix, last-used channel, shout capitalization, hide delay, and chat font.
+- `ChatSettingsEnabled` (off by default) is the master switch for every Chat setting except `HideChat`, `HideShoutOverHead`, `ChatAutoScrollOnNewMessage`, `ChatWindowRecommendedLayout`, and the chat window size/position keys. Turn it on to use shout prefix, last-used channel, shout capitalization, hide delay, and chat font.
 - `HideShoutOverHead` (on by default) hides the yellow shout/yell text above player heads. The shout still goes to the chat log.
+- `ChatAutoScrollOnNewMessage` (on by default) jumps the log to the latest lines when the chat box is closed and a new message arrives. While the box is open, scroll position is kept.
 - `ChatWindowRecommendedLayout` (off by default): one switch for a built-in recommended chat layout (PosX 84, PosY -88, Width -88, Height -9). While on, the four keys below are ignored; your manual values stay in the cfg for when you turn it off.
 - `ChatWindowPosX` / `ChatWindowPosY` / `ChatWindowWidth` / `ChatWindowHeight`: **0 is SeneaL's original chat.** All four are pixel integers (1-step in F1, for example PosY -76). Pos moves the background, log, and input together. Negative width/height shrinks. Resetting all four to 0 rebuilds the original window. Client-only.
 - `DefaultToShout` (off by default) opens the chat box with `/s ` already typed in it, so your first Enter shouts — the long-range message that shows above your character — and you never have to type the prefix.
@@ -134,6 +136,7 @@ Settings are organized by category. Key options include:
 | Status Effects | `MoveToCorner` | Off |
 | Chat | `HideChat` | Off |
 | Chat | `HideShoutOverHead` | On |
+| Chat | `ChatAutoScrollOnNewMessage` | On |
 | Chat | `ChatSettingsEnabled` | Off |
 | Chat | `DefaultToShout` | Off |
 | Chat | `RememberLastUsed` | Off |

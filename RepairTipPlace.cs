@@ -306,6 +306,7 @@ static FieldInfo _arrowOn;
         }
 
         TMP_Text[] texts = panel.GetComponentsInChildren<TMP_Text>(true);
+        TMP_Text probe = RowProbe(texts);
         const float rowGap = 8f;
         foreach (object row in rows)
         {
@@ -314,19 +315,25 @@ static FieldInfo _arrowOn;
                 continue;
             }
 
+            FieldInfo headField = AccessTools.Field(row.GetType(), "Head");
+            if (headField != null && headField.GetValue(row) is bool head && head)
+            {
+                continue;
+            }
+
             string label = ReadString(row, "Label");
             string rowValue = ReadString(row, "Value");
             string small = ReadString(row, "Small");
             float rowWidth = ContentPadding;
-            rowWidth += MeasureString(texts, panel, label);
+            rowWidth += MeasureString(probe, panel, label);
             if (!string.IsNullOrEmpty(rowValue))
             {
-                rowWidth += rowGap + MeasureString(texts, panel, rowValue);
+                rowWidth += rowGap + MeasureString(probe, panel, rowValue);
             }
 
             if (!string.IsNullOrEmpty(small))
             {
-                rowWidth += rowGap + MeasureString(texts, panel, small);
+                rowWidth += rowGap + MeasureString(probe, panel, small);
             }
 
             required = Mathf.Max(required, rowWidth);
@@ -345,6 +352,7 @@ static FieldInfo _arrowOn;
         }
 
         TMP_Text[] texts = panel.GetComponentsInChildren<TMP_Text>(true);
+        TMP_Text probe = RowProbe(texts);
         string[] content =
         {
             ReadString(tip, "Title"),
@@ -358,44 +366,65 @@ static FieldInfo _arrowOn;
                 continue;
             }
 
-            required = Mathf.Max(required, MeasureString(texts, panel, value) + ContentPadding);
+            required = Mathf.Max(required, MeasureString(probe, panel, value) + ContentPadding);
         }
 
         required = Mathf.Max(required, MeasureAttributeRows(tip));
         return required;
     }
 
-    static float MeasureString(TMP_Text[] texts, RectTransform panel, string value)
+    static TMP_Text RowProbe(TMP_Text[] texts)
+    {
+        TMP_Text probe = null;
+        float bestSize = float.MaxValue;
+        if (texts == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < texts.Length; i++)
+        {
+            TMP_Text text = texts[i];
+            if (text == null || text.font == null)
+            {
+                continue;
+            }
+
+            float size = text.fontSize;
+            if (size < 9f || size > 16f)
+            {
+                continue;
+            }
+
+            if (size < bestSize)
+            {
+                bestSize = size;
+                probe = text;
+            }
+        }
+
+        return probe;
+    }
+
+    static float MeasureString(TMP_Text probe, RectTransform panel, string value)
     {
         if (string.IsNullOrEmpty(value))
         {
             return 0f;
         }
 
-        float best = 0f;
-        foreach (TMP_Text text in texts)
+        if (probe == null)
         {
-            if (text == null)
-            {
-                continue;
-            }
-
-            float preferred = text.GetPreferredValues(
-                value,
-                10000f,
-                0f
-            ).x;
-
-            float scale =
-                text.rectTransform.lossyScale.x > 0.0001f
-                    ? panel.lossyScale.x /
-                      text.rectTransform.lossyScale.x
-                    : 1f;
-
-            best = Mathf.Max(best, preferred * scale);
+            return value.Length * 7f;
         }
 
-        return best;
+        float preferred = probe.GetPreferredValues(value, 10000f, 0f).x;
+        float scale =
+            probe.rectTransform.lossyScale.x > 0.0001f
+                ? panel.lossyScale.x / probe.rectTransform.lossyScale.x
+                : 1f;
+
+        return Mathf.Max(0f, preferred * scale);
     }
 
     static string ReadString(object instance, string name)

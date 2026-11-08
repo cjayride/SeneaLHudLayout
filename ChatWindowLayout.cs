@@ -112,6 +112,12 @@ namespace SeneaLHudLayout
                 harmony.Patch(chatUpdate, postfix: new HarmonyMethod(typeof(ChatWindowLayout), nameof(ChatUpdatePostfix)));
             }
 
+            MethodInfo addString = AccessTools.Method(typeof(Terminal), "AddString", new[] { typeof(string) });
+            if (addString != null)
+            {
+                harmony.Patch(addString, prefix: new HarmonyMethod(typeof(ChatWindowLayout), nameof(AddStringPrefix)));
+            }
+
             Bind(SeneaLHudLayoutPlugin.ChatWindowRecommendedLayout);
             Bind(SeneaLHudLayoutPlugin.ChatWindowPosX);
             Bind(SeneaLHudLayoutPlugin.ChatWindowPosY);
@@ -158,6 +164,21 @@ namespace SeneaLHudLayout
             }
 
             Place();
+        }
+
+        public static void AddStringPrefix(Terminal __instance)
+        {
+            if (!(__instance is Chat chat) || Hidden() || !AutoScrollOn())
+            {
+                return;
+            }
+
+            if (InputOpen(chat))
+            {
+                return;
+            }
+
+            JumpToLatest(chat);
         }
 
         public static void ChatUpdatePostfix()
@@ -256,6 +277,41 @@ namespace SeneaLHudLayout
         static bool Hidden()
         {
             return SeneaLHudLayoutPlugin.HideChat != null && SeneaLHudLayoutPlugin.HideChat.Value;
+        }
+
+        static bool AutoScrollOn()
+        {
+            return SeneaLHudLayoutPlugin.ChatAutoScrollOnNewMessage == null
+                || SeneaLHudLayoutPlugin.ChatAutoScrollOnNewMessage.Value;
+        }
+
+        static bool InputOpen(Chat chat)
+        {
+            return chat != null
+                && chat.m_input != null
+                && chat.m_input.gameObject.activeInHierarchy;
+        }
+
+        static void JumpToLatest(Chat chat)
+        {
+            if (_scrollHeight == null || chat == null)
+            {
+                return;
+            }
+
+            try
+            {
+                int current = (int)_scrollHeight.GetValue(chat);
+                if (current == 0)
+                {
+                    return;
+                }
+
+                _scrollHeight.SetValue(chat, 0);
+            }
+            catch (Exception)
+            {
+            }
         }
 
         static bool UserOn()

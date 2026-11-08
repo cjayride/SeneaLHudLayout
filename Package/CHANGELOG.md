@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.5.25
+
+- Chat log jumps to the latest messages when the input is closed and someone sends a new line (`[Chat] ChatAutoScrollOnNewMessage`, on by default). While the box is open, a scrolled-up view is kept.
+
+## 1.5.24
+
+- Character window XP bar now shows current / required XP under the bar and percent complete to the right.
+
+## 1.5.23
+
+- Config: renamed `[Character]` to `[Character Window]` (Talents button, character-panel level, XP bar, skill respend fix). SkillsReworked level under the food timers moved to `[HealthFood]` (`ShowLevelFoodBar` and offsets). Old `[Character]` values still apply on first load.
+
+## 1.5.22
+
+- Kill notices also show SkillsReworked Level XP. If a damage-share percent already appears, XP is added on the same line (`[Notices] ShowKillXp`).
+
+## 1.5.21
+
+- Item tooltips size to the longest *stat* line using row font, not the large title font. Short descriptions stay on a compact tooltip.
+
 ## 1.5.20
 
 - Item tooltips: descriptions wrap again at normal width. The panel only grows for real attribute/stat lines, not flavor text.

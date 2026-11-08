@@ -38,9 +38,13 @@ namespace SeneaLHudLayout
         static bool _talentLookup;
         static Image _xpBack;
         static Image _xpFill;
+        static TextMeshProUGUI _xpAmount;
+        static TextMeshProUGUI _xpPercent;
         static string _xpMeasured;
         static float _xpLevelWidth;
         static MethodInfo _getFraction;
+        static MethodInfo _getSkill;
+        static MethodInfo _getRequirement;
         static bool _fractionLookup;
 
         public static void Tick()
@@ -249,6 +253,19 @@ namespace SeneaLHudLayout
             back.sizeDelta = new Vector2(XpBarWidth, XpBarHeight);
             _xpFill.rectTransform.sizeDelta = new Vector2((XpBarWidth - 2f) * Mathf.Clamp01(fraction), XpBarHeight - 2f);
 
+            ReadLevelXp(Player.m_localPlayer, out float current, out float required);
+            string amount = FormatXp(current) + " / " + FormatXp(required);
+            if (_xpAmount.text != amount)
+            {
+                _xpAmount.text = amount;
+            }
+
+            string percent = Mathf.RoundToInt(Mathf.Clamp01(fraction) * 100f) + "%";
+            if (_xpPercent.text != percent)
+            {
+                _xpPercent.text = percent;
+            }
+
             if (!_xpBack.gameObject.activeSelf)
             {
                 _xpBack.gameObject.SetActive(true);
@@ -257,7 +274,7 @@ namespace SeneaLHudLayout
 
         static bool EnsureXpBar()
         {
-            if (_xpBack != null && _xpFill != null && _xpBack.transform.parent == _tabs)
+            if (_xpBack != null && _xpFill != null && _xpAmount != null && _xpPercent != null && _xpBack.transform.parent == _tabs)
             {
                 return true;
             }
@@ -290,7 +307,43 @@ namespace SeneaLHudLayout
             fillRt.anchorMax = new Vector2(0f, 0.5f);
             fillRt.pivot = new Vector2(0f, 0.5f);
             fillRt.anchoredPosition = new Vector2(1f, 0f);
+
+            _xpAmount = MakeXpLabel("amount", go.transform, TextAlignmentOptions.Left);
+            RectTransform amountRt = _xpAmount.rectTransform;
+            amountRt.anchorMin = new Vector2(0f, 0f);
+            amountRt.anchorMax = new Vector2(0f, 0f);
+            amountRt.pivot = new Vector2(0f, 1f);
+            amountRt.anchoredPosition = new Vector2(0f, -2f);
+            amountRt.sizeDelta = new Vector2(XpBarWidth, 12f);
+
+            _xpPercent = MakeXpLabel("percent", go.transform, TextAlignmentOptions.Left);
+            RectTransform percentRt = _xpPercent.rectTransform;
+            percentRt.anchorMin = new Vector2(1f, 0.5f);
+            percentRt.anchorMax = new Vector2(1f, 0.5f);
+            percentRt.pivot = new Vector2(0f, 0.5f);
+            percentRt.anchoredPosition = new Vector2(6f, 0f);
+            percentRt.sizeDelta = new Vector2(36f, 14f);
             return true;
+        }
+
+        static TextMeshProUGUI MakeXpLabel(string name, Transform parent, TextAlignmentOptions align)
+        {
+            GameObject go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            TextMeshProUGUI label = go.AddComponent<TextMeshProUGUI>();
+            label.raycastTarget = false;
+            label.alignment = align;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.overflowMode = TextOverflowModes.Overflow;
+            label.fontSize = 10f;
+            label.color = new Color(0.86f, 0.75f, 0.48f, 0.95f);
+            if (_level != null && _level.font != null)
+            {
+                label.font = _level.font;
+                label.fontSharedMaterial = _level.fontSharedMaterial;
+            }
+
+            return label;
         }
 
         static float ReadLevelFraction(Player player)
@@ -305,6 +358,9 @@ namespace SeneaLHudLayout
                 _fractionLookup = true;
                 Type type = ModTypes.Find("SkillsReworked", "SkillsReworked.Systems.Progression.LevelSkillService");
                 _getFraction = type == null ? null : AccessTools.Method(type, "GetCurrentLevelFraction", new[] { typeof(Player) });
+                _getSkill = type == null ? null : AccessTools.Method(type, "GetSkill", new[] { typeof(Player) });
+                Type calc = ModTypes.Find("SkillsReworked", "SkillsReworked.Systems.Progression.LevelXpCalculator");
+                _getRequirement = calc == null ? null : AccessTools.Method(calc, "GetRequirementForLevel", new[] { typeof(int) });
             }
 
             if (_getFraction == null)
@@ -320,6 +376,51 @@ namespace SeneaLHudLayout
             {
                 return -1f;
             }
+        }
+
+        static void ReadLevelXp(Player player, out float current, out float required)
+        {
+            current = 0f;
+            required = 0f;
+            if (player == null || _getSkill == null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (!(_getSkill.Invoke(null, new object[] { player }) is Skills.Skill skill) || skill == null)
+                {
+                    return;
+                }
+
+                current = Mathf.Max(0f, skill.m_accumulator);
+                int levelIndex = Mathf.FloorToInt(skill.m_level);
+                if (_getRequirement != null)
+                {
+                    required = (float)_getRequirement.Invoke(null, new object[] { levelIndex });
+                }
+                else
+                {
+                    float step = Mathf.Floor(levelIndex + 1f);
+                    required = Mathf.Pow(step, 1.5f) * 0.5f + 0.5f;
+                }
+            }
+            catch (Exception)
+            {
+                current = 0f;
+                required = 0f;
+            }
+        }
+
+        static string FormatXp(float value)
+        {
+            if (value >= 9.95f)
+            {
+                return value.ToString("0");
+            }
+
+            return value.ToString("0.#");
         }
 
         static bool EnsureLevel()
