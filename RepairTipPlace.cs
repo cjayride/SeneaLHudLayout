@@ -108,7 +108,7 @@ static FieldInfo _arrowOn;
 
         if (!repair)
         {
-            float need = MeasureTip(tip);
+            float need = MeasureAttributeRows(tip);
             if (need <= DefaultTipInner + 4f)
             {
                 ClearTipWidth(tip);
@@ -236,90 +236,132 @@ static FieldInfo _arrowOn;
         return codes;
     }
 
+    internal static bool IsProseRow(object row)
+    {
+        if (row == null)
+        {
+            return false;
+        }
+
+        FieldInfo headField = AccessTools.Field(row.GetType(), "Head");
+        if (headField != null && headField.GetValue(row) is bool head && head)
+        {
+            return false;
+        }
+
+        return IsProse(
+            ReadString(row, "Label"),
+            ReadString(row, "Value"),
+            ReadString(row, "Small"));
+    }
+
+    internal static bool IsProse(string label, string value, string small)
+    {
+        if (!string.IsNullOrEmpty(value) || !string.IsNullOrEmpty(small))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(label))
+        {
+            return false;
+        }
+
+        string text = label.Trim();
+        if (text.Length >= 2 && text[0] == '"' && text[text.Length - 1] == '"')
+        {
+            return true;
+        }
+
+        if (text.Length > 48)
+        {
+            return true;
+        }
+
+        int spaces = 0;
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (text[i] == ' ')
+            {
+                spaces++;
+            }
+        }
+
+        return spaces >= 8;
+    }
+
+    static float MeasureAttributeRows(object tip)
+    {
+        float required = DefaultTipInner;
+        RectTransform panel = Get<RectTransform>(_panel);
+        if (panel == null)
+        {
+            return required;
+        }
+
+        FieldInfo rowsField = AccessTools.Field(tip.GetType(), "Rows");
+        if (rowsField == null || rowsField.GetValue(tip) is not IEnumerable rows)
+        {
+            return required;
+        }
+
+        TMP_Text[] texts = panel.GetComponentsInChildren<TMP_Text>(true);
+        const float rowGap = 8f;
+        foreach (object row in rows)
+        {
+            if (row == null || IsProseRow(row))
+            {
+                continue;
+            }
+
+            string label = ReadString(row, "Label");
+            string rowValue = ReadString(row, "Value");
+            string small = ReadString(row, "Small");
+            float rowWidth = ContentPadding;
+            rowWidth += MeasureString(texts, panel, label);
+            if (!string.IsNullOrEmpty(rowValue))
+            {
+                rowWidth += rowGap + MeasureString(texts, panel, rowValue);
+            }
+
+            if (!string.IsNullOrEmpty(small))
+            {
+                rowWidth += rowGap + MeasureString(texts, panel, small);
+            }
+
+            required = Mathf.Max(required, rowWidth);
+        }
+
+        return required;
+    }
+
     static float MeasureTip(object tip)
     {
         float required = MinimumWidth;
-
         RectTransform panel = Get<RectTransform>(_panel);
-
         if (panel == null)
+        {
             return required;
+        }
 
-        TMP_Text[] texts =
-            panel.GetComponentsInChildren<TMP_Text>(true);
-
+        TMP_Text[] texts = panel.GetComponentsInChildren<TMP_Text>(true);
         string[] content =
         {
             ReadString(tip, "Title"),
-            ReadString(tip, "Sub"),
-            ReadString(tip, "Body"),
-            ReadString(tip, "Note"),
-            ReadString(tip, "Warn")
+            ReadString(tip, "Sub")
         };
 
         foreach (string value in content)
         {
             if (string.IsNullOrEmpty(value))
+            {
                 continue;
-
-            foreach (TMP_Text text in texts)
-            {
-                if (text == null)
-                    continue;
-
-                float preferred = text.GetPreferredValues(
-                    value,
-                    10000f,
-                    0f
-                ).x;
-
-                float scale =
-                    text.rectTransform.lossyScale.x > 0.0001f
-                        ? panel.lossyScale.x /
-                          text.rectTransform.lossyScale.x
-                        : 1f;
-
-                required = Mathf.Max(
-                    required,
-                    preferred * scale + ContentPadding
-                );
             }
+
+            required = Mathf.Max(required, MeasureString(texts, panel, value) + ContentPadding);
         }
 
-        FieldInfo rowsField = AccessTools.Field(
-            tip.GetType(),
-            "Rows"
-        );
-
-        if (rowsField != null &&
-            rowsField.GetValue(tip) is IEnumerable rows)
-        {
-            const float rowGap = 8f;
-            foreach (object row in rows)
-            {
-                if (row == null)
-                    continue;
-
-                string label = ReadString(row, "Label");
-                string rowValue = ReadString(row, "Value");
-                string small = ReadString(row, "Small");
-
-                float rowWidth = ContentPadding;
-                rowWidth += MeasureString(texts, panel, label);
-                if (!string.IsNullOrEmpty(rowValue))
-                {
-                    rowWidth += rowGap + MeasureString(texts, panel, rowValue);
-                }
-
-                if (!string.IsNullOrEmpty(small))
-                {
-                    rowWidth += rowGap + MeasureString(texts, panel, small);
-                }
-
-                required = Mathf.Max(required, rowWidth);
-            }
-        }
-
+        required = Mathf.Max(required, MeasureAttributeRows(tip));
         return required;
     }
 

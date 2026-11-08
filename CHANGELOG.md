@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.20
+
+- Item tooltips: descriptions wrap again at normal width. The panel only grows for real attribute/stat lines, not flavor text.
+
 ## 1.5.19
 
 - Item tooltips: attribute/stat rows no longer wrap (window grows up to 900px). Only the item description body wraps. Per-row list icons are skipped and kept hidden while the tooltip is open.

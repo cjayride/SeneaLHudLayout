@@ -200,6 +200,13 @@ namespace SeneaLHudLayout
             TMP_Text label = Text(__1, "Label");
             TMP_Text value = Text(__1, "Value");
             TMP_Text small = Text(__1, "Small");
+
+            if (RepairTipPlace.IsProseRow(__0))
+            {
+                AllowWrap(label);
+                return;
+            }
+
             ForceSingleLine(label);
             ForceSingleLine(value);
             ForceSingleLine(small);
@@ -232,6 +239,17 @@ namespace SeneaLHudLayout
             }
 
             text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.overflowMode = TextOverflowModes.Overflow;
+        }
+
+        static void AllowWrap(TMP_Text text)
+        {
+            if (text == null)
+            {
+                return;
+            }
+
+            text.textWrappingMode = TextWrappingModes.Normal;
             text.overflowMode = TextOverflowModes.Overflow;
         }
 
