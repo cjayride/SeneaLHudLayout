@@ -85,6 +85,7 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 
 ### Interface & Notifications
 
+- Old config entries left by renamed sections and removed settings are cleaned out of the config file on load, so the file keeps only settings this version uses.
 - Hides SeneaL UI's login server-rules window. Server restrictions still apply.
 - Hides SeneaL UI's chat window so compatible chat mods can display messages.
 - Adjusts center messages to avoid overlapping the compass and boss health bar.

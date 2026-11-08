@@ -39,7 +39,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.5.25";
+        public const string VERSION = "1.5.26";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -529,6 +529,7 @@ namespace SeneaLHudLayout
                     new AcceptableValueRange<float>(0.5f, 1.5f)));
 
             Harmony harmony = new Harmony(GUID);
+            ConfigHousekeeping.PruneLegacyEntries(Config, Logger);
             HealthBarCap.Apply(harmony);
             ShudnalConfigBridge.Apply(harmony);
             CompassPin.Apply(harmony);

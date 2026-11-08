@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.26
+
+- Config files now clean themselves up on load. Old entries left behind by the 1.5.23 section rename (`[Character]` → `[Character Window]`, food-bar level → `[HealthFood]`) and by removed settings (the `[Performance]` FPS toggle, the old `[Stats]` tooltip keys, the old chat window lock/resize keys) are dropped from the file, along with their help text. Values are migrated by the 1.5.23 bindings first, so nothing you set is lost. Your own comments and the rest of the file are kept exactly as they are.
+
 ## 1.5.25
 
 - Chat log jumps to the latest messages when the input is closed and someone sends a new line (`[Chat] ChatAutoScrollOnNewMessage`, on by default). While the box is open, a scrolled-up view is kept.
