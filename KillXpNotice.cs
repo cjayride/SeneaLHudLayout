@@ -156,7 +156,7 @@ namespace SeneaLHudLayout
                 return true;
             }
 
-            text = text.TrimEnd() + XpSuffix();
+            text = XpLead() + text.Trim();
             _awaitingMessage = false;
             _killXp = 0f;
             return true;
@@ -173,15 +173,22 @@ namespace SeneaLHudLayout
             string text;
             if (_killPct >= 0.5f)
             {
-                text = name + "  " + _killPct.ToString("0") + "%" + XpSuffix();
+                text = XpLead() + name + "  " + _killPct.ToString("0") + "%";
             }
             else
             {
-                text = name + XpSuffix();
+                text = XpLead() + name;
             }
 
             _killXp = 0f;
             MessageHud.instance.ShowMessage(MessageHud.MessageType.TopLeft, text);
+        }
+
+        static string XpLead()
+        {
+            float xp = _killXp;
+            string amount = xp >= 9.95f ? xp.ToString("0") : xp.ToString("0.#");
+            return "+" + amount + " XP  ";
         }
 
         static string XpSuffix()

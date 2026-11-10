@@ -103,12 +103,28 @@ namespace SeneaLHudLayout
             return Mathf.Clamp(entry != null ? entry.Value : fallback, 8f, 32f);
         }
 
+        // AfterCrosshair runs on Hud.UpdateCrosshair - EVERY FRAME. The whole-scene
+        // FindObjectsOfType<RectTransform>() below is a scene-wide scan, and when the bar is
+        // absent (SeneaL UI has not created it, the HUD is hidden) the cache stays null, so
+        // before 1.5.50 the scan re-ran every frame with zero chance of ever succeeding.
+        // The scan now retries on a 2s cadence: the bar is found as soon as it exists
+        // (the labels appear at most 2s later, once, in a session) and the frame path is
+        // a field check when it is missing.
+        static float _nextBarScan;
+
         static RectTransform Bar()
         {
             if (_bar)
             {
                 return _bar;
             }
+
+            if (Time.unscaledTime < _nextBarScan)
+            {
+                return null;
+            }
+
+            _nextBarScan = Time.unscaledTime + 2f;
 
             RectTransform[] rects = Object.FindObjectsOfType<RectTransform>();
             for (int i = 0; i < rects.Length; i++)

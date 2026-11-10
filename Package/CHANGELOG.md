@@ -1,5 +1,154 @@
 # Changelog
 
+## 1.5.51
+
+- `[Hotbar] XpBarFillGold` **removed** - there is no reason to switch the gold progress fill off (the black fill it could restore was invisible progress). The filled part of the bar is now always gold; the config key is gone.
+- `[Hotbar] XpBarTrackOpacity` default **0.75** (was 0.25): the track reads as a dark groove and the gold progress stands out.
+- `[Hotbar] XpBarWhiteNumbers` default **false** (was true): all the XP card text stays gold; the knob still works for anyone who wants white digits.
+
+## 1.5.50
+
+- XP bar numbers are **white** - the level number, the percentage and the `## / ##` values. The words and symbols around them (`Level `, the ` / `, the `%`) stay gold, exactly as asked. Toggle `[Hotbar] XpBarWhiteNumbers` (default true, live).
+- 2 more pixels of plate below the numbers (6px total).
+- XP bar border gold at **15%** opacity (down from 25%; `[Hotbar] XpBarBorderOpacity`).
+- FPS: the piece-health label (`Hover.ShowPieceHealth`) searched the **whole scene** for its bar on every crosshair frame, forever, whenever the bar did not exist - and it never finds it when the HUD is hidden, so the scan repeated every single frame with no chance of success. It now retries every 2 seconds. The XP bar's own card guard runs every 1.5s, and every visual knob in the mod is a drift-checked field write (no per-frame allocation).
+
+## 1.5.49
+
+- XP bar padding fixed on the RIGHT side: the pad now sits BELOW the `1234 / 3333` numbers. 1.5.45/1.5.48 slid the whole numbers plate down, which added the space between the XP bar and the numbers - the user: "it pushed down on the wrong side. you added padding above the numbers but below the xp bar itself". The numbers are back at their 1.5.44 position (the look you approved) and the plate grows only downward, 4px.
+- XP bar border is thinner and fainter: **0.5px** wide (half of 1.5.48's 1px) at **25%** gold opacity. `[Hotbar] XpBarBorderWidth` (0.5) and `[Hotbar] XpBarBorderOpacity` (0.25) are live knobs; the gold text keeps full alpha.
+
+## 1.5.48
+
+- XP bar progress is now VISIBLE: the FILLED part of the track is painted gold (the same gold as the border). It was a darker black inside the black track (the 1.5.41 "gold is only the border" spec) - in game that read as "the xp progress bar is just black". Toggle `[Hotbar] XpBarFillGold` (default true, live) for the black fill.
+- XP bar border is now 1 pixel wide on every side (was 2px).
+- 2 more pixels of plate directly UNDER the XP numbers, so the digits have more room above the card's bottom border (4px total).
+
+## 1.5.47
+
+- XP bar border is now FOUR SOLID LINE QUADS (top / bottom / right / left, 2px each) - a real border made of four thin rectangles, each 2px tall/wide. The old 9-sliced gold frame sprite is DELETED from the build: every report of "a yellow rectangle filling the whole XP bar" (1.5.45, 1.5.46) is the frame image painting its face, and a quad has no face to fill.
+- `[Hotbar] XpBarBorder` (default true, live F1 toggle): off removes the border completely, leaving the pure black card (the look from 1.5.44).
+- The card guard now scans the WHOLE HUD canvas (not just the hotbar subtree): any foreign graphic stretched across the card gets blacked out or hidden. (1.5.46's scan proved no foreign graphic touches the card at all - the frame was ours.)
+
+## 1.5.46
+
+- XP bar: the 50% card from 1.5.45 washed out to "completely missing" over bright scenery, so the backdrop default is 0.75 (`[Hotbar] XpBarOpacity`, live — set it to 0.5 for the see-through look). The profile config's 0.5 override was also raised.
+- XP bar: the gold border is 2px wide (1px landed under a screen pixel and vanished with antialiasing).
+- XP bar: the bar's own rim is now black, not gold — no gold pixels left anywhere except the card border.
+- Cooldown timers: the countdown-number offset is now actually wired (`PotionCooldownTextOffsetY` was declared but never bound, so it read as null and did nothing — 1.5.45's nudge silently did not apply). The number sits 5px below the slot's centre.
+- With Cjayride Skyheim Compat 1.2.7 the cooldown square's "border" is gone: Skyheim's own full-slot overlay (its edge ringed our inset square, and its centred Arial number covered ours) no longer attaches to SeneaL's hotbar/action slots — `[Cooldown overlay] OnSenealHotbar = false`, hotbar cooldown timers are HUD Layout's alone.
+
+## 1.5.45
+
+- Potion/ability cooldown timers: the countdown number moves 5 pixels down from the slot's centre (`[Items] PotionCooldownTextOffsetY`, live slider, -40 to 40).
+- Cooldown timers now cover the MAIN hotbar row, not just the quick-action row: food, meads, and any consumable with a consume cooldown shows the same dim square + countdown on slots 1-4. Same 0.1s cadence, same vanilla status-effect source of truth, so nothing new is polled.
+- XP bar: the backdrop plates are 50% black (`[Hotbar] XpBarOpacity`, live; 1 = the solid card from 1.5.44, 0 hides them).
+- XP bar: the gold border is back — a crisp 1px gold line around the card. Gold can never fill the card: the border sprite's centre pixels are fully transparent, so it is geometrically only an edge.
+- XP bar: 2 pixels of plate directly under the numbers row, pushing the card's bottom edge down. The card stays centred on the slots' mid height.
+
+## 1.5.44
+
+- XP bar: **all yellow is OFF the card**, as asked ("turn off all yellow elements used with the xp bar, then get the border working later"). The card's 1px gold outline image is drawn off, and the plates are now OPAQUE black — nothing behind the card can shine through it any more, and gold stays only in the text. (The gold the earlier rounds saw filling the card was never the border's own pixels: that sprite's centre is fully transparent.)
+- XP bar: the cover guard is broader and stronger. It measures the WHOLE card (not just the bar) and now acts on any colour, not only gold-tinted ones — a white-tinted image over a gold sprite paints gold while its own colour stays white, which is what the 1.5.43 guard missed. Graphics drawn OVER the card are switched off; graphics behind it are repainted black. Every fix is logged once (`XP cover: fixed <path> ...`).
+- Potion cooldown square: the black countdown box no longer extends past the quick-action button. SeneaL's slot face includes the button's border art, so the square is now inset by `[Items] PotionCooldownInset` (10 pixels per side, the amount you estimated) — centred on the drawn button, sized to fit inside it. 0 restores the full face; live, no restart.
+
+## 1.5.43
+
+- XP bar: the gold rectangle around the bar is now KILLED, not just outranked. It was a foreign graphic — a panel/clone that other mods stretch across the whole hotbar area — shining through the card's semi-transparent black plates (the card's own boxes were proven all-dark). The card now scans its surroundings once a second: any non-self graphic inside the hotbar subtree that is gold/yellow-tinted and covers 75%+ of the bar is repainted the card's black at its own opacity, and the log names it (`XP cover: blacked out ...`). The card reads black behind the text.
+- Potion cooldown timers: the countdown square is now centred on the VISIBLE slot. The overlay/label placement measured the slot face's centre from the slot root's PIVOT and used it as a centre-anchored position — exact for roots with a centre pivot, off by (0.5-pivot)*size for corner-pivoted roots, which pushed the potion-row square down and right of the drawn slot. The pivot-to-centre offset is now subtracted, so the dim square and the seconds land on the button.
+
+## 1.5.42
+
+- XP bar: the card now draws on its OWN canvas, sorted one level above the HUD canvas. Your description — "the yellow is ON TOP of the entire bar, not behind it" — is an overlay from something outside the bar painting over the finished card (the bar's own boxes were proven all-dark by the diag, and the only gold left is the 1px border). The prime suspect: the Skyheim Compat rune-cooldown overlay, which stretches a full-slot gold-tinted clone onto every action-slot root and shoves it to the front. The card now draws over those overlays.
+- New diagnostic: `XP cover:` lists every UI graphic from other mods whose screen area overlaps the bar (name, colour, sprite) — one log line, 2s after the card shows. If any gold overlay remains, this line names it.
+
+## 1.5.41
+
+- XP bar: **zero yellow inside the bar, at last.** The progress fill is now BLACK (a darker black riding in the groove), the track is BLACK, and gold is only the 1px border — exactly as you specified. Every earlier build kept a gold fill (the 1.5.40 "thin gold line"), and gold *is* yellow: that is what you kept seeing, and it was my mistake to call it a border.
+- New live setting `[Hotbar] XpBarTrackOpacity` (default 0.25): how opaque the black track is. 0.25 shows the scenery through it, 1 is solid black. Move it in F1 settings and the bar changes on the spot, no restart.
+- The self-diagnostic log line now reports the bar track's live colour too (`barCol`).
+
+## 1.5.40
+
+- XP bar: the gold progress is now a thin gold LINE (about a third of the bar's height) hugging the track's bottom, and the bar's interior stays the see-through 25%-black track at every XP level. (The 1.5.39 diag proved the "yellow background" was the gold FILL slab itself: at high XP the fill was 4px of a 6px-tall bar - a solid gold block. Your spec: gold is only the border/line, the fill is black at 25%.)
+
+## 1.5.39
+
+- XP panel pale-yellow hunt, part 3: the labels' copied font material (SeneaL's food-timer style) is now stripped of glow/underlay/outline properties, so gold letters can no longer bloom a yellow haze over the card.
+- XP card self-diagnostic: one log line (`XP diag: ...` in `LogOutput.txt`) reports the card's live colours, sprites, sizes, the label material's glow values, and canvas alphas - it pinpoints any pixel the eyes can't.
+
+## 1.5.38
+
+- XP bar track: the empty bar's fill is now black at 25% (you see the world through it) - gold is only the 1px rim and the progress fill. (The 1.5.37 track fill was 72% dark, and a 6px-tall bar is rim-dominated, so the whole track read as a golden yellow block.)
+- Chat background opacity at startup fixed: the value is now re-asserted every frame it drifts, so SeneaL's chat fade-in no longer stamps the panel back to full opacity and locks the mod out of re-applying 25%. (The 1.5.37 report: 25% didn't load on game start; the chat faded fully opaque until some setting change woke the writer.)
+
+## 1.5.37
+
+- XP panel background hardened: the dark rows now paint from a dedicated 1x1 sprite (own texture, colour set on every card build), so nothing shared can tint the panel pale.
+- XP numbers finally moved up: the bar (and the level/percent text riding it) now sits at the bottom of the top plate, and the numbers plate sits flush under it, so the digits start ~2px under the bar. (The 1.5.36 layout kept the numbers' centre at the same height as 1.5.35 - the plate shrank around text that never moved.)
+- The XP bar card logs its build version once (`[SeneaL HUD Layout] XP bar built, vX.Y.Z` in `LogOutput.txt`), which settles which build a game session loaded.
+
+## 1.5.36
+
+- XP bar: the yellow glow around the card is gone. The shadow strip under the bottom edge (which bled past the card's corners onto the side borders) is removed, and the gold border now draws as a crisp 1-pixel line at 30% opacity — the border texture was 100 pixels-per-unit, so its 1px line rendered as a 0.01-unit smear, which is what glowed.
+- XP bar: the XP numbers moved up close under the bar (the numbers plate hugs its text and sits a few pixels below the level/bar/percent row, instead of a full-height row).
+
+## 1.5.35
+
+- Potion cooldown no longer moves the action bar or draws a square: the dim overlay covered the slot's whole root box (larger than the visible button, reaching a row below it), and that box counted in the hotbar's placement bounds. The dim now matches the slot's visible face, and our overlays never count in that measurement at all.
+- Potion countdown is now half the size (11) and top-aligned inside the slot, so the potion icon below it stays visible.
+- XP bar gold border fix: it sat ~100px left of the card (it was centred on the card's left edge, not the card). It now outlines the card exactly.
+- XP bar spacing: 12px clear of the last action slot (was touching).
+
+## 1.5.34
+
+- Chat panel now stays up 12 seconds after the last activity by default (`[Chat] HideChatPanelDelay`, was 10).
+- XP bar is now ONE card: the numbers row spans the full width of the level/bar/percent row and touches it (no gap), the numbers are left-aligned starting at the bar's start (like the character panel), a thin gold border runs around the whole group (top edge, both sides, bottom edge), and a soft shadow sits under the bottom edge.
+- XP bar gap fixed: it attaches to the last action slot's actual right edge (zero gap) instead of the frame's padded box, which is what left it hanging too far right.
+
+## 1.5.33
+
+- Turning the action-slot XP bar on no longer moves ANYTHING: the HUD placement measures the hotbar's lowest edge to sit it at the bottom-left, and the XP bar lived inside that measurement — plates counted, hotbar pushed up. The bar is now a zero-size point (and the placement code skips it by name): action slots, vitals, food, and everything else stay exactly where they were.
+- XP bar layout fixes: it attaches tight to the action slots' right edge (gap 10→4) at their exact vertical middle; one continuous plate runs behind `Level 37`, the bar, AND the `%` (no gap between the level and the bar); the XP numbers plate sits under the bar with the numbers centred on it.
+- Guardian powers section: "Guardian powers:" is its own line, and the powers list under it (same layout as Status effects).
+
+## 1.5.32
+
+- Action-slot XP bar text is readable again. The Level / percent / XP letters drew as scrambled glyphs: the labels carry an outline, and setting a TMP outline replaces the text's material with a clone of the font asset's base material — Valheim's HUD labels use baked atlas materials that do not survive that swap, so every letter sampled a random glyph. The outline is gone (the dark plates already provide the contrast) and the labels now copy the exact font **and material** of the HUD's food-timer text — the same source the readable food-bar player level uses.
+
+## 1.5.31
+
+- Guardian powers section on the Stats tab (`[Stats] GuardianPowers`, on by default): one row per equipped boss power (the Passive Powers mod equips up to its "Maximum boss powers", 2 in the pack) with its live passive state — `Eikthyr · Active 1m 59s` while the activation buff runs (pack: 120 s), `Eikthyr · Depleted 1m 45s` during the lockout (120 s), `Eikthyr · Passive` at rest — and under each, the power's passive effect lines straight from the Passive Powers config (for example `· Passive: Damage increase to trees +20%`), the same text the boss stone tooltip shows. Empty slots show `—`. Needs Passive Powers; without it the section does not appear, and vanilla's single power stays on the Forsaken power row.
+- The Forsaken power row now always answers: the active power's name when one is running, `Ready` / `15m 0s CD` for the shared cooldown when none is.
+- Passive Powers' buff and lockout effects (named `PassivePowers GP_…`) no longer clutter the Status effects list — the Guardian powers rows carry them.
+
+## 1.5.30
+
+- Potion cooldown numbers are readable now (`[Items] PotionCooldownTextOpacity`, 0.65 default): the countdown number over an action-slot potion is drawn at 65% opacity, so the potion icon reads through the digits. `[Items] PotionCooldownDimOpacity` (0.55) does the same for the dark slot tint.
+- Chat window background default is now 0.25 (`[Chat] ChatBackgroundOpacity`), lighter than the old 0.5.
+- Chat channel button removed (`ChatChannelButton` / `ChatChannelButtonDefaultShout`): the feature never worked in-game, and its job is covered by `AllChatShout` below. The keys disappear from the config on load.
+- Hex colour control for chat text (`[Chat] ShoutTextColor`, default `FFFFFF`, and `[Chat] SayTextColor`, default `C7C7C7`): plain hex RGB with or without `#`, 3, 6, or 8 digits (alpha). Applied to shouts while `ShoutWhiteText` is on and to say / proximity while `SayLightGreyText` is on; empty restores vanilla yellow / white.
+- All chat is shout (`[Chat] AllChatShout`, on by default): every plain-text message is sent as `/s` with nothing to type. The box opens empty — no `/s ` prefill, and `RememberLastUsed` is not consulted while it is on. A typed `/say` (or `/w`) sends that one message close range; console commands are untouched.
+- Action-slot XP bar fixes (`[Hotbar] ShowXpBar`): the fill no longer sprawls as a giant square past the bar (the first fill size was never applied, so it kept Unity's default 100×100 box); every line — `Level 37`, the bar, the `%`, and the `1234 / 3333` numbers — sits on a dark plate with a thin 1px border and outlined text, so it reads over any scenery; the lines sit tight against the bar; and `[Hotbar] XpBarScale` (0.5–3, default 1) sizes the whole feature, with 1 the character window's own size (the old fixed 2× was too large).
+
+## 1.5.29
+
+- Full XP bar on the action slots (`[Hotbar] ShowXpBar`, off by default): the character window's level display copied to the HUD, attached to the right side of the action slots at their mid height — `Level 42  [bar]  37%` with the `1234 / 3333` XP numbers underneath, the same numbers, colours, and font as the character window, twice as big. It follows the action slots wherever the HUD editor moves them, and sits right of the quiver row when the quiver shares that line. The CJAYCRAFT pack ships it on.
+- The level under the food timers (`[HealthFood] ShowLevelFoodBar`) is now off by default, since the action-slot bar replaces it. Turn it back on if you want it.
+
+## 1.5.28
+
+- Chat window background opacity slider (`[Chat] ChatBackgroundOpacity`, 0–1, default 0.5). One knob for the dark panel behind the chat: 1 is SeneaL UI's own solid glass, 0.5 is half as opaque, 0 hides the fill. The chat text is never faded.
+- Chat text colours: shouts print white and say / proximity chat prints light grey in the chat log (`[Chat] ShoutWhiteText` and `[Chat] SayLightGrey`, both on by default). Valheim ships yellow shouts and white say.
+- Leave chat always on (`[Chat] ChatAlwaysVisible`, off by default). The chat window stops fading out after the last activity, so the log stays on screen. HideChat wins when both are on.
+- Chat channel button (`[Chat] ChatChannelButton`, on by default): a square button the same height as the chat input, docked just left of it. Big **S** (capital = shout, lowercase = say), coloured for the channel, with the word Shout / Say above it; left-click flips it. Plain text is sent on the channel the button shows — no `/s` to type — and typing `/s`, `/shout`, or `/say` flips the button to match. `[Chat] ChatChannelButtonDefaultShout` picks the channel the game opens with (Shout by default).
+- Potion cooldown timers (`[Items] PotionCooldowns`, on by default): consumables in the action slots (PotionsPlus potions and other Valheim food/potions) dim and count down the whole seconds of their consume cooldown, read from the live status effect — the same gate Valheim uses to block re-drinking.
+- Kill notices now lead with the XP: `+12 XP  Boar  37%` instead of hiding it at the end of a long damage-share line.
+
+## 1.5.27
+
+- The character-window level bar now shows the same XP numbers as the +X XP kill notices. It printed the raw internal counter, which runs 10 times slower than the XP you see, so a +12 kill barely moved the number under the bar.
+
 ## 1.5.26
 
 - Config files now clean themselves up on load. Old entries left behind by the 1.5.23 section rename (`[Character]` → `[Character Window]`, food-bar level → `[HealthFood]`) and by removed settings (the `[Performance]` FPS toggle, the old `[Stats]` tooltip keys, the old chat window lock/resize keys) are dropped from the file, along with their help text. Values are migrated by the 1.5.23 bindings first, so nothing you set is lost. Your own comments and the rest of the file are kept exactly as they are.

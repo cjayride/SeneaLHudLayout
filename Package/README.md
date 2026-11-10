@@ -51,14 +51,18 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 - Adds a checkmark to selected and equipped items.
 - Optionally fills magic item slots with their EpicLoot rarity color.
 - Optional equip and gear countdown timers.
+- PotionsPlus potions and other consumables show their consume-cooldown countdown (`[Items] PotionCooldowns`, on by default) on the quick-action row AND the main hotbar row (food, meads, anything with a consume cooldown): the slot is tinted (`PotionCooldownDimOpacity`, 0.55) and the seconds are drawn at `PotionCooldownTextOpacity` (0.65 default), `PotionCooldownTextOffsetY` (5) pixels below the slot's centre, so the potion icon stays visible. The tint square is centred on the drawn button and inset by `[Items] PotionCooldownInset` (10 default) so it stops at the button's edge, not past it. With Cjayride Skyheim Compat installed, set its `[Cooldown overlay] OnSenealHotbar = false` (1.2.7 default) so Skyheim's own full-slot square + centred number don't stack on top of these.
+- Shows your level and full XP bar flush on the action slots' right edge (a small gap clear of the last slot), centred on them (`[Hotbar] ShowXpBar`, off by default): `Level 42 · bar · 37%` on the top row and the `1234 / 3333` XP numbers under the bar with 6px of plate BELOW them, full card width, left-aligned from the bar's start like the character panel. All the text is gold; `[Hotbar] XpBarWhiteNumbers` (off by default, live) makes just the NUMBERS white and leaves the words/symbols (`Level `, ` / `, `%`) gold. The card is black at `[Hotbar] XpBarOpacity` (0.75 default, live), outlined by a hairline gold border - 0.5px at 15% opacity, drawn as FOUR solid line quads (top/bottom/left/right strips), never a sprite that can fill the card (`[Hotbar] XpBarBorder`, `[Hotbar] XpBarBorderWidth`, `[Hotbar] XpBarBorderOpacity`, all live). The bar's track is a black groove (track opacity `[Hotbar] XpBarTrackOpacity`, 0.75 default) and the FILLED part shows as a gold progress bar. In the same font as the food-timer text, sized by `[Hotbar] XpBarScale` (1.0 default). The card keeps itself on top of hotbar overlays and blacks out any foreign graphic stretched across it. Turning it on never moves the action slots or any other HUD element.
 - Configurable highlight colors, sizes, and effects.
 
 ### Character & Skills
 
 - **Character Stats** tab on the SeneaL character panel: live health, stamina, eitr, armor, resists, food, status effects, weapon skills, and more (`[Stats] StatsTab`, optional hotkey and Steam portrait).
 - Displays the SkillsReworked level in the character window (`[Character Window]`).
-- Optionally displays that level under the food timers (`[HealthFood] ShowLevelFoodBar` and offset keys).
+- Optionally displays that level under the food timers (`[HealthFood] ShowLevelFoodBar` and offset keys). Off by default now that the action-slot bar (`[Hotbar] ShowXpBar`) carries the level.
 - On a creature kill, shows how much SkillsReworked Level XP you gained next to the damage-share percent (`[Notices] ShowKillXp`).
+- **Guardian powers** rows on the Stats sheet (`[Stats] GuardianPowers`, on by default): one row per boss power you have equipped in Passive Powers, each with its live passive state — `Active 1m 59s` during the activation buff, `Depleted 1m 45s` during the lockout, `Passive` at rest — and the power's passive effect lines from the Passive Powers config underneath. Needs Passive Powers; vanilla's single power stays on the Forsaken power row.
+- The level XP bar (`[Character Window] ShowLevelXpBar`) shows the same XP as those kill notices, so a "+12 XP" kill moves the numbers under the bar by the 12 XP it is worth.
 
 ### Crafting & Building
 
@@ -94,16 +98,21 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 
 ### Chat
 
-- `ChatSettingsEnabled` (off by default) is the master switch for every Chat setting except `HideChat`, `HideShoutOverHead`, `ChatAutoScrollOnNewMessage`, `ChatWindowRecommendedLayout`, and the chat window size/position keys. Turn it on to use shout prefix, last-used channel, shout capitalization, hide delay, and chat font.
+- `ChatSettingsEnabled` (off by default) is the master switch for every Chat setting except `HideChat`, `HideShoutOverHead`, `ChatAutoScrollOnNewMessage`, `ChatWindowRecommendedLayout`, `ChatAlwaysVisible`, `ChatBackgroundOpacity`, `ShoutWhiteText` / `ShoutTextColor`, `SayLightGreyText` / `SayTextColor`, `AllChatShout`, and the chat window size/position keys. Turn it on to use shout prefix, last-used channel, shout capitalization, hide delay, and chat font.
 - `HideShoutOverHead` (on by default) hides the yellow shout/yell text above player heads. The shout still goes to the chat log.
 - `ChatAutoScrollOnNewMessage` (on by default) jumps the log to the latest lines when the chat box is closed and a new message arrives. While the box is open, scroll position is kept.
 - `ChatWindowRecommendedLayout` (off by default): one switch for a built-in recommended chat layout (PosX 84, PosY -88, Width -88, Height -9). While on, the four keys below are ignored; your manual values stay in the cfg for when you turn it off.
 - `ChatWindowPosX` / `ChatWindowPosY` / `ChatWindowWidth` / `ChatWindowHeight`: **0 is SeneaL's original chat.** All four are pixel integers (1-step in F1, for example PosY -76). Pos moves the background, log, and input together. Negative width/height shrinks. Resetting all four to 0 rebuilds the original window. Client-only.
-- `DefaultToShout` (off by default) opens the chat box with `/s ` already typed in it, so your first Enter shouts — the long-range message that shows above your character — and you never have to type the prefix.
+- `AllChatShout` (on by default) makes every chat message a shout, with no prefixes to type at all: the box opens empty (nothing is prefilled and `RememberLastUsed` is not consulted) and plain text you type is sent as `/s`. A typed `/say` (or `/w`) sends that one message close range, and console commands are untouched.
+- `DefaultToShout` (off by default, ignored while `AllChatShout` is on) opens the chat box with `/s ` already typed in it, so your first Enter shouts — the long-range message that shows above your character — and you never have to type the prefix.
 - Delete the `/s ` and the message is a normal close-range say, exactly Valheim's own `/s` and plain text. The box stops prefilled and stays that way until you type `/s` again.
-- `RememberLastUsed` keeps that channel between messages and across restarts, in the game's own player prefs file.
+- `RememberLastUsed` keeps that channel between messages and across restarts, in the game's own player prefs file. Not consulted while `AllChatShout` is on.
 - `ShoutKeepsCapitalization` (off by default) reads exactly as named: off does NOT keep Valheim's shout capitalization, so a shout shows the letters the way you typed them ("hello there" stays "hello there"). On keeps Valheim's ALL CAPS shout. Whispers stay lower case, as Valheim makes them.
-- `HideChatPanelDelay` (10) is how many seconds the chat panel stays visible after the last chat activity. It is the game's own chat hide timer; Valheim ships 10.
+- `HideChatPanelDelay` (12) is how many seconds the chat panel stays visible after the last chat activity. It is the game's own chat hide timer; Valheim ships 10.
+- `ChatAlwaysVisible` (off by default) leaves the chat window always on: it never fades out after the last activity. `HideChat` wins when both are on.
+- `ChatBackgroundOpacity` (0.25) sets the opacity of the chat window's dark background — the panel behind the messages and input. 1 is SeneaL UI's solid glass, 0.25 is a quarter as opaque, 0 hides the fill. The chat text is never faded.
+- `ShoutWhiteText` (on by default) prints shouts in the shout colour (Valheim ships yellow). `SayLightGreyText` (on by default) prints say / proximity chat in the say colour, so shouts stand out (Valheim ships white).
+- `ShoutTextColor` (FFFFFF) and `SayTextColor` (C7C7C7) are hex RGB colours — with or without `#`, 3/6/8 digits — for shouts and say lines. An empty value restores vanilla yellow / white.
 - With Chatter installed, the grey placeholder in its chat box follows the channel, showing `/shout` or `/say`.
 - `chatMessageTextFontAsset` and `chatMessageTextFontSize` set the chat log's font and size. Any TMP font asset the game has loaded is accepted by name — Valheim's own `Valheim-AveriaSansLibre` (default), `Valheim-AveriaSerifLibre`, `Valheim-Norse`, `Valheim-Norsebold`, `Valheim-Prstartk`, the `NotoSans`/`NotoSerif` language sets, `LiberationSans SDF`, and fonts other mods add. Size is 6–64 (default 16). `chatMessageFontEnabled` turns the pair off. Chatter is not touched; its own font keys keep driving Chatter's panel. If the name matches nothing loaded, the log lists the font assets the game actually has.
 
@@ -139,10 +148,32 @@ Settings are organized by category. Key options include:
 | Chat | `HideShoutOverHead` | On |
 | Chat | `ChatAutoScrollOnNewMessage` | On |
 | Chat | `ChatSettingsEnabled` | Off |
+| Chat | `AllChatShout` | On |
 | Chat | `DefaultToShout` | Off |
 | Chat | `RememberLastUsed` | Off |
 | Chat | `ShoutKeepsCapitalization` | Off |
-| Chat | `HideChatPanelDelay` | 10 |
+| Chat | `HideChatPanelDelay` | 12 |
+| Chat | `ChatAlwaysVisible` | Off |
+| Chat | `ChatBackgroundOpacity` | 0.25 |
+| Chat | `ShoutWhiteText` | On |
+| Chat | `ShoutTextColor` | FFFFFF |
+| Chat | `SayLightGreyText` | On |
+| Chat | `SayTextColor` | C7C7C7 |
+| Items | `PotionCooldowns` | On |
+| Items | `PotionCooldownTextOpacity` | 0.65 |
+| Items | `PotionCooldownDimOpacity` | 0.55 |
+| Items | `PotionCooldownInset` | 10 |
+| Items | `PotionCooldownTextOffsetY` | 5 |
+| Hotbar | `ShowXpBar` | Off |
+| Hotbar | `XpBarScale` | 1 |
+| Hotbar | `XpBarTrackOpacity` | 0.75 |
+| Hotbar | `XpBarOpacity` | 0.75 |
+| Hotbar | `XpBarBorder` | true |
+| Hotbar | `XpBarBorderWidth` | 0.5 |
+| Hotbar | `XpBarBorderOpacity` | 0.15 |
+| Hotbar | `XpBarWhiteNumbers` | false |
+| HealthFood | `ShowLevelFoodBar` | Off |
+| Stats | `GuardianPowers` | On |
 | Chat | `chatMessageFontEnabled` | Off |
 | Chat | `chatMessageTextFontAsset` | Valheim-AveriaSansLibre |
 | Chat | `chatMessageTextFontSize` | 16 |

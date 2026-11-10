@@ -12,15 +12,22 @@ namespace SeneaLHudLayout
     /// range); a leading '/' is stripped and the rest runs as a console command, where /s is Valheim's
     /// shout (the long-range line above your character).
     ///
-    /// With [Chat] DefaultToShout on, the chat box opens with "/s " already typed in it, so the first
-    /// Enter shouts and nobody types the prefix. Delete the "/s " and the message is a normal
-    /// close-range say; the box stops prefilled and stays that way until /s is typed again, which
-    /// brings the prefill back. The channel is kept in the same player prefs file the game uses for
-    /// its chat key binds, so it survives a restart. [Chat] RememberLastUsed off always prefills /s.
+    /// With [Chat] AllChatShout on (the default), every message is a shout and there is nothing to
+    /// type: the box opens empty and a plain-text submit is rewritten to "/s &lt;text&gt;" a moment
+    /// before Valheim reads the box, so the game's own shout runs it. A typed /say (or /w) sends that
+    /// one line close-range; console commands are never touched. RememberLastUsed is not consulted
+    /// while this is on, and nothing is prefilled.
     ///
-    /// Nothing is injected: the prefilled "/s " runs Valheim's own shout, plain text runs Valheim's
-    /// own say. Prefill() and Submit() are the whole decision with nothing Unity in them, so a
-    /// standalone test (tools\RouteTest.exe) can prove every case.
+    /// With AllChatShout off and [Chat] DefaultToShout on, the chat box opens with "/s " already typed
+    /// in it, so the first Enter shouts and nobody types the prefix. Delete the "/s " and the message
+    /// is a normal close-range say; the box stops prefilled and stays that way until /s is typed
+    /// again, which brings the prefill back. The channel is kept in the same player prefs file the
+    /// game uses for its chat key binds, so it survives a restart. [Chat] RememberLastUsed off always
+    /// prefills /s.
+    ///
+    /// Nothing is injected: the rewritten "/s " runs Valheim's own shout, plain text runs Valheim's
+    /// own say. Prefill(), ShoutAll(), and Submit() are the whole decision with nothing Unity in
+    /// them, so a standalone test (tools\RouteTest.exe) can prove every case.
     /// </summary>
     static class ChatPrefix
     {
@@ -95,7 +102,8 @@ namespace SeneaLHudLayout
             }
 
             // Prefill when the box opens, and again right after a shout, when Valheim has cleared it.
-            if ((open && !_open) || (open && _justSent))
+            // AllChatShout makes the prefix pointless, so with it on the box opens empty.
+            if (((open && !_open) || (open && _justSent)) && !AllChatShoutOn())
             {
                 _justSent = false;
                 _prefilled = Prefill(true, UsesShout(), SafeText(chat));
@@ -133,21 +141,95 @@ namespace SeneaLHudLayout
             }
 
             string text = SafeText(__instance);
+
+            // [Chat] AllChatShout: every plain-text message is sent as Valheim's own shout. The box
+            // text is rewritten to "/s <text>" a moment before the game's InputText reads it, so the
+            // game's normal shout command runs it. A typed /say, /w, /s, or console command is left
+            // exactly as typed, and nothing is remembered: the channel is always shout.
+            if (AllChatShoutOn())
+            {
+                string shouted = ShoutAll(text, ChatterPrefix());
+                if (!string.Equals(shouted, text, StringComparison.Ordinal))
+                {
+                    try
+                    {
+                        __instance.m_input.text = shouted;
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+
+                return true;
+            }
+
             RouteResult route = Submit(text, Enabled(), ChatterPrefix(), _prefilled);
+
+            if (route.Action == RouteAction.Swallow)
+            {
+                // Swallow: the prefilled "/s " with nothing after it. Valheim's shout needs three
+                // characters, so running it would only print a failed-command line.
+                if (route.Remember != null)
+                {
+                    Remember(route.Remember.Value);
+                }
+
+                return false;
+            }
+
+            if (!IsChatCommand(text))
+            {
+                return true;
+            }
 
             if (route.Remember != null)
             {
                 Remember(route.Remember.Value);
+                if (route.Remember.Value)
+                {
+                    _justSent = true;
+                }
             }
 
-            if (route.Remember == true)
+            return true;
+        }
+
+        /// <summary>
+        /// True when the text is a chat line: plain text (Valheim's say), or a leading /s, /shout,
+        /// /say, /w. Anything else is a console command, which is never rewritten.
+        /// </summary>
+        static bool IsChatCommand(string text)
+        {
+            if (string.IsNullOrEmpty(text) || text[0] != '/')
             {
-                _justSent = true;
+                return true;
             }
 
-            // Swallow: the prefilled "/s " with nothing after it. Valheim's shout needs three
-            // characters, so running it would only print a failed-command line.
-            return route.Action != RouteAction.Swallow;
+            string lower = FirstToken(text.Substring(1)).ToLowerInvariant();
+            return lower == ShoutValue || lower == "shout" || lower == SayValue || lower == "w";
+        }
+
+        /// <summary>
+        /// [Chat] AllChatShout: the text to send as a shout. Plain text becomes Valheim's own shout
+        /// "/s &lt;text&gt;" - except when Chatter is installed and its panel is already set to shout,
+        /// where Chatter's own shout prefix runs the plain text, so the text is left alone. Anything
+        /// typed with a leading '/' (/s, /say, /w, /godmode, ...) is returned untouched: the player
+        /// chose that channel, and console commands are none of our business.
+        /// </summary>
+        public static string ShoutAll(string text, string chatterPrefix)
+        {
+            if (string.IsNullOrEmpty(text) || text[0] == '/')
+            {
+                return text;
+            }
+
+            if (chatterPrefix == ShoutValue + " ")
+            {
+                // Chatter's panel is set to shout; its own prefix shouts the plain text.
+                return text;
+            }
+
+            return ShoutPrefix + text;
         }
 
         public enum RouteAction
@@ -267,6 +349,17 @@ namespace SeneaLHudLayout
                 && SeneaLHudLayoutPlugin.DefaultToShout.Value;
         }
 
+        /// <summary>
+        /// True while [Chat] AllChatShout is on (needs the Chat master switch). It outranks the
+        /// DefaultToShout prefill: the channel is always shout, so the box never needs "/s ".
+        /// </summary>
+        static bool AllChatShoutOn()
+        {
+            return SeneaLHudLayoutPlugin.ChatSettingsOn()
+                && SeneaLHudLayoutPlugin.AllChatShout != null
+                && SeneaLHudLayoutPlugin.AllChatShout.Value;
+        }
+
         static bool RememberLastUsedOn()
         {
             return SeneaLHudLayoutPlugin.ChatSettingsOn()
@@ -276,7 +369,7 @@ namespace SeneaLHudLayout
 
         static bool UsesShout()
         {
-            return !RememberLastUsedOn() || LastChannel() != SayValue;
+            return AllChatShoutOn() || !RememberLastUsedOn() || LastChannel() != SayValue;
         }
 
         static string LastChannel()

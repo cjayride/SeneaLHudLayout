@@ -21,6 +21,14 @@ namespace SeneaLHudLayout
         static RectTransform _buildPanel;
         static Vector3 _buildPanelBaseScale;
         static bool _buildPanelKnown;
+        static RectTransform _hotbarShift;
+
+        /// <summary>
+        /// The container the hotbar, food, action slots, and quiver live in after this plugin
+        /// re-parents them (null before the first layout pass). Features that ride on the hotbar
+        /// parent to it so they move with it.
+        /// </summary>
+        public static RectTransform HotbarShift => _hotbarShift;
 
         public static void Apply()
         {
@@ -38,6 +46,7 @@ namespace SeneaLHudLayout
             var root = (RectTransform)seneal;
 
             RectTransform hotbarShift = PlaceHotbar(root);
+            _hotbarShift = hotbarShift;
             PlaceHealthFood(root, hotbarShift);
             PlaceMinimap(root);
             PlaceBossBars();
@@ -140,6 +149,12 @@ namespace SeneaLHudLayout
                 Transform child = parent.GetChild(i);
 
                 if (!child.gameObject.activeInHierarchy)
+                    continue;
+
+                // Our own overlays are decoration: the XP card, the slot dim/countdown labels,
+                // glows and marks. None of them may move the hotbar, so none of them counts in
+                // its bounds. (The 1.5.34 potion report: the dim square pushed the hotbar up.)
+                if (child.name.StartsWith("SeneaLHudLayout_"))
                     continue;
 
                 if (child is RectTransform rt)

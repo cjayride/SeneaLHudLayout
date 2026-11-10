@@ -717,6 +717,7 @@ namespace SeneaLHudLayout
 
             Vector3 bl = panel.TransformPoint(new Vector3(InputPad, InputPad, 0f));
             float width = Mathf.Max(40f, panel.rect.width - InputPad * 2f);
+
             FitBox(input, bl, width, InputH);
         }
 
@@ -963,6 +964,24 @@ namespace SeneaLHudLayout
             {
                 return null;
             }
+        }
+
+        /// <summary>The skinned chat panel, for the features that live inside it.</summary>
+        public static RectTransform GetPanel()
+        {
+            return _bound ? Panel() : null;
+        }
+
+        /// <summary>World-space bottom-left corner of a rect.</summary>
+        public static Vector3 GetBottomLeft(RectTransform rt)
+        {
+            return BottomLeft(rt);
+        }
+
+        /// <summary>Size a rect and move its bottom-left corner to a world point.</summary>
+        public static void FitBoxTo(RectTransform rt, Vector3 worldBL, float width, float height)
+        {
+            FitBox(rt, worldBL, width, height);
         }
 
         static Vector3 BottomLeft(RectTransform rt)

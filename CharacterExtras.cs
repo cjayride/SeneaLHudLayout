@@ -52,6 +52,107 @@ namespace SeneaLHudLayout
             TickLevel();
         }
 
+        /// <summary>Player level from SkillsReworked, -1 when unavailable.</summary>
+        public static int Level(Player player)
+        {
+            return ReadLevel(player);
+        }
+
+        /// <summary>
+        /// Progress through the current level, 0-1, -1 when unavailable. Call this before
+        /// <see cref="Xp"/>: it resolves the SkillsReworked reflection the XP numbers need.
+        /// </summary>
+        public static float Fraction(Player player)
+        {
+            return ReadLevelFraction(player);
+        }
+
+        /// <summary>Current and required XP for the current level, in the same units the +X XP notices use.</summary>
+        public static void Xp(Player player, out float current, out float required)
+        {
+            ReadLevelXp(player, out current, out required);
+        }
+
+        /// <summary>XP number as the character-window bar writes it.</summary>
+        public static string XpText(float value)
+        {
+            return FormatXp(value);
+        }
+
+        /// <summary>Solid white sprite, the same one the character-window bar fills use.</summary>
+        public static Sprite PixelSprite()
+        {
+            return Pixel();
+        }
+
+        /// <summary>Copy the character-window level's font so a HUD copy of the bar matches it.</summary>
+        public static void CopyLevelFont(TextMeshProUGUI label)
+        {
+            if (label == null)
+            {
+                return;
+            }
+
+            if (_level != null && _level.font != null)
+            {
+                label.font = _level.font;
+                if (_level.fontSharedMaterial != null)
+                {
+                    label.fontSharedMaterial = _level.fontSharedMaterial;
+                }
+            }
+            else if (TMP_Settings.defaultFontAsset != null)
+            {
+                label.font = TMP_Settings.defaultFontAsset;
+            }
+        }
+
+        /// <summary>
+        /// Copy the exact font AND material of the HUD's food-timer label — the same source
+        /// the food-bar player level (ShowLevelFoodBar) copies, which is known to render.
+        /// HUD text labels in Valheim carry their font's baked material; a label that copies
+        /// the font asset but not that material samples the wrong atlas and every glyph
+        /// draws as a random character. Never set outline / shadow / underline on a label
+        /// styled this way: TMP replaces the text material with a clone of the font asset's
+        /// base material, whose atlas reference does not survive on Valheim's atlases.
+        /// </summary>
+        public static void CopyFoodBarFont(TextMeshProUGUI label)
+        {
+            if (label == null)
+            {
+                return;
+            }
+
+            TMP_Text sample = FoodTimerSample();
+            if (sample != null && sample.font != null)
+            {
+                label.font = sample.font;
+                if (sample.fontSharedMaterial != null)
+                {
+                    label.fontSharedMaterial = sample.fontSharedMaterial;
+                }
+
+                return;
+            }
+
+            CopyLevelFont(label);
+        }
+
+        static TMP_Text FoodTimerSample()
+        {
+            Hud hud = Hud.instance;
+            if (hud == null || hud.m_rootObject == null)
+            {
+                return null;
+            }
+
+            Transform seneal = hud.m_rootObject.transform.Find("SeneaLUI_Hud");
+            Transform vitals = seneal != null ? seneal.Find("Food/fx/vitals") : null;
+            RectTransform food = vitals != null ? vitals.Find("food") as RectTransform : null;
+            Transform timer = food != null ? food.Find("time2") : null;
+            return timer != null ? timer.GetComponent<TMP_Text>() : null;
+        }
+
         static void TickLevel()
         {
             bool show = SeneaLHudLayoutPlugin.ShowLevelCharacterWindow != null && SeneaLHudLayoutPlugin.ShowLevelCharacterWindow.Value;
@@ -394,7 +495,21 @@ namespace SeneaLHudLayout
                     return;
                 }
 
-                current = Mathf.Max(0f, skill.m_accumulator);
+                // SkillsReworked feeds the level skill through RaiseSkill, which multiplies
+                // XP by the skill's increase step (0.1) and the global gain rate before it
+                // reaches the accumulator. The +X XP notices report XP before that step,
+                // so divide the raw accumulator numbers back out to show the same units.
+                float unit = 1f;
+                if (skill.m_info != null && skill.m_info.m_increseStep > 0f)
+                {
+                    unit = skill.m_info.m_increseStep;
+                    if (Game.m_skillGainRate > 0f)
+                    {
+                        unit *= Game.m_skillGainRate;
+                    }
+                }
+
+                current = Mathf.Max(0f, skill.m_accumulator) / unit;
                 int levelIndex = Mathf.FloorToInt(skill.m_level);
                 if (_getRequirement != null)
                 {
@@ -405,6 +520,8 @@ namespace SeneaLHudLayout
                     float step = Mathf.Floor(levelIndex + 1f);
                     required = Mathf.Pow(step, 1.5f) * 0.5f + 0.5f;
                 }
+
+                required = required / unit;
             }
             catch (Exception)
             {

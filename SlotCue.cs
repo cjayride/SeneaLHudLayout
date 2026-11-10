@@ -290,6 +290,226 @@ namespace SeneaLHudLayout
             Slots.Add(new Tracked { Slot = slot, Item = null });
         }
 
+        /// <summary>The item a SeneaL UI slot is showing, from the Slot.Set(ItemData) postfix. Null when the
+        /// slot is empty or has not been seen by the patch yet.</summary>
+        public static ItemDrop.ItemData ItemFor(object slot)
+        {
+            if (slot == null)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < Slots.Count; i++)
+            {
+                if (ReferenceEquals(Slots[i].Slot, slot))
+                {
+                    return Slots[i].Item;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// The SeneaL UI action-slot row (HudRoot._hotbar._act), for features that ride on the action
+        /// slots. Empty when SeneaL UI is not driving the HUD.
+        /// </summary>
+        public static List<object> ActionSlots()
+        {
+            return SlotRow("_act");
+        }
+
+        /// <summary>
+        /// The SeneaL UI main hotbar row (HudRoot._hotbar._slots): food, meads, weapons on 1-4.
+        /// 1.5.45: the potion cooldown feature rides this row too, so anything with a consume
+        /// cooldown shows its countdown, not only the potions parked in the action row.
+        /// </summary>
+        public static List<object> HotbarSlots()
+        {
+            return SlotRow("_slots");
+        }
+
+        static List<object> SlotRow(string fieldName)
+        {
+            var result = new List<object>();
+            Type rootType = AccessTools.TypeByName("SeneaLUI.Hud.HudRoot");
+            FieldInfo hotbarField = rootType != null ? AccessTools.Field(rootType, "_hotbar") : null;
+            object hotbar = hotbarField != null ? hotbarField.GetValue(null) : null;
+            if (hotbar == null)
+            {
+                return result;
+            }
+
+            FieldInfo act = AccessTools.Field(hotbar.GetType(), fieldName);
+            Array items = act != null ? act.GetValue(hotbar) as Array : null;
+            if (items == null)
+            {
+                return result;
+            }
+
+            for (int i = 0; i < items.Length; i++)
+            {
+                object slot = items.GetValue(i);
+                if (slot != null)
+                {
+                    Remember(slot);
+                    result.Add(slot);
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>A slot's Root rect (the slot's own box), null when SeneaL UI is absent.</summary>
+        public static RectTransform SlotRoot(object slot)
+        {
+            return _root != null ? _root.GetValue(slot) as RectTransform : null;
+        }
+
+        /// <summary>The slot's count text, used as the font source so timers match the HUD font.</summary>
+        public static TMP_Text SlotCountText(object slot)
+        {
+            return _count != null ? _count.GetValue(slot) as TMP_Text : null;
+        }
+
+        /// <summary>
+        /// Show a whole-seconds countdown inside the slot's VISIBLE face, in the HUD's own font.
+        /// The number's opacity is [Items] PotionCooldownTextOpacity (default 0.65), so the potion
+        /// icon behind it still reads through the digits. size/align tune the box (the potion timer
+        /// asks for a small number at the face's top so the icon below stays visible); the label is
+        /// sized to the face, not the slot root, so Top/Center land on the visible button.
+        /// </summary>
+        public static void ShowSlotSeconds(object slot, TextMeshProUGUI time, float left, TMP_Text fontFrom,
+            float size = 22f, TextAlignmentOptions align = TextAlignmentOptions.Center)
+        {
+            MatchSlotFace(slot, time);
+
+            // 1.5.45: the number can sit off the face's dead centre ([Items] PotionCooldownTextOffsetY,
+            // pixels DOWN from centre, 5 default). Re-applied on every seconds write, so the F1 slider
+            // lands within a second, no restart.
+            float dy = SeneaLHudLayoutPlugin.PotionCooldownTextOffsetY == null
+                ? 0f
+                : SeneaLHudLayoutPlugin.PotionCooldownTextOffsetY.Value;
+            time.rectTransform.anchoredPosition -= new Vector2(0f, dy);
+
+            ShowSeconds(time, left, fontFrom, size, align, false);
+            if (time.gameObject.activeSelf)
+            {
+                float opacity = SeneaLHudLayoutPlugin.PotionCooldownTextOpacity == null
+                    ? 0.65f
+                    : Mathf.Clamp01(SeneaLHudLayoutPlugin.PotionCooldownTextOpacity.Value);
+                time.color = new Color(1f, 1f, 1f, opacity);
+            }
+        }
+
+        /// <summary>
+        /// A full-slot overlay Image (a solid white sprite; colour it and set alpha), created on first
+        /// use under the slot root. Returns null when SeneaL UI is absent.
+        ///
+        /// The overlay matches the slot's VISIBLE face (the _bg image), not the slot root: the root
+        /// box is larger than the button (SeneaL's own layout room), and copying it drew a dim square
+        /// reaching a row below the slots - and square + shift were the same bug (1.5.34 report).
+        /// </summary>
+        public static Image EnsureSlotOverlay(object slot, string name)
+        {
+            RectTransform root = SlotRoot(slot);
+            if (root == null)
+            {
+                return null;
+            }
+
+            Image image = EnsureImage(root, name, root);
+            RectTransform face = SlotFace(slot);
+            if (face != null)
+            {
+                Vector2 mid = FaceCenterInRoot(root, face);
+                RectTransform rt = image.rectTransform;
+                rt.anchorMin = new Vector2(0.5f, 0.5f);
+                rt.anchorMax = new Vector2(0.5f, 0.5f);
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.anchoredPosition = mid;
+
+                // 1.5.44: the dim square read BIGGER than the drawn quick-action button ("it's
+                // probably needs ... another 10 pixels removed from all sizes"). SeneaL's slot face
+                // includes its own border art, and the button image sits inset inside it, so the
+                // square is shrunk by [Items] PotionCooldownInset (10 default) on every side; 0
+                // restores the exact face rect. The countdown number stays centred on the full face.
+                float inset = SeneaLHudLayoutPlugin.PotionCooldownInset == null
+                    ? 0f
+                    : Mathf.Clamp(SeneaLHudLayoutPlugin.PotionCooldownInset.Value, 0f, 40f);
+                rt.sizeDelta = new Vector2(
+                    Mathf.Max(1f, face.rect.width - inset * 2f),
+                    Mathf.Max(1f, face.rect.height - inset * 2f));
+            }
+            else
+            {
+                CopyRect(image.rectTransform, root);
+            }
+
+            return image;
+        }
+
+        /// <summary>The slot's visible face (the _bg image rect), null when absent.</summary>
+        static RectTransform SlotFace(object slot)
+        {
+            Image bg = _bg != null ? _bg.GetValue(slot) as Image : null;
+            return bg != null ? bg.rectTransform : null;
+        }
+
+        /// <summary>
+        /// Size a label inside the slot root to the slot's VISIBLE face, so alignment (Top, Center)
+        /// lands on the visible button - the root box is SeneaL's larger layout room, and aligning
+        /// to it drew the text in the padding outside the slot.
+        /// </summary>
+        public static void MatchSlotFace(object slot, TextMeshProUGUI label)
+        {
+            RectTransform root = SlotRoot(slot);
+            RectTransform face = SlotFace(slot);
+            if (root == null || face == null || label == null)
+            {
+                return;
+            }
+
+            Vector2 mid = FaceCenterInRoot(root, face);
+            RectTransform rt = label.rectTransform;
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = mid;
+            rt.sizeDelta = face.rect.size;
+        }
+
+        /// <summary>
+        /// The slot face's centre expressed as an anchoredPosition for a child of the slot root that
+        /// uses centre anchors. InverseTransformPoint alone is NOT an anchoredPosition: it is measured
+        /// from the root's PIVOT, while centre anchors are measured from the rect CENTRE. A root with
+        /// a corner pivot (SeneaL's action-slot roots, the potion row) put every overlay right by
+        /// (0.5-pivot.x)*width and down by (0.5-pivot.y)*height - the potion cooldown square landed
+        /// "down and right from the actual drawn slot" (1.5.43 report). Subtracting the pivot-to-centre
+        /// vector lands the child on the face for any root pivot.
+        /// </summary>
+        static Vector2 FaceCenterInRoot(RectTransform root, RectTransform face)
+        {
+            Vector3 mid = root.InverseTransformPoint(face.TransformPoint(face.rect.center));
+            float ax = (0.5f - root.pivot.x) * root.rect.width;
+            float ay = (0.5f - root.pivot.y) * root.rect.height;
+            return new Vector2(mid.x - ax, mid.y - ay);
+        }
+
+        /// <summary>The SeneaL UI Slot type, null when SeneaL UI is absent.</summary>
+        public static Type SlotType
+        {
+            get
+            {
+                if (_slotType == null)
+                {
+                    _slotType = AccessTools.TypeByName("SeneaLUI.Components.Slot");
+                }
+
+                return _slotType;
+            }
+        }
+
         static void AfterRefresh(object __instance)
         {
             if (__instance == null || _state == null || _bg == null)
@@ -1026,6 +1246,18 @@ namespace SeneaLHudLayout
 
         static void ShowSeconds(TextMeshProUGUI time, float left, TMP_Text fontFrom)
         {
+            ShowSeconds(time, left, fontFrom, 22f, TextAlignmentOptions.Center);
+        }
+
+        static void ShowSeconds(TextMeshProUGUI time, float left, TMP_Text fontFrom,
+            float size, TextAlignmentOptions align)
+        {
+            ShowSeconds(time, left, fontFrom, size, align, true);
+        }
+
+        static void ShowSeconds(TextMeshProUGUI time, float left, TMP_Text fontFrom,
+            float size, TextAlignmentOptions align, bool stretchToParent)
+        {
             int seconds = Mathf.CeilToInt(left);
             bool show = seconds >= 1;
             time.gameObject.SetActive(show);
@@ -1053,14 +1285,17 @@ namespace SeneaLHudLayout
 
             time.text = seconds.ToString();
             time.color = Color.white;
-            time.fontSize = 22f;
+            time.fontSize = size;
             time.fontStyle = FontStyles.Bold;
-            time.alignment = TextAlignmentOptions.Center;
+            time.alignment = align;
             RectTransform rt = time.rectTransform;
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
+            if (stretchToParent)
+            {
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+            }
             rt.localScale = Vector3.one;
             rt.SetAsLastSibling();
         }
@@ -1078,11 +1313,16 @@ namespace SeneaLHudLayout
 
         static TextMeshProUGUI EnsureTime(Transform parent)
         {
-            Transform existing = parent.Find(TimeName);
+            return EnsureTimeNamed(parent, TimeName);
+        }
+
+        static TextMeshProUGUI EnsureTimeNamed(Transform parent, string name)
+        {
+            Transform existing = parent.Find(name);
             TextMeshProUGUI label = existing ? existing.GetComponent<TextMeshProUGUI>() : null;
             if (!label)
             {
-                var go = new GameObject(TimeName, typeof(RectTransform));
+                var go = new GameObject(name, typeof(RectTransform));
                 go.transform.SetParent(parent, false);
                 label = go.AddComponent<TextMeshProUGUI>();
                 label.alignment = TextAlignmentOptions.Center;
@@ -1100,6 +1340,16 @@ namespace SeneaLHudLayout
             }
 
             return label;
+        }
+
+        /// <summary>
+        /// The named seconds label inside a slot's root, created on first use. Every timer feature
+        /// uses its own name so two timers on one slot never share one text object.
+        /// </summary>
+        public static TextMeshProUGUI EnsureSlotLabel(object slot, string name)
+        {
+            RectTransform root = SlotRoot(slot);
+            return root != null ? EnsureTimeNamed(root, name) : null;
         }
 
         static Image EnsureImage(Transform parent, string name, RectTransform match)

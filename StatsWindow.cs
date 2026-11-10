@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
@@ -32,6 +33,15 @@ namespace SeneaLHudLayout
         static readonly Color SectionTitleColor = new Color(0.9f, 0.78f, 0.48f, 1f);
         static readonly Color SectionIconColor = new Color(0.05f, 0.05f, 0.05f, 1f);
         static readonly FieldInfo StatusEffectTimeField = AccessTools.Field(typeof(StatusEffect), "m_time");
+        static readonly FieldInfo GuardianPowerField = AccessTools.Field(typeof(Player), "m_guardianPower");
+        static readonly Type PassiveModType = ModTypes.Find("PassivePowers", "PassivePowers.PassivePowers");
+        // Passive Powers exposes these as public static readonly fields, not properties.
+        static readonly FieldInfo PassiveBossConfigs = PassiveModType != null
+            ? AccessTools.Field(PassiveModType, "activeBossConfigs")
+            : null;
+        static readonly FieldInfo PassiveMaxPowers = PassiveModType != null
+            ? AccessTools.Field(PassiveModType, "maximumBossPowers")
+            : null;
         static float HeaderStackHeight => HeaderBodyHeight + HeaderRuleHeight + HeaderBottomGap;
 
         static GameObject _window;
@@ -1421,7 +1431,8 @@ namespace SeneaLHudLayout
                     continue;
                 }
 
-                if (se.m_name.IndexOf("guardian", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (se.m_name.IndexOf("guardian", StringComparison.OrdinalIgnoreCase) >= 0
+                    || se.m_name.StartsWith("PassivePowers", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
@@ -1450,15 +1461,228 @@ namespace SeneaLHudLayout
         static void AddGuardian(Player player)
         {
             player.GetGuardianPowerHUD(out StatusEffect se, out float cooldown);
-            if (se == null)
+            string name = se != null && !string.IsNullOrEmpty(se.m_name)
+                ? (Localization.instance != null ? Localization.instance.Localize(se.m_name) : se.m_name)
+                : "";
+            string cd = cooldown > 0.5f ? FormatTime(cooldown) + " CD" : "Ready";
+            Row("Forsaken power", name.Length > 0 ? name + " · " + cd : cd);
+            AddGuardianPowers(player);
+        }
+
+        /// <summary>
+        /// One row per equipped boss power (Passive Powers equips up to "Maximum boss
+        /// powers", 2 in the pack): name + passive state — "Active 1m 59s" while the
+        /// activation buff runs (120 s), "Depleted 1m 45s" during the lockout (120 s),
+        /// "Passive" at rest — then the power's passive lines from the mod's own config,
+        /// the same text the boss stone tooltip builds. Nothing without Passive Powers
+        /// installed; vanilla's single power stays on the Forsaken power row.
+        /// </summary>
+        static void AddGuardianPowers(Player player)
+        {
+            if (player == null
+                || PassiveModType == null
+                || GuardianPowerField == null
+                || (SeneaLHudLayoutPlugin.StatsGuardianPowers != null && !SeneaLHudLayoutPlugin.StatsGuardianPowers.Value))
             {
-                Row("Forsaken power", "—");
                 return;
             }
 
-            string cd = cooldown > 0.5f ? FormatTime(cooldown) + " CD" : "Ready";
-            string name = Localization.instance != null ? Localization.instance.Localize(se.m_name) : se.m_name;
-            Row("Forsaken power", name + " · " + cd);
+            List<string> powers = new List<string>();
+            string raw = GuardianPowerField.GetValue(player) as string;
+            if (!string.IsNullOrEmpty(raw))
+            {
+                string[] parts = raw.Split(',');
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    string part = parts[i].Trim();
+                    if (part.Length > 0)
+                    {
+                        powers.Add(part);
+                    }
+                }
+            }
+
+            int slots = Mathf.Clamp(2, 1, 7);
+            object maxEntry = PassiveMaxPowers != null ? PassiveMaxPowers.GetValue(null) : null;
+            if (maxEntry is ConfigEntry<int> max)
+            {
+                slots = Mathf.Clamp(max.Value, 1, 7);
+            }
+
+            slots = Mathf.Max(slots, powers.Count);
+            if (slots > 7)
+            {
+                slots = 7;
+            }
+
+            if (powers.Count == 0)
+            {
+                Row("Guardian powers", "—");
+                return;
+            }
+
+            RowLabelOnly("Guardian powers");
+
+            for (int i = 0; i < slots; i++)
+            {
+                if (i >= powers.Count)
+                {
+                    Row("", "—");
+                    continue;
+                }
+
+                string key = powers[i];
+                string name = GuardianPowerName(key);
+                Row("", name + " · " + GuardianPowerState(player, key));
+                List<string> descs = GuardianPowerDescriptions(key, "passive");
+                for (int d = 0; d < descs.Count; d++)
+                {
+                    Row("", "· " + descs[d]);
+                }
+            }
+        }
+
+        static string GuardianPowerName(string key)
+        {
+            StatusEffect se = ObjectDB.instance != null
+                ? ObjectDB.instance.GetStatusEffect(key.GetStableHashCode())
+                : null;
+            if (se == null || string.IsNullOrEmpty(se.m_name))
+            {
+                return key;
+            }
+
+            return Localization.instance != null ? Localization.instance.Localize(se.m_name) : se.m_name;
+        }
+
+        static string GuardianPowerState(Player player, string key)
+        {
+            float buff = GuardianPowerEffectTime(player, "PassivePowers " + key);
+            if (buff > 0.5f)
+            {
+                return "Active " + FormatTime(buff);
+            }
+
+            float down = GuardianPowerEffectTime(player, "PassivePowers Depletion " + key);
+            if (down > 0.5f)
+            {
+                return "Depleted " + FormatTime(down);
+            }
+
+            return "Passive";
+        }
+
+        static float GuardianPowerEffectTime(Player player, string effectName)
+        {
+            if (player == null)
+            {
+                return 0f;
+            }
+
+            StatusEffect se = player.GetSEMan().GetStatusEffect(effectName.GetStableHashCode());
+            return StatusTime(se);
+        }
+
+        /// <summary>
+        /// Passive (or active) effect lines straight from Passive Powers' own
+        /// config tables (PassivePowers.activeBossConfigs[power].Configs), localized
+        /// with the mod's own key so the stats tab says exactly what the boss stone
+        /// tooltip says. All reflection, all optional.
+        /// </summary>
+        static List<string> GuardianPowerDescriptions(string powerName, string type)
+        {
+            List<string> lines = new List<string>();
+            if (PassiveBossConfigs == null || Localization.instance == null)
+            {
+                return lines;
+            }
+
+            try
+            {
+                IDictionary dict = PassiveBossConfigs.GetValue(null) as IDictionary;
+                if (dict == null || !dict.Contains(powerName))
+                {
+                    return lines;
+                }
+
+                object bossConfig = dict[powerName];
+                if (bossConfig == null)
+                {
+                    return lines;
+                }
+
+                object configs = Member(bossConfig, "Configs");
+                if (!(configs is IEnumerable list))
+                {
+                    return lines;
+                }
+
+                string boxed = type == "active" ? "BoxedActive" : "BoxedPassive";
+                foreach (object cfg in list)
+                {
+                    if (cfg == null)
+                    {
+                        continue;
+                    }
+
+                    int amount = ToInt(Member(cfg, boxed));
+                    if (amount <= 0)
+                    {
+                        continue;
+                    }
+
+                    string desc = Member(cfg, "Desc") as string;
+                    if (string.IsNullOrEmpty(desc))
+                    {
+                        continue;
+                    }
+
+                    string line = Localization.instance.Localize(
+                        "$powers_type_" + type + ": " + desc,
+                        new string[1] { amount.ToString(CultureInfo.InvariantCulture) });
+                    if (!string.IsNullOrEmpty(line))
+                    {
+                        lines.Add(line);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Passive Powers updated its internals: the state row stays, the
+                // description lines drop.
+            }
+
+            return lines;
+        }
+
+        static object Member(object target, string name)
+        {
+            if (target == null)
+            {
+                return null;
+            }
+
+            Type type = target.GetType();
+            FieldInfo field = AccessTools.Field(type, name);
+            if (field != null)
+            {
+                return field.GetValue(target);
+            }
+
+            PropertyInfo property = AccessTools.Property(type, name);
+            return property != null ? property.GetValue(target, null) : null;
+        }
+
+        static int ToInt(object value)
+        {
+            try
+            {
+                return Convert.ToInt32(value, CultureInfo.InvariantCulture);
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
         }
 
         static void AddWeaponSkills(Player player)

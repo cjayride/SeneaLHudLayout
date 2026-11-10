@@ -39,7 +39,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.5.26";
+        public const string VERSION = "1.5.51";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -120,6 +120,14 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> ShowLevelXpBar;
         public static ConfigEntry<bool> FixSkillRespendAfterDeath;
         public static ConfigEntry<bool> ShowLevelFoodBar;
+        public static ConfigEntry<bool> ShowSlotXpBar;
+        public static ConfigEntry<float> ShowSlotXpBarScale;
+        public static ConfigEntry<float> ShowSlotXpBarTrackOpacity;
+        public static ConfigEntry<float> ShowSlotXpBarOpacity;
+        public static ConfigEntry<bool> ShowSlotXpBarBorder;
+        public static ConfigEntry<float> ShowSlotXpBarBorderWidth;
+        public static ConfigEntry<float> ShowSlotXpBarBorderOpacity;
+        public static ConfigEntry<bool> ShowSlotXpBarWhiteNumbers;
         public static ConfigEntry<float> ShowLevelFoodBarOffsetX;
         public static ConfigEntry<float> ShowLevelFoodBarOffsetY;
         public static ConfigEntry<bool> HideMinimapStats;
@@ -135,6 +143,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> StatsTab;
         public static ConfigEntry<KeyboardShortcut> StatsHotkey;
         public static ConfigEntry<bool> StatsPortrait;
+        public static ConfigEntry<bool> StatsGuardianPowers;
         public static ConfigEntry<bool> StatValuesBesideLabels;
         public static ConfigEntry<ItemTipLeftOverflow> ItemTipOverflow;
         public static ConfigEntry<bool> ShowTooltipItemIcon;
@@ -160,6 +169,18 @@ namespace SeneaLHudLayout
         public static ConfigEntry<int> ChatWindowPosY;
         public static ConfigEntry<int> ChatWindowWidth;
         public static ConfigEntry<int> ChatWindowHeight;
+        public static ConfigEntry<float> ChatBackgroundOpacity;
+        public static ConfigEntry<bool> ShoutWhite;
+        public static ConfigEntry<bool> SayLightGrey;
+        public static ConfigEntry<string> ShoutColorHex;
+        public static ConfigEntry<string> SayColorHex;
+        public static ConfigEntry<bool> ChatAlwaysVisible;
+        public static ConfigEntry<bool> AllChatShout;
+        public static ConfigEntry<bool> PotionCooldowns;
+        public static ConfigEntry<float> PotionCooldownTextOpacity;
+        public static ConfigEntry<float> PotionCooldownDimOpacity;
+        public static ConfigEntry<float> PotionCooldownInset;
+        public static ConfigEntry<float> PotionCooldownTextOffsetY;
 
         public const int ChatWindowRecommendedPosX = 84;
         public const int ChatWindowRecommendedPosY = -88;
@@ -186,6 +207,36 @@ namespace SeneaLHudLayout
             HotbarOffsetY = Config.Bind("Hotbar", "OffsetY", 14.5f,
                 new ConfigDescription("Extra vertical nudge in pixels, after BottomLeft placement. Positive moves up.",
                     new AcceptableValueRange<float>(-2000f, 2000f)));
+            ShowSlotXpBar = Config.Bind("Hotbar", "ShowXpBar", false,
+                "Show your level and full SkillsReworked XP bar right of the action slots, at the slots' mid height: "
+                + "Level 42, bar, percent on the top line and the XP numbers underneath, the same data as the character window. "
+                + "Every line sits on a dark thin-bordered plate so it reads over any scenery. "
+                + "Off by default; the CJAYCRAFT pack ships it on.");
+            ShowSlotXpBarScale = Config.Bind("Hotbar", "XpBarScale", 1f,
+                new ConfigDescription(
+                    "Size multiplier for that action-slot XP bar (Hotbar.ShowXpBar): the level line, bar, percent, and XP numbers with their plates. "
+                    + "1 is the character window's own size, 2 doubles it, 0.5 halves it. 0.5-3. Client-only.",
+                    new AcceptableValueRange<float>(0.5f, 3f)));
+            ShowSlotXpBarTrackOpacity = Config.Bind("Hotbar", "XpBarTrackOpacity", 0.75f,
+                new ConfigDescription(
+                    "Black opacity of the action-slot XP bar's track (Hotbar.ShowXpBar): 0.75 (the default) is a dark groove with the gold progress bar standing out; 0.25 shows the scenery through it, 1 is solid black. Applies live, no restart. Client-only.",
+                    new AcceptableValueRange<float>(0f, 1f)));
+            ShowSlotXpBarOpacity = Config.Bind("Hotbar", "XpBarOpacity", 0.75f,
+                new ConfigDescription(
+                    "Black opacity of the action-slot XP bar's BACKDROP plates (Hotbar.ShowXpBar): 0.75 (the default) is a dark card the scenery shows faintly through; 0.5 is see-through (the 1.5.45 default - washed out to invisible over bright scenery), 1 is solid black. Applies live, no restart. Client-only.",
+                    new AcceptableValueRange<float>(0f, 1f)));
+            ShowSlotXpBarBorder = Config.Bind("Hotbar", "XpBarBorder", true,
+                "Draw the gold BORDER line around the action-slot XP bar card (Hotbar.ShowXpBar). The border is four solid line quads (top/bottom/left/right), never a filled rectangle. Off removes it entirely; applies live, no restart. Client-only.");
+            ShowSlotXpBarBorderWidth = Config.Bind("Hotbar", "XpBarBorderWidth", 0.5f,
+                new ConfigDescription(
+                    "Thickness of the action-slot XP bar card's border LINE in HUD pixels (Hotbar.ShowXpBar): 0.5 (the default) is a hairline, 1 is a pixel, 2 is chunky. Scales with Hotbar.XpBarScale; applies live, no restart. Client-only.",
+                    new AcceptableValueRange<float>(0.1f, 4f)));
+            ShowSlotXpBarBorderOpacity = Config.Bind("Hotbar", "XpBarBorderOpacity", 0.15f,
+                new ConfigDescription(
+                    "Gold opacity of the action-slot XP bar card's border (Hotbar.ShowXpBar): 0.15 (the default) is a faint gold edge; 1 is a solid gold line. The gold TEXT keeps full alpha. Applies live, no restart. Client-only.",
+                    new AcceptableValueRange<float>(0f, 1f)));
+            ShowSlotXpBarWhiteNumbers = Config.Bind("Hotbar", "XpBarWhiteNumbers", false,
+                "Draw the action-slot XP bar's NUMBERS in white (Hotbar.ShowXpBar, off by default): the level number, the percentage and the `## / ##` values go white while the words and symbols around them - `Level `, the ` / ` between the values and the `%` - keep the gold text colour. Off keeps everything gold. Applies live, no restart. Client-only.");
 
             LiftHealthAboveHotbar = Config.Bind("HealthFood", "LiftAboveHotbar", true,
                 "Raise the health, food, and guardian-power cluster so it sits above the relocated hotbar.");
@@ -199,9 +250,9 @@ namespace SeneaLHudLayout
                 new ConfigDescription("Max pixel height of the SeneaL player health bar after HealthCapacity sizing. The bar still grows with max HP up to this cap, then stays this tall. Fill is always current / max of that height (updates with HP). SeneaL ticks, keep-space hatch, numbers, shapes, and rune shield are unchanged. HUD editor Fixed length is also capped. 80–800.",
                     new AcceptableValueRange<float>(80f, 800f)));
             bool showLevelFoodBarDefault = ConfigDefault(
-                Config, "HealthFood", "ShowLevelFoodBar", "Character", "ShowLevelFoodBar", true);
+                Config, "HealthFood", "ShowLevelFoodBar", "Character", "ShowLevelFoodBar", false);
             ShowLevelFoodBar = Config.Bind("HealthFood", "ShowLevelFoodBar", showLevelFoodBarDefault,
-                "Show your SkillsReworked level directly under the food timers.");
+                "Show your SkillsReworked level directly under the food timers. Off by default: the level and full XP bar now show next to the action slots (Hotbar.ShowXpBar).");
             float showLevelFoodBarOffsetXDefault = ConfigDefault(
                 Config, "HealthFood", "ShowLevelFoodBarOffsetX", "Character", "ShowLevelFoodBarOffsetX", 12f);
             ShowLevelFoodBarOffsetX = Config.Bind("HealthFood", "ShowLevelFoodBarOffsetX", showLevelFoodBarOffsetXDefault,
@@ -377,7 +428,7 @@ namespace SeneaLHudLayout
             HideChat = Config.Bind("Chat", "HideChat", false,
                 "Hide SeneaL UI's chat window. Chat messages still exist for another chat mod, such as Chatter.");
             ChatSettingsEnabled = Config.Bind("Chat", "ChatSettingsEnabled", false,
-                "Master on/off for every Chat setting except HideChat, HideShoutOverHead, ChatAutoScrollOnNewMessage, ChatWindowRecommendedLayout, and the ChatWindow Pos/Width/Height keys. Off leaves Valheim/SeneaL chat as-is for "
+                "Master on/off for every Chat setting except HideChat, HideShoutOverHead, ChatAutoScrollOnNewMessage, ChatWindowRecommendedLayout, ChatAlwaysVisible, ChatBackgroundOpacity, ShoutWhiteText, ShoutTextColor, SayLightGreyText, SayTextColor, AllChatShout, and the ChatWindow Pos/Width/Height keys. Off leaves Valheim/SeneaL chat as-is for "
                 + "DefaultToShout, RememberLastUsed, ShoutKeepsCapitalization, HideChatPanelDelay, and the chat font keys.");
             DefaultToShout = Config.Bind("Chat", "DefaultToShout", false,
                 "Off keeps Valheim's chat exactly as it is. On, the chat box opens with /s already typed in it, so your first Enter "
@@ -395,11 +446,52 @@ namespace SeneaLHudLayout
                 "Hide shouted chat (yell) above player heads. The shout still appears in the chat log. Independent of ChatSettingsEnabled. Client-only.");
             ChatAutoScrollOnNewMessage = Config.Bind("Chat", "ChatAutoScrollOnNewMessage", true,
                 "When the chat input is closed and a new message arrives, jump the log to the latest lines. Stops you missing chat after scrolling up and clicking away. While the input is open, scroll position is kept. Independent of ChatSettingsEnabled. Client-only.");
-            HideChatPanelDelay = Config.Bind("Chat", "HideChatPanelDelay", 10f,
+            HideChatPanelDelay = Config.Bind("Chat", "HideChatPanelDelay", 12f,
                 new ConfigDescription(
                     "Seconds the chat panel stays visible after the last chat activity, written to the game's own chat hide timer. "
-                    + "The game ships 10. Client-only.",
+                    + "The game ships 10; this mod ships 12. Client-only.",
                     new AcceptableValueRange<float>(1f, 600f)));
+            ChatAlwaysVisible = Config.Bind("Chat", "ChatAlwaysVisible", false,
+                "Leave the chat window always on: it never fades out after the last activity, so the message log is visible on screen "
+                + "all the time. Off restores the normal fade after HideChatPanelDelay. HideChat wins when both are on. Independent of "
+                + "ChatSettingsEnabled. Client-only.");
+            ChatBackgroundOpacity = Config.Bind("Chat", "ChatBackgroundOpacity", 0.25f,
+                new ConfigDescription(
+                    "Opacity of the chat window's dark background (the panel behind the messages and the input box). 1 is SeneaL UI's own "
+                    + "solid glass, 0.25 is a quarter as opaque (the default), 0 hides the fill. The chat text is not faded. Client-only.",
+                    new AcceptableValueRange<float>(0f, 1f)));
+            ShoutWhite = Config.Bind("Chat", "ShoutWhiteText", true,
+                "Print shouted chat in the shout colour below (white by default) in the chat log. Valheim prints shouts in yellow. Off leaves shouts yellow. Independent of ChatSettingsEnabled. Client-only.");
+            ShoutColorHex = Config.Bind("Chat", "ShoutTextColor", "FFFFFF",
+                "Hex RGB colour of shouted chat text when ShoutWhiteText is on, with or without # (for example FFFFFF white, FFD700 Valheim yellow). Empty restores vanilla yellow. Independent of ChatSettingsEnabled. Client-only.");
+            SayLightGrey = Config.Bind("Chat", "SayLightGreyText", true,
+                "Print say / proximity chat in the say colour below (light grey by default) in the chat log, so shouts stand out from it. Valheim prints it white. Off leaves it white. "
+                + "Independent of ChatSettingsEnabled. Client-only.");
+            SayColorHex = Config.Bind("Chat", "SayTextColor", "C7C7C7",
+                "Hex RGB colour of say / proximity chat text when SayLightGreyText is on, with or without # (for example C7C7C7 light grey, FFFFFF white). Empty restores vanilla white. Independent of ChatSettingsEnabled. Client-only.");
+            AllChatShout = Config.Bind("Chat", "AllChatShout", true,
+                "Every chat message is a shout, with no prefixes to type at all. The box opens empty (no /s prefilled, RememberLastUsed is not consulted) and plain text you type is sent as /s. "
+                + "A typed /say (or /w) sends that one message close-range. Console commands are untouched. Needs ChatSettingsEnabled on. Client-only.");
+            PotionCooldowns = Config.Bind("Items", "PotionCooldowns", true,
+                "Show a cooldown countdown on consumables (PotionsPlus potions and other Valheim food/potions) sitting in the SeneaL action "
+                + "slots: while the item's consume cooldown is running, the slot is dimmed and shows the whole seconds left. Off hides it. Client-only.");
+            PotionCooldownTextOpacity = Config.Bind("Items", "PotionCooldownTextOpacity", 0.65f,
+                new ConfigDescription(
+                    "Opacity of the potion cooldown countdown number drawn over the action slot. 1 is solid white (the number hides the potion icon), "
+                    + "0.65 (the default) lets the icon read through it, 0 hides the number. The slot dim below is not faded. Client-only.",
+                    new AcceptableValueRange<float>(0f, 1f)));
+            PotionCooldownDimOpacity = Config.Bind("Items", "PotionCooldownDimOpacity", 0.55f,
+                new ConfigDescription(
+                    "Opacity of the dark tint laid over an action slot while its potion is on cooldown. 0 leaves the slot undimmed and only the number shows. Client-only.",
+                    new AcceptableValueRange<float>(0f, 1f)));
+            PotionCooldownInset = Config.Bind("Items", "PotionCooldownInset", 10f,
+                new ConfigDescription(
+                    "Pixels shaved off EVERY side of the potion cooldown square so it matches the drawn quick-action button instead of reaching past it. 10 (the default) sits inside the button's border art; 0 covers the slot's full face. Applies live, no restart. Client-only.",
+                    new AcceptableValueRange<float>(0f, 40f)));
+            PotionCooldownTextOffsetY = Config.Bind("Items", "PotionCooldownTextOffsetY", 5f,
+                new ConfigDescription(
+                    "Pixels to move the cooldown countdown NUMBER DOWN from the slot's centre (negative moves it up). 5 is the default. Applies live, no restart. Client-only.",
+                    new AcceptableValueRange<float>(-40f, 40f)));
             ChatFontSettingOn = Config.Bind("Chat", "chatMessageFontEnabled", false,
                 "Apply the chat font and size below to the chat log text. Off leaves the font the chat UI (SeneaL UI, Chatter) chose.");
             ChatFontAsset = Config.Bind("Chat", "chatMessageTextFontAsset", "Valheim-AveriaSansLibre",
@@ -478,6 +570,8 @@ namespace SeneaLHudLayout
                 "Open or close the Stats sheet while the inventory is open. Unbound by default.");
             StatsPortrait = Config.Bind("Stats", "StatsPortrait", true,
                 "Show a square Steam portrait next to your name on the Stats sheet.");
+            StatsGuardianPowers = Config.Bind("Stats", "GuardianPowers", true,
+                "Show a Guardian powers section on the Stats sheet: one row per equipped boss power with its passive state (Active with buff time, Depleted with lockout time, Passive at rest) and the passive effect lines from the Passive Powers config. Needs the Passive Powers mod; without it the section does not appear.");
             bool valuesBesideDefault = ConfigDefault(
                 Config,
                 "ItemTooltips",
@@ -570,6 +664,7 @@ namespace SeneaLHudLayout
         {
             ResourceBars.Apply();
             SlotCue.Tick();
+            PotionCooldown.Tick();
             CharacterExtras.Tick();
             KillXpNotice.Tick();
             AdventureJournal.Tick();
@@ -581,6 +676,7 @@ namespace SeneaLHudLayout
             ChatHide.Tick();
             ChatWindowLayout.Tick();
             ChatPrefix.Tick();
+            ChatBackground.Tick();
             ChatFont.Tick();
             BossStars.Tick();
             WishboneKeySlot.Tick();
@@ -591,6 +687,7 @@ namespace SeneaLHudLayout
             }
 
             HudLayout.Apply();
+            ActionSlotXpBar.Tick();
         }
 
         static T ConfigDefault<T>(
