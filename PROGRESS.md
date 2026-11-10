@@ -1,5 +1,52 @@
 # Progress - SeneaLHudLayout
 
+## Current task (2026-11-11): 1.5.51 RELEASED - zip + commit + push + latest tag
+
+User: "code works. make a thunderstore compliant zip file, commit and push to github, tag latest
+release" -> ALL DONE. This turn EXPLICITLY OVERRIDES the standing cjaycraft rule "NO zip, NO github
+push" for this release only; the rule stands for future turns unless the user says otherwise.
+
+### Zip (Thunderstore)
+- Artifact: dist\cjayride-SeneaLHudLayout-1.5.51.zip, 290,947 b,
+  sha256 6a72a535611711493caedb07e28da68122624f04a8399c635703881dc1375523
+- FLAT 5-entry layout copied from the published, accepted 1.5.26 zip: manifest.json, README.md,
+  CHANGELOG.md, icon.png, SeneaLHudLayout.dll (NO folder prefix - Thunderstore rejects nested).
+- DLL in the zip = the shipped build, FileVersion 1.5.51, sha12 C008A7C2204C (bin == installed ==
+  Package == zip). CHANGELOG top header = ## 1.5.51.
+- Two Package fixes for strict compliance (committed):
+  * manifest description 110 -> 63 chars (limit 64): "Rearranges SeneaL UI's HUD: hotbar
+    bottom-left, XP bar, labels."  (the old 110-char text had shipped for years; now legal)
+  * Package\icon.png 256x256 -> 512x512 (documented requirement), LANCZOS upscale, RGBA 136,771 b
+- name SeneaLHudLayout (15 chars, ^[a-zA-Z0-9_]+$), version_number 1.5.51 matches the zip name,
+  deps byte-identical to the accepted 1.5.26 package (denikson-BepInExPack_Valheim-5.4.2360,
+  seneaL-SeneaL_UI-1.2.8) -> unchanged.
+- Thunderstore site itself NOT touched: no TS token in this environment; publishing the zip at
+  thunderstore.io/c/valheim is the user's step (same as every prior release - GitHub carries the zip).
+
+### Git
+- Tool: git is NOT on PATH; use C:\Program Files\Git\cmd\git.exe (gh IS: C:\Program Files\GitHub
+  CLI\gh.exe, authed as cjayride, scopes include repo).
+- Commit 72c34c7 on main "Release 1.5.51: the action-slot XP bar, finished." - 22 files,
+  +4329/-131. First commit of ActionSlotXpBar.cs, PotionCooldown.cs, ChatBackground.cs. Spans
+  1.5.27..1.5.51 (HEAD was b058d27 = v1.5.26).
+- .gitignore keeps the repo SOURCE-ONLY: Package/*.dll, bin/, obj/, dist/, lib/, tools/ ignored
+  (verified with status --ignored), so the DLL travels only in the zip.
+- Pushed: b058d27..72c34c7 main -> main; ANNOTATED tag v1.5.51 (cat-file -t = tag, matching the
+  existing tags) pushed.
+- Release: v1.5.51, title "1.5.51", target main, asset cjayride-SeneaLHudLayout-1.5.51.zip,
+  state uploaded, digest matches local sha256 exactly. Marked **Latest** (1.5.26 lost the flag).
+  https://github.com/cjayride/SeneaLHudLayout/releases/tag/v1.5.51
+- Release notes authored in dist\release-notes-1.5.51.md (body: 1.5.51 specifics + the finished
+  XP bar + the FPS work + the 1.5.27..1.5.51 arc), style copied from the 1.5.26 release.
+
+### NOT released
+- SkyheimCompat 1.2.9: its repo/package (skyheim-patch\) was not part of this request. Unversioned
+  zip is available in ..\dist\compat\ if the user wants the same treatment next.
+
+### Next: FPS hardening pass = 1.5.52 (proposal stands, awaiting go-ahead): TmpFont one-shot,
+WorldHealthText off-path leak + per-plate caches, BossStars/VneiSearch negative caches,
+ResourceBars guard, verify CharacterExtras guards, strip XP Diag/Probe scaffolding.
+
 ## Config audit (2026-11-11): [HealthFood] ShowLevelFoodBar - level under the food timers
 
 User asked: "the xp level under the food timers is already disabled by default in config and in the
