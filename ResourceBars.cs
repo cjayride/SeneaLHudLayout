@@ -28,6 +28,18 @@ namespace SeneaLHudLayout
         static readonly Dictionary<int, SavedText> _saved =
             new Dictionary<int, SavedText>();
 
+        // 1.5.52 FPS: Apply() runs EVERY frame from LateUpdate. Show() scanned
+        // GetComponentsInParent<CanvasGroup> per row and StyleRow scanned
+        // GetComponentsInChildren<TMP_Text> per row, per frame - thousands of Transform walks a
+        // second for three rows that never change. Both scans are now cached by row-root instance
+        // id and re-scan only when a cached entry has been destroyed (rows that survive keep the
+        // cache; Unity's == null on a destroyed object is what invalidates it).
+        static readonly Dictionary<int, List<CanvasGroup>> _fxParents =
+            new Dictionary<int, List<CanvasGroup>>();
+
+        static readonly Dictionary<int, List<TextMeshProUGUI>> _rowTexts =
+            new Dictionary<int, List<TextMeshProUGUI>>();
+
         static readonly List<TextMeshProUGUI> _tmp =
             new List<TextMeshProUGUI>(4);
 
@@ -92,8 +104,25 @@ namespace SeneaLHudLayout
             group.blocksRaycasts = true;
 
             // Keep SeneaLUI's parent FX group from fading the row out.
-            CanvasGroup[] parents =
-                root.GetComponentsInParent<CanvasGroup>(true);
+            int rootId = root.GetInstanceID();
+            if (!_fxParents.TryGetValue(rootId, out List<CanvasGroup> parents))
+            {
+                parents = new List<CanvasGroup>(4);
+                root.GetComponentsInParent(true, parents);
+                _fxParents[rootId] = parents;
+            }
+            else
+            {
+                for (int i = 0; i < parents.Count; i++)
+                {
+                    if (!parents[i])
+                    {
+                        parents.Clear();
+                        root.GetComponentsInParent(true, parents);
+                        break;
+                    }
+                }
+            }
 
             foreach (CanvasGroup parent in parents)
             {
@@ -141,7 +170,27 @@ namespace SeneaLHudLayout
                 _rowRoot.GetValue(row) is RectTransform root &&
                 root)
             {
-                root.GetComponentsInChildren(true, _tmp);
+                int rootId = root.GetInstanceID();
+                if (!_rowTexts.TryGetValue(rootId, out List<TextMeshProUGUI> cached))
+                {
+                    cached = new List<TextMeshProUGUI>(4);
+                    root.GetComponentsInChildren(true, cached);
+                    _rowTexts[rootId] = cached;
+                }
+                else
+                {
+                    for (int i = 0; i < cached.Count; i++)
+                    {
+                        if (!cached[i])
+                        {
+                            cached.Clear();
+                            root.GetComponentsInChildren(true, cached);
+                            break;
+                        }
+                    }
+                }
+
+                _tmp.AddRange(cached);
             }
 
             for (int i = 0; i < _tmp.Count; i++)

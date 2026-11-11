@@ -17,6 +17,10 @@ namespace SeneaLHudLayout
         const float XpBarHeight = 6f;
 
         static Transform _tabs;
+
+        // 1.5.52 FPS: gate for the whole-GUI tabs scan in EnsureLevel (2s retry while _tabs is
+        // null; see the comment there).
+        static float _nextTabsScan;
         static TextMeshProUGUI _level;
         static TextMeshProUGUI _foodLevel;
         static Image _foodPlate;
@@ -549,6 +553,19 @@ namespace SeneaLHudLayout
                 {
                     return false;
                 }
+
+                // 1.5.52 FPS: TickLevel() runs EVERY frame from LateUpdate, and while the
+                // character-window "tabs" node is absent (inventory closed = almost always) the
+                // cache stays null, so the whole-GUI GetComponentsInChildren<Transform>(true)
+                // below re-ran every frame forever - the top unverified per-frame suspicion the
+                // FPS audit raised. Negative-cache: retry on a 2s cadence. The label is then
+                // (re)built within 2s of the window opening, once per session.
+                if (Time.unscaledTime < _nextTabsScan)
+                {
+                    return false;
+                }
+
+                _nextTabsScan = Time.unscaledTime + 2f;
 
                 Transform[] transforms = gui.GetComponentsInChildren<Transform>(true);
                 for (int i = 0; i < transforms.Length; i++)

@@ -55,6 +55,9 @@ namespace SeneaLHudLayout
         static Vector2 _logPos;
         static Vector2 _logSize;
         static bool _clipped;
+
+        // 1.5.52 FPS: the text object the clip style was applied to (see OnBeforeRender).
+        static TMP_Text _clipStyled;
         static bool _renderHooked;
         static bool _rendering;
         static int _clipLines;
@@ -125,8 +128,111 @@ namespace SeneaLHudLayout
             Bind(SeneaLHudLayoutPlugin.ChatWindowHeight);
         }
 
+        // 1.5.53: chat behind ALL the windows, by canvas order. The 1.5.52 probe settled the
+        // shape at runtime (three full canvas ladders in LogOutput.log):
+        //  - invVisible=0 on every inventory edge: SeneaL UI replaces the vanilla InventoryGui,
+        //    so the crafting window the user crafts in is VNEI's ("VNEI(Clone)(ov=630)"), and the
+        //    1.5.52 sibling push keyed on InventoryGui.IsVisible() never fired.
+        //  - NO canvas anywhere was flagged CHAT while chat was hidden: the canvas that governs
+        //    the skinned panel (Terminal.m_chatWindow = "Chat_box", panel = Chat_box/SeneaLUI_chat)
+        //    is only in the active list when the chat is SHOWN - and when shown it draws over the
+        //    600/630 windows, which is the user's complaint.
+        // The fix is order, not siblings: every Canvas inside the chat window's subtree is pinned
+        // to sortingOrder 300 - the tier the vanilla "Chat" canvas already uses (the probe shows
+        // "Chat(ov=300)"), which sits below HUD(400), inventory(600), VNEI(630), everything. This
+        // reproduces vanilla's own chat layering for the skinned window. Writes only on drift.
+        const int ChatTier = 300;
+
+        static int _chatSubtreeId;
+        static Canvas[] _chatCanvases;
+
+        static void PinChatCanvasesBehindWindows()
+        {
+            Chat chat = Chat.instance;
+            RectTransform win = chat != null ? chat.m_chatWindow : null;
+            if (win == null)
+            {
+                return;
+            }
+
+            int id = win.GetInstanceID();
+            if (id != _chatSubtreeId || _chatCanvases == null)
+            {
+                _chatCanvases = win.GetComponentsInChildren<Canvas>(true);
+                _chatSubtreeId = id;
+            }
+            else
+            {
+                // The chat window rebuilds its children when the skin changes; a destroyed
+                // canvas reads null, which re-collects the list once.
+                for (int i = 0; i < _chatCanvases.Length; i++)
+                {
+                    if (!_chatCanvases[i])
+                    {
+                        _chatCanvases = win.GetComponentsInChildren<Canvas>(true);
+                        break;
+                    }
+                }
+            }
+
+            Canvas[] canvases = _chatCanvases;
+
+            // The panel's draw tier is decided by the NEAREST Canvas ancestor: if the chat window
+            // owns no canvas, that is the IngameGui tree canvas, and a skinned panel with its own
+            // high-sorted canvas (SeneaL UI sorts its windows 28000-32600) sails over the 600/630
+            // windows. Guarantee the chat window carries a canvas first, then pin every canvas the
+            // chat subtree owns (all of them, root included - they are chat's by definition) to the
+            // vanilla chat tier. The one canvas never touched is the IngameGui root OUTSIDE the
+            // subtree: it governs the whole HUD, not the chat.
+            Canvas onWindow = win.GetComponent<Canvas>();
+            if (onWindow == null)
+            {
+                onWindow = win.gameObject.AddComponent<Canvas>();
+                canvases = win.GetComponentsInChildren<Canvas>(true);
+                _chatCanvases = canvases;
+            }
+
+            for (int i = 0; i < canvases.Length; i++)
+            {
+                Canvas canvas = canvases[i];
+                if (!canvas)
+                {
+                    continue;
+                }
+
+                bool isRoot = canvas.rootCanvas == canvas;
+                if (isRoot)
+                {
+                    // A ROOT canvas in the chat subtree (SeneaL UI roots its windows, the vanilla
+                    // "Chat" roots at 300): the order alone decides, overrideSorting is inert.
+                    if (canvas.overrideSorting)
+                    {
+                        canvas.overrideSorting = false;
+                    }
+
+                    if (canvas.sortingOrder != ChatTier)
+                    {
+                        canvas.sortingOrder = ChatTier;
+                    }
+                }
+                else
+                {
+                    if (!canvas.overrideSorting || canvas.sortingOrder != ChatTier)
+                    {
+                        canvas.overrideSorting = true;
+                        canvas.sortingOrder = ChatTier;
+                    }
+                }
+            }
+        }
+
+        // 1.5.52: chat behind the inventory/crafting windows. Vanilla writes ZERO sortingOrder
+        // (verified across the decompiled Assembly-CSharp) and SeneaL UI's high canvases
+        // (28000+, verified in the decompiled SeneaL-UI) do NOT carry the inventory windows - so
         public static void Tick()
         {
+            PinChatCanvasesBehindWindows();
+
             if (!_bound || Hidden())
             {
                 return;
@@ -679,9 +785,22 @@ namespace SeneaLHudLayout
             {
                 if (_clipped && chat.m_output != null)
                 {
-                    chat.m_output.alignment = TextAlignmentOptions.BottomLeft;
-                    chat.m_output.overflowMode = TextOverflowModes.Overflow;
-                    chat.m_output.textWrappingMode = TextWrappingModes.Normal;
+                    // 1.5.52 FPS: ForceMeshUpdate(true, true) is the most expensive TMP call in
+                    // the game, and this hook runs on EVERY canvas render (per frame). TMP's
+                    // ForceMeshUpdate is internally a no-op when the text/geometry is already
+                    // clean; the ONLY per-frame work that matters is the three property writes
+                    // below, and setting alignment/overflow/wrapping marks the text dirty when
+                    // the value CHANGES - so a frame of ForceMeshUpdate after the first
+                    // application is pure waste. Apply the style once; re-apply when the panel
+                    // rebuilds (the clip helper re-marks it) or the text object changes.
+                    if (chat.m_output != _clipStyled)
+                    {
+                        _clipStyled = chat.m_output;
+                        chat.m_output.alignment = TextAlignmentOptions.BottomLeft;
+                        chat.m_output.overflowMode = TextOverflowModes.Overflow;
+                        chat.m_output.textWrappingMode = TextWrappingModes.Normal;
+                    }
+
                     chat.m_output.ForceMeshUpdate(true, true);
                 }
 
@@ -760,6 +879,7 @@ namespace SeneaLHudLayout
                 _savedStyle = false;
             }
 
+            _clipStyled = null;
             _clipped = false;
             RestoreVisible(Chat.instance);
             if (_clip != null)
@@ -886,6 +1006,7 @@ namespace SeneaLHudLayout
                 _clip = null;
             }
 
+            _clipStyled = null;
             _clipped = false;
             if (win == null)
             {

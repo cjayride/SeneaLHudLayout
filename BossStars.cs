@@ -6,6 +6,11 @@ namespace SeneaLHudLayout
     {
         static Transform _bosses;
 
+        // 1.5.52 FPS: FindNamed below walks the whole SeneaLUI_Hud subtree, and when there is no
+        // "bosses" node (no boss bars earned yet - the common case) the cache stays null and the
+        // walk re-ran EVERY FRAME while HideBossStars is on. Negative-cache: retry on a 2s gate.
+        static float _nextScan;
+
         public static void Tick()
         {
             if (SeneaLHudLayoutPlugin.HideBossStars == null || !SeneaLHudLayoutPlugin.HideBossStars.Value)
@@ -15,6 +20,12 @@ namespace SeneaLHudLayout
 
             if (_bosses == null)
             {
+                if (Time.unscaledTime < _nextScan)
+                {
+                    return;
+                }
+
+                _nextScan = Time.unscaledTime + 2f;
                 Hud hud = Hud.instance;
                 Transform root = hud != null && hud.m_rootObject != null
                     ? hud.m_rootObject.transform.Find("SeneaLUI_Hud")

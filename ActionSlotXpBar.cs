@@ -255,13 +255,6 @@ namespace SeneaLHudLayout
                 _fontApplied = HasFoodFont(_level);
             }
 
-            if (!_diagDone && Time.unscaledTime >= _diagAt)
-            {
-                _diagDone = true;
-                Debug.Log("[SeneaL HUD Layout] XP diag: " + Diag());
-                Debug.Log("[SeneaL HUD Layout] XP cover: " + Probe());
-            }
-
             if (Time.unscaledTime >= _nextData)
             {
                 _nextData = Time.unscaledTime + DataInterval;
@@ -664,13 +657,8 @@ namespace SeneaLHudLayout
             _placedTrack = float.NaN;
             _placedPlate = float.NaN;
             _placedBorder = null;
-            _diagAt = Time.unscaledTime + 2f;
-            _diagDone = false;
             return true;
         }
-
-        static float _diagAt;
-        static bool _diagDone;
 
         // The card's own canvas, sorted just above the HUD canvas so foreign hotbar overlays
         // cannot paint over it. The HUD canvas's order is re-read on the data cadence because
@@ -701,69 +689,6 @@ namespace SeneaLHudLayout
             {
                 _cardCanvas.sortingOrder = want;
             }
-        }
-
-        /// <summary>
-        /// The card's live state, one log line: colours, sprites, sizes, the label font material
-        /// (the copied SeneaL food-timer material is the last unproven suspect for the pale-yellow
-        /// panel) and every CanvasGroup alpha above the card. This ends the guessing: the user
-        /// pastes one line and the yellow pixel is identified.
-        /// </summary>
-        static string Diag()
-        {
-            var sb = new System.Text.StringBuilder(512);
-            sb.Append("plateTop ").Append(Box(_plateTop));
-            sb.Append(" | plateAmount ").Append(Box(_plateAmount));
-            sb.Append(" | borderTop ").Append(Box(_borderTop));
-            sb.Append(" | borderBottom ").Append(Box(_borderBottom));
-            sb.Append(" | borderLeft ").Append(Box(_borderLeft));
-            sb.Append(" | borderRight ").Append(Box(_borderRight));
-            sb.Append(" | bar ").Append(Box(_back));
-            sb.Append(" | fill ").Append(Box(_fill));
-            sb.Append(" | fillCol ").Append(ColorText(_fill.color));
-            sb.Append(" | barCol ").Append(ColorText(_back.color));
-            sb.Append(" | plateCol ").Append(ColorText(_plateTop.color));
-            sb.Append(" | scale ").Append(_scale.ToString("F2"));
-            // 1.5.47: the border is four line quads; their colour IS the border, no sprite centre.
-            sb.Append(" | borderCol ").Append(ColorText(_borderTop.color));
-            sb.Append(" | canvas ").Append(_cardCanvas != null
-                ? _cardCanvas.sortingOrder.ToString()
-                : "none");
-
-            Material m = _level != null ? _level.fontSharedMaterial : null;
-            if (m != null)
-            {
-                sb.Append(" | labelMat ").Append(m.name)
-                  .Append(" glow=").Append(Float(m, "_GlowPower"))
-                  .Append(" glowOuter=").Append(Float(m, "_GlowOuter"))
-                  .Append(" underlay=").Append(Float(m, "_UnderlayPower"));
-            }
-
-            Transform t = _root;
-            for (int depth = 0; t != null && depth < 8; ++depth, t = t.parent)
-            {
-                CanvasGroup group = t.GetComponent<CanvasGroup>();
-                if (group != null)
-                {
-                    sb.Append(" | cg:").Append(t.name).Append('=').Append(group.alpha.ToString("F2"));
-                }
-            }
-
-            return sb.ToString();
-        }
-
-        static string Box(Image image)
-        {
-            if (image == null)
-            {
-                return "null";
-            }
-
-            Vector2 size = image.rectTransform.sizeDelta;
-            return image.name
-                + " size(" + size.x.ToString("F0") + "x" + size.y.ToString("F0") + ")"
-                + " sprite=" + (image.sprite != null ? image.sprite.name : "-")
-                + " on=" + image.enabled;
         }
 
         static string ColorText(Color c)
@@ -959,85 +884,6 @@ namespace SeneaLHudLayout
             return hit.width * hit.height / area;
         }
 
-        /// <summary>
-        /// Names the cover: the 1.5.41 user report says the yellow sits ON TOP of the whole bar,
-        /// so the culprit is some OTHER mod's graphic drawn over the card, not one of ours (the
-        /// diag proved ours are all dark). This computes the bar's screen rect, then walks every
-        /// active Graphic in the scene and lists the ones whose screen rect overlaps the bar -
-        /// name, live colour, sprite. Runs ONCE, 2s after the card builds. With the card now on
-        /// its own sorting canvas this list should come back clean; if the yellow survives, the
-        /// line names the exact object.
-        /// </summary>
-        static string Probe()
-        {
-            if (_back == null)
-            {
-                return "no bar";
-            }
-
-            Canvas canvas = _root.GetComponentInParent<Canvas>();
-            Canvas rootCanvas = canvas != null ? canvas.rootCanvas : null;
-            Camera cam = rootCanvas != null && rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay
-                ? rootCanvas.worldCamera
-                : null;
-
-            Rect bar = ScreenRect(_back.rectTransform, cam);
-            if (bar.width < 2f || bar.height < 2f)
-            {
-                return "bar off screen " + RectText(bar);
-            }
-
-            var sb = new System.Text.StringBuilder(512);
-            sb.Append("bar").Append(RectText(bar));
-            int shown = 0;
-
-            Graphic[] all = UnityEngine.Object.FindObjectsOfType<Graphic>();
-            for (int i = 0; i < all.Length; ++i)
-            {
-                Graphic graphic = all[i];
-                if (graphic == null || !graphic.isActiveAndEnabled || graphic.canvasRenderer == null)
-                {
-                    continue;
-                }
-
-                Transform t = graphic.transform;
-                bool mine = false;
-                for (int depth = 0; t != null && depth < 12; ++depth, t = t.parent)
-                {
-                    if (t == _root)
-                    {
-                        mine = true;
-                        break;
-                    }
-                }
-
-                if (mine)
-                {
-                    continue;
-                }
-
-                Rect rect = ScreenRect(graphic.rectTransform, cam);
-                if (rect.width < 1f || rect.height < 1f || !rect.Overlaps(bar))
-                {
-                    continue;
-                }
-
-                if (shown++ >= 14)
-                {
-                    sb.Append(" | ...");
-                    break;
-                }
-
-                string sprite = graphic is Image image && image.sprite != null ? image.sprite.name : "-";
-                sb.Append(" | ").Append(Path(graphic.transform))
-                  .Append(" col").Append(ColorText(graphic.color))
-                  .Append(" spr=").Append(sprite)
-                  .Append(" r").Append(RectText(rect));
-            }
-
-            return shown == 0 ? sb.Append(" | CLEAN").ToString() : sb.ToString();
-        }
-
         static Rect ScreenRect(RectTransform rt, Camera cam)
         {
             Vector3[] corners = new Vector3[4];
@@ -1056,12 +902,6 @@ namespace SeneaLHudLayout
             }
 
             return new Rect(minX, minY, maxX - minX, maxY - minY);
-        }
-
-        static string RectText(Rect rect)
-        {
-            return "(" + rect.xMin.ToString("F0") + "," + rect.yMin.ToString("F0") +
-                " " + rect.width.ToString("F0") + "x" + rect.height.ToString("F0") + ")";
         }
 
         static string Path(Transform t)
@@ -1083,11 +923,6 @@ namespace SeneaLHudLayout
             }
 
             return sb.ToString();
-        }
-
-        static string Float(Material m, string name)
-        {
-            return m.HasFloat(name) ? m.GetFloat(name).ToString("F2") : "-";
         }
 
         /// <summary>

@@ -1058,56 +1058,6 @@ namespace SeneaLHudLayout
             _overlayText.overflowMode = TextOverflowModes.Overflow;
         }
 
-        static void ShowOnIcons(ItemDrop.ItemData item, float left)
-        {
-            int seconds = Mathf.CeilToInt(left);
-            Sprite sprite = item != null ? item.GetIcon() : null;
-            var keep = new HashSet<Transform>();
-            if (sprite != null && seconds >= 1)
-            {
-                RememberFont();
-                CollectIcons(InventoryGui.instance != null ? InventoryGui.instance.transform : null, Hud.instance != null ? Hud.instance.transform : null);
-                for (int i = 0; i < IconScan.Count; i++)
-                {
-                    Image image = IconScan[i];
-                    if (!image || !image.isActiveAndEnabled || image.sprite != sprite)
-                    {
-                        continue;
-                    }
-
-                    if (image.name == GlowName || image.name == WashName || image.name == RarityName)
-                    {
-                        continue;
-                    }
-
-                    Rect rect = image.rectTransform.rect;
-                    if (rect.width < 24f || rect.height < 24f)
-                    {
-                        continue;
-                    }
-
-                    TextMeshProUGUI label = EnsureTime(image.transform);
-                    ShowSeconds(label, seconds);
-                    keep.Add(image.transform);
-                }
-            }
-
-            for (int i = Labels.Count - 1; i >= 0; i--)
-            {
-                TextMeshProUGUI label = Labels[i];
-                if (!label)
-                {
-                    Labels.RemoveAt(i);
-                    continue;
-                }
-
-                if (!keep.Contains(label.transform.parent))
-                {
-                    label.gameObject.SetActive(false);
-                }
-            }
-        }
-
         static void RememberFont()
         {
             if (_font != null)
@@ -1121,26 +1071,6 @@ namespace SeneaLHudLayout
                 _font = any.font;
                 _fontMat = any.fontSharedMaterial;
             }
-        }
-
-        static void PaintAction(object slot, bool on, int kind, float left)
-        {
-            RectTransform root = _root != null ? _root.GetValue(slot) as RectTransform : null;
-            if (!root)
-            {
-                return;
-            }
-
-            HideWash(root);
-            TextMeshProUGUI time = EnsureTime(root);
-            if (!on)
-            {
-                time.gameObject.SetActive(false);
-                return;
-            }
-
-            TMP_Text fontFrom = _count != null ? _count.GetValue(slot) as TMP_Text : null;
-            ShowSeconds(time, left, fontFrom);
         }
 
         static void TryAction(Player player, out ItemDrop.ItemData item, out int kind, out float left)

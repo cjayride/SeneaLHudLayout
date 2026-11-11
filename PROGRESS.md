@@ -1,6 +1,157 @@
 # Progress - SeneaLHudLayout
 
-## Current task (2026-11-11): 1.5.51 RELEASED - zip + commit + push + latest tag
+## Current task (2026-11-11): 1.5.54 RELEASED - chat behind windows, verified + cleaned
+
+User (turn 40): "code works. chat is now properly behind the crafting window. cleanup the code if
+you need. prepare the zip file for thunderstore, then commit and push to github, and tag latest
+release". Explicit release ask (standing yes for this release, same scope as 1.5.51).
+
+### Cleanup (the "code works" trim)
+- ChatLayerProbe.cs DELETED (its job - naming the canvas ladder live - is done; the answer is
+  recorded above and in the changelog).
+- PushChatBehindWindows (the 1.5.52 sibling push keyed on the vanilla InventoryGui, which SeneaL
+  UI replaces - it never fired for the user's crafting window) DELETED. The verified pin
+  (PinChatCanvasesBehindWindows, order 300) is the whole fix.
+- Version 1.5.53 -> 1.5.54. Build: 9 warnings (baseline 10 -> probe gone), 0 errors.
+
+### Install + hashes
+- Installed 1.5.54 (bak-1.5.53 kept). bin == installed == Package == zip:
+  sha256 428B5C8D30B606B96FAF6C6F6A160AC47C96C03078B5DF980576E24FF6D9AACE (309,760 b).
+
+### Zip (Thunderstore, flat 5)
+- dist\cjayride-SeneaLHudLayout-1.5.54.zip 291,740 b
+  sha256 6BFB24A65D92BC04D24F7A75DC67054F0236165D3F202B347BA16E1D7D8C48D4
+- verified by extraction: manifest (name pattern OK, ver 1.5.54, desc 63, deps 3-part), icon 512x512
+  RGBA, CHANGELOG top ## 1.5.54, dll FileVersion 1.5.54 sha == installed.
+
+### Git / GitHub (1.5.52..1.5.54 span, HEAD was v1.5.51 = 3c37e10)
+- commit on main "Release 1.5.54: chat behind the windows + the FPS pass." + annotated tag v1.5.54,
+  pushed; release title "1.5.54", asset the zip, marked Latest. (gh release create must run from
+  the asset's directory with a bare filename - gh glob-expands path arguments.)
+
+## Previous task (2026-11-11): 1.5.53 - chat behind the windows, the probe-verified fix
+
+User (turn 39): "the chat window is still displaying on top of the seneal crafting window, the chat
+window needs to be behind". 1.5.52's sibling push keyed on InventoryGui.IsVisible() did NOT fire
+for the window the user crafts in. THE PROBE ANSWERED FROM THE LIVE LOG (12:35 session, 1.5.52):
+
+- `chat layers (inventory-opened): invVisible=0 ...` x ~30: InventoryGui.IsVisible() flips on every
+  window switch, and the crafting window is SeneaL/VNEI's - the vanilla InventoryGui is replaced.
+- CANVAS LADDER (from the dumps): `Inventory_screen(ov=600) root=600 INV`, `VNEI(Clone)(ov=630)
+  root=600`, `HUD(ov=400)`, vanilla `Chat(ov=300) root=300`, SeneaL sorted canvases
+  Select(28000)/Vnei(30900)/Mods(31000)/announceEdge(29000)..., XP card SeneaLHudLayout_SlotXp(401).
+- NO canvas flagged `CHAT` in ANY dump: the dumps all caught chat HIDDEN (FindObjectsOfType =
+  active only). The canvas governing the skinned panel (panel path
+  `_GameMain/LoadingGUI/PixelFix/IngameGui/Chat_box/SeneaLUI_chat`) exists in the active list
+  exactly when chat is VISIBLE - and over the 600/630 windows there, per the report.
+
+### The 1.5.53 fix (ChatWindowLayout.PinChatCanvasesBehindWindows, every Tick)
+Every Canvas the chat window's own subtree owns is pinned to sortingOrder 300 = the vanilla Chat
+tier (the ladder shows `Chat(ov=300)`; 300 < HUD 400 < inventory 600 < VNEI 630 = below all):
+- Chat window gets a Canvas component if it has none (then the IngameGui tree canvas is not the
+  nearest canvas for the panel; the chat subtree owns its tier).
+- ROOT canvases in the subtree: overrideSorting cleared, sortingOrder = 300 (the shape of vanilla's
+  own Chat root).
+- NESTED canvases in the subtree (a SeneaL UI panel canvas sorted 28000+ lives here):
+  overrideSorting = true, sortingOrder = 300.
+- The IngameGui root OUTSIDE the chat subtree is NEVER touched (it governs the whole HUD).
+- Canvas list cached per chat-window instance id; destroyed entry -> one re-collect. Writes only on
+  drift. The 1.5.52 sibling push stays (second layer, vanilla inventory only).
+
+### Probe (stays in 1.5.53)
+- New `chat subtree canvases (<reason>)` line: inactive-inclusive walk of the chat window subtree
+  - names the governing canvases + live orders EVEN when chat is hidden (the 1.5.52 blind spot).
+- New once-per-session dump `chat layers (panel-visible)` the moment the panel is activeInHierarchy.
+- Edge dumps throttled to 1/5s (the 1.5.52 log flooded: ~30 full ladders per session).
+
+### Build / install
+- BuildStaged: exit 0, 10 warnings baseline. First 1.5.53 build (pre-refinement, root-skip)
+  briefly installed (sha EE0AE5..., bak-1.5.53); FINAL build = root-aware pin,
+  sha256 C963C70F0046BE146136E1987F2B4919D17E2613E5EC18EC9B56B84A2A57EEBD, bin == installed ==
+  Package. (Installed DLL was NOT locked by the running game - Windows allowed the overwrite.)
+- Manifest 1.5.53, CHANGELOG new top section, README/Package README chat-behind-every-window line,
+  DiffReadme = 0.
+
+### Awaiting user (FULL restart - the running 12:35 session still has 1.5.52 loaded)
+- Expect `XP bar built, v1.5.53`; open the crafting window with chat visible; confirm chat is now
+  BEHIND the crafting panel; grab the `chat subtree canvases (panel-visible)` line (proof of the
+  canvas shape + our 300 pin) if anything looks off. If chat is STILL on top, that one line names
+  the exact canvas that evaded the pin and the follow-up is exact, not a guess.
+
+## Previous task (2026-11-11): 1.5.52 - chat behind the windows + FPS pass 1
+
+User: "when the chat window is visible, it is floating on top of my crafting window if i have the
+crafting window and inventory open. i don't want someone talking in game to disrupt my crafting.
+the chat window should be behind that" (plus the standing ask from turn 31: "make sure our work
+here doesn't compromise FPS").
+
+### Chat draw order (the actual fix)
+- EVIDENCE, not guess: vanilla Assembly-CSharp (ilspycmd decompile, $env:TEMP\vanilla_full) writes
+  ZERO sortingOrder; SeneaL-UI (decompiled to $env:TEMP\senealui, 427 files) sorts its OWN canvases
+  from 28000 (drag Selection) to 32600 (BuildBadge) and has NO canvas for InventoryView/CraftView.
+  => the skinned chat panel (child of Terminal.m_chatWindow) and the inventory/crafting windows are
+  plain SIBLINGS under the root HUD canvas; on one canvas Unity draws in SIBLING ORDER, and the
+  chat window sits later in the tree => messages over the crafting panel.
+- FIX (ChatWindowLayout.PushChatBehindWindows, at the head of Tick, one edge check per frame): on
+  the InventoryGui.IsVisible() edge -> true, save the chat window's sibling index and
+  SetAsFirstSibling(); on -> false, restore it (clamped to childCount-1). Two transform writes per
+  open. No config key: the user's requirement is unconditional.
+- ChatLayerProbe.cs STAYS (one-shot, edge-driven) as verification: logs the full active canvas
+  ladder + CHAT/INV flags + sibling ranks at panel-built and inventory-opened. If the user's log
+  shows chat and INV on DIFFERENT canvases, the sibling fix is not enough and the probe's numbers
+  name the canvas that needs a sortingOrder override. Strip the probe once the log confirms it.
+
+### FPS pass 1 (audit-approved plan, no visual change)
+- TmpFont.cs: the two Resources.FindObjectsOfTypeAll scans -> 2s retry gate (_nextScan).
+- BossStars.cs: FindNamed(root,"bosses") whole-subtree walk -> 2s gate.
+- VneiSearch.cs: shared _nextHeavyScan (2s) gates the assembly loop in Bind(), the
+  FindObjectsOfTypeAll(_uiType) in Window() and FindCraft in EnsureButton(); the label
+  ForceMeshUpdate + sizeDelta now only runs when the text actually CHANGED.
+- ResourceBars.cs: _fxParents / _rowTexts cache the per-root GetComponentsInParent/Children
+  results (destroyed-entry re-scan) - they re-ran EVERY frame per bar.
+- WorldHealthText.cs: THE big one. FindForeignLevel ran GetComponentsInChildren<TMP_Text>(true) +
+  a Regex on every text of every visible plate EVERY frame -> per-plate component cache +
+  per-plate matched-label cache (regex re-checks the one cached string, which is how a level-up
+  invalidates it). Plus the OFF-path leak: ReleasePlate is now called ONCE per plate id
+  (_releasedPlates), cleared when the feature comes back on. Dead public Tick() removed (the
+  Harmony postfix is the only entry point).
+- CharacterExtras.cs: EnsureLevel() ran a whole-InventoryGui GetComponentsInChildren<Transform>
+  EVERY frame while _tabs == null (inventory closed = always) -> 2s _nextTabsScan gate.
+  TrySampleCraftInnerFill's scan is NOT per-frame (called from StatsWindow's chrome refresh,
+  0.75s cadence while that panel is open) - left alone.
+- PowersLayout.cs: FindPowerIcon runs per visible power EVERY frame; its Image-scan last resort
+  re-ran every frame when a container has no image (null cache). Now memoized per container id
+  with a 2s miss retry; the cheap named "power" probe stays live over the cache.
+- ChatWindowLayout.cs: OnBeforeRender (Canvas.willRenderCanvases, EVERY canvas render) set
+  alignment/overflow/wrapping + ForceMeshUpdate(true,true) unconditionally; the style is now
+  applied once per text object (_clipStyled) and TMP's own dirtiness makes the per-frame
+  ForceMeshUpdate the cheap no-op it should be. Cleared with _clipped.
+- SlotCue.cs: deleted two dead per-frame scanners (ShowOnIcons scans EVERY icon in the HUD via
+  CollectIcons; PaintAction) - zero call sites, grep-verified.
+- ActionSlotXpBar.cs: shipped-scaffolding stripped - Diag()/Probe() and their helpers (Box,
+  Float, RectText) + _diagAt/_diagDone. KillLabelGlow and GuardCover STAY (live behaviour).
+
+### Build / install
+- tools\BuildStaged.ps1: exit 0, 10 warnings (baseline), 0 errors, FileVersion 1.5.52.
+- tools\InstallTest.ps1: backup SeneaLHudLayout.dll.bak-1.5.51, installed 1.5.52, 310,784 b.
+- SHA256 bin == installed == Package\SeneaLHudLayout.dll =
+  C05A3420B28C588B6233E6E2EA0D3CA37DCC374D2D46D15A5DB39002CA437913
+- Package\manifest.json 1.5.51 -> 1.5.52 (description/deps untouched), CHANGELOG.md new top
+  section, README.md + Package\README.md: the chat-behind line added under ### Chat,
+  tools\DiffReadme.ps1 = 0 diff lines (207 = 207).
+- Package\icon.png CAUTION: the working tree's icon had regressed to the RAW 256x256 source art
+  (61,876 b, written 2026-11-05, uncommitted), which is NOT Thunderstore-compliant (needs 512x512).
+  git checkout restored the shipped 512x512 RGBA (136,771 b) from HEAD; the raw art is preserved at
+  tools\icon-source-256.png. Do NOT regenerate the 512 by plain LANCZOS - the committed blob
+  (12c10afe) does not reproduce that way; keep the committed file.
+
+### Awaiting user (full restart)
+- Expect in ...\profiles\cjayride-beta_test_cjaycraft_ultimate_modpack-4.4.44\BepInEx\LogOutput.log:
+  "XP bar built, v1.5.52", "chat layers (panel-built)", and on opening the inventory
+  "chat layers (inventory-opened)". Then confirm: chat no longer over the crafting panel, XP card
+  unchanged, cooldowns/labels/resource bars/character level all looking as before.
+
+## 1.5.51 RELEASED - zip + commit + push + latest tag
 
 User: "code works. make a thunderstore compliant zip file, commit and push to github, tag latest
 release" -> ALL DONE. This turn EXPLICITLY OVERRIDES the standing cjaycraft rule "NO zip, NO github
@@ -39,9 +190,11 @@ push" for this release only; the rule stands for future turns unless the user sa
 - Release notes authored in dist\release-notes-1.5.51.md (body: 1.5.51 specifics + the finished
   XP bar + the FPS work + the 1.5.27..1.5.51 arc), style copied from the 1.5.26 release.
 
-### NOT released
-- SkyheimCompat 1.2.9: its repo/package (skyheim-patch\) was not part of this request. Unversioned
-  zip is available in ..\dist\compat\ if the user wants the same treatment next.
+### NOT released (at the time; DONE 2026-11-11 next turn)
+- SkyheimCompat 1.2.9: released "the same way" on request - zip dist\upload\SkyheimCompat-1.2.9.zip
+  (sha256 787A80ABDDEF…), commit d7f233a in the Skyheim repo, annotated tag compat-v1.2.9, GitHub
+  release "Skyheim Compat 1.2.9" marked Latest, asset digest verified. Details in the Skyheim
+  repo's PROGRESS.md.
 
 ### Next: FPS hardening pass = 1.5.52 (proposal stands, awaiting go-ahead): TmpFont one-shot,
 WorldHealthText off-path leak + per-plate caches, BossStars/VneiSearch negative caches,

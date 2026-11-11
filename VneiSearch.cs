@@ -25,6 +25,14 @@ namespace SeneaLHudLayout
         static bool _open;
         static bool _aligned;
 
+        // 1.5.52 FPS: three sites below (Bind's assembly loop, Window's FindObjectsOfTypeAll,
+        // EnsureButton's whole-GUI Transform scan) cache STAYS NULL whenever the VNEI window or
+        // the craft node is absent - which is every frame outside the inventory - and re-ran the
+        // full scan per frame. Same negative-cache shape as PieceHealthLabel: heavy probes retry
+        // on a 2s cadence, and a found window/craft keeps its cache for the session (destroyed
+        // objects read null through Unity's ==, so the cache self-heals when the GUI rebuilds).
+        static float _nextHeavyScan;
+
         public static void Tick()
         {
             if (!Bind())
@@ -61,11 +69,13 @@ namespace SeneaLHudLayout
             if (_label.text != text)
             {
                 _label.text = text;
+                // 1.5.52 FPS: ForceMeshUpdate is the expensive TMP call; it only matters when the
+                // label's text changed (the button says "VNEI" or "Close" and nothing else moves
+                // it), not every frame.
+                _label.ForceMeshUpdate();
+                float width = Mathf.Ceil(_label.preferredWidth) + 16f;
+                _button.GetComponent<RectTransform>().sizeDelta = new Vector2(Mathf.Max(54f, width), 26f);
             }
-
-            _label.ForceMeshUpdate();
-            float width = Mathf.Ceil(_label.preferredWidth) + 16f;
-            _button.GetComponent<RectTransform>().sizeDelta = new Vector2(Mathf.Max(54f, width), 26f);
 
             if (!_button.gameObject.activeSelf)
             {
@@ -89,6 +99,16 @@ namespace SeneaLHudLayout
             {
                 return false;
             }
+
+            // 1.5.52 FPS: this loop walks every loaded assembly (~120 plugins) and calls
+            // GetName() on each. It used to run every frame until InventoryGui.instance exists
+            // to declare VNEI missing. Retry on the shared 2s cadence instead.
+            if (Time.unscaledTime < _nextHeavyScan)
+            {
+                return false;
+            }
+
+            _nextHeavyScan = Time.unscaledTime + 2f;
 
             Assembly assembly = null;
             Assembly[] loaded = AppDomain.CurrentDomain.GetAssemblies();
@@ -183,6 +203,13 @@ namespace SeneaLHudLayout
                 return null;
             }
 
+            if (Time.unscaledTime < _nextHeavyScan)
+            {
+                return null;
+            }
+
+            _nextHeavyScan = Time.unscaledTime + 2f;
+
             UnityEngine.Object[] found = Resources.FindObjectsOfTypeAll(_uiType);
             for (int i = 0; i < found.Length; i++)
             {
@@ -259,6 +286,11 @@ namespace SeneaLHudLayout
 
             if (_craft == null || _button == null)
             {
+                if (Time.unscaledTime < _nextHeavyScan)
+                {
+                    return false;
+                }
+
                 _craft = FindCraft(gui);
                 if (_craft == null)
                 {

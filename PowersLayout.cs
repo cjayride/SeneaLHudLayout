@@ -663,7 +663,59 @@ namespace SeneaLHudLayout
 
             return any;
         }
+        // 1.5.52 FPS: FindPowerIcon is reached per visible power EVERY frame (HudLayout.Apply ->
+        // PowersLayout). The named Find()s are cheap; the GetComponentsInChildren<Image> last
+        // resort is not, and when a container has no image at all it returned null and re-scanned
+        // every frame. Memoize by container instance id: a found icon is kept (Unity's destroyed
+        // object reads null, which invalidates the entry), a MISS retries on a 2s cadence.
+        static readonly System.Collections.Generic.Dictionary<int, RectTransform> _iconCache =
+            new System.Collections.Generic.Dictionary<int, RectTransform>();
+
+        static readonly System.Collections.Generic.Dictionary<int, float> _iconMissAt =
+            new System.Collections.Generic.Dictionary<int, float>();
+
         static RectTransform FindPowerIcon(Transform container)
+        {
+            if (container == null)
+            {
+                return null;
+            }
+
+            int id = container.GetInstanceID();
+            if (_iconCache.TryGetValue(id, out RectTransform cached) && cached)
+            {
+                return ResolveIconName(container, cached);
+            }
+
+            if (_iconMissAt.TryGetValue(id, out float missAt) && Time.unscaledTime < missAt)
+            {
+                return null;
+            }
+
+            RectTransform found = ScanPowerIcon(container);
+            if (found != null)
+            {
+                _iconCache[id] = found;
+                _iconMissAt.Remove(id);
+            }
+            else
+            {
+                _iconCache.Remove(id);
+                _iconMissAt[id] = Time.unscaledTime + 2f;
+            }
+
+            return found;
+        }
+
+        static RectTransform ResolveIconName(Transform container, RectTransform cached)
+        {
+            // The cheap named probe stays live so a layout swap onto the canonical "power" node
+            // wins over a cached image; the cached icon covers the fallback naming.
+            Transform t = container.Find("power");
+            return t is RectTransform rt && rt.gameObject.activeInHierarchy ? rt : cached;
+        }
+
+        static RectTransform ScanPowerIcon(Transform container)
         {
             // SeneaL uses "power"
             Transform t = container.Find("power");

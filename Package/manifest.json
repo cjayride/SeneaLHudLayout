@@ -1,6 +1,6 @@
 {
     "name": "SeneaLHudLayout",
-    "version_number": "1.5.51",
+    "version_number": "1.5.54",
     "website_url": "https://discord.gg/cjayride",
     "description": "Rearranges SeneaL UI's HUD: hotbar bottom-left, XP bar, labels.",
     "dependencies": [

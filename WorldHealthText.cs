@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -44,6 +44,17 @@ namespace SeneaLHudLayout
             }
         }
 
+        static readonly System.Collections.Generic.HashSet<int> _releasedPlates =
+            new System.Collections.Generic.HashSet<int>();
+
+        // 1.5.52 FPS caches for FindForeignLevel (per-plate TMP_Text components + the matched
+        // label, keyed by plate instance id).
+        static readonly System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<TMP_Text>> _foreignTexts =
+            new System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<TMP_Text>>();
+
+        static readonly System.Collections.Generic.Dictionary<int, TMP_Text> _foreignMatch =
+            new System.Collections.Generic.Dictionary<int, TMP_Text>();
+
         [HarmonyPriority(Priority.Last)]
         static void AfterUpdateHuds(EnemyHud __instance)
         {
@@ -54,6 +65,12 @@ namespace SeneaLHudLayout
 
             bool creatureHud = SeneaLHudLayoutPlugin.CreatureHud == null
                 || SeneaLHudLayoutPlugin.CreatureHud.Value;
+            if (creatureHud)
+            {
+                // Feature ON: forget the released-plate set so the NEXT off transition releases
+                // the (possibly rebuilt) plates once. Clear() on a small set is nothing.
+                _releasedPlates.Clear();
+            }
             bool showHealth = SeneaLHudLayoutPlugin.ShowHealthNumbers != null
                 && SeneaLHudLayoutPlugin.ShowHealthNumbers.Value;
             bool showLevel = SeneaLHudLayoutPlugin.ShowEnemyLevel != null
@@ -88,7 +105,17 @@ namespace SeneaLHudLayout
 
                 if (!creatureHud)
                 {
-                    ReleasePlate(gui.transform);
+                    // 1.5.52 FPS: with the feature OFF this loop used to run ReleasePlate
+                    // (3 Transform.Find + child loops) on EVERY visible nameplate EVERY FRAME
+                    // - forever, on plates that were already released. A plate needs releasing
+                    // once per OFF transition; the set makes the OFF path zero-work after that.
+                    int plateId = gui.transform.GetInstanceID();
+                    if (!_releasedPlates.Contains(plateId))
+                    {
+                        _releasedPlates.Add(plateId);
+                        ReleasePlate(gui.transform);
+                    }
+
                     continue;
                 }
 
@@ -182,15 +209,6 @@ namespace SeneaLHudLayout
                 {
                     child.gameObject.SetActive(true);
                 }
-            }
-        }
-
-        public static void Tick()
-        {
-            EnemyHud hud = EnemyHud.instance;
-            if (hud != null)
-            {
-                AfterUpdateHuds(hud);
             }
         }
 
@@ -565,8 +583,48 @@ namespace SeneaLHudLayout
 
         static TMP_Text FindForeignLevel(Transform gui)
         {
-            TMP_Text[] texts = gui.GetComponentsInChildren<TMP_Text>(true);
-            for (int i = 0; i < texts.Length; i++)
+            // 1.5.52 FPS: called per visible plate EVERY frame from ApplyLevel. The
+            // GetComponentsInChildren<TMP_Text>(true) walk + Regex.IsMatch on every text is the
+            // heaviest per-frame cost the audit found. Cache the components per plate (id) and
+            // re-scan only when one has been destroyed; the regex runs on the cached texts, and
+            // a text's string changes only on level-up, which the text-equality check catches.
+            int guiId = gui.GetInstanceID();
+            if (!_foreignTexts.TryGetValue(guiId, out List<TMP_Text> texts))
+            {
+                texts = new List<TMP_Text>(6);
+                gui.GetComponentsInChildren(true, texts);
+                _foreignTexts[guiId] = texts;
+                _foreignMatch.Remove(guiId);
+            }
+            else
+            {
+                for (int i = 0; i < texts.Count; i++)
+                {
+                    if (!texts[i])
+                    {
+                        texts.Clear();
+                        gui.GetComponentsInChildren(true, texts);
+                        _foreignMatch.Remove(guiId);
+                        break;
+                    }
+                }
+            }
+
+            if (_foreignMatch.TryGetValue(guiId, out TMP_Text cached) && cached
+                && cached.gameObject.name != LevelName && cached.gameObject.name != LabelName)
+            {
+                // The cache holds the label, not the match: a level-up changes its text, so the
+                // (single, cheap) pattern check re-runs on the cached text every call. If it stops
+                // matching, drop the cache and fall through to the full scan.
+                if (!string.IsNullOrEmpty(cached.text) && LevelPattern.IsMatch(cached.text))
+                {
+                    return cached;
+                }
+
+                _foreignMatch.Remove(guiId);
+            }
+
+            for (int i = 0; i < texts.Count; i++)
             {
                 TMP_Text text = texts[i];
                 if (text == null || text.gameObject.name == LevelName || text.gameObject.name == LabelName)
@@ -576,10 +634,12 @@ namespace SeneaLHudLayout
 
                 if (!string.IsNullOrEmpty(text.text) && LevelPattern.IsMatch(text.text))
                 {
+                    _foreignMatch[guiId] = text;
                     return text;
                 }
             }
 
+            _foreignMatch.Remove(guiId);
             return null;
         }
 

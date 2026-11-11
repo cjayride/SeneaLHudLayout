@@ -8,6 +8,13 @@ namespace SeneaLHudLayout
         static TMP_FontAsset _font;
         static Material _material;
 
+        // The two Resources.FindObjectsOfTypeAll scans below are whole-project loads. When the
+        // font never resolves (no non-Liberation font loaded yet) the cache stays null, and
+        // Ensure() is reached EVERY FRAME through HudLayout.Apply -> PowersLayout, so before
+        // 1.5.52 the scans re-ran per frame forever. The cheap probes (Hud.instance.m_gpName,
+        // BindDefault) stay every call; the heavy scans are gated to a 2s retry.
+        static float _nextScan;
+
         internal static void Apply(TMP_Text text)
         {
             if (text == null)
@@ -37,8 +44,9 @@ namespace SeneaLHudLayout
             }
 
             StealFrom(Hud.instance != null ? Hud.instance.m_gpName : null);
-            if (_font == null)
+            if (_font == null && Time.unscaledTime >= _nextScan)
             {
+                _nextScan = Time.unscaledTime + 2f;
                 TMP_Text[] texts = Resources.FindObjectsOfTypeAll<TMP_Text>();
                 for (int i = 0; i < texts.Length && _font == null; i++)
                 {

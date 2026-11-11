@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.5.54
+
+- Verified in game and cleaned up: the chat-behind-windows canvas pin (1.5.53) confirmed working, so the runtime diagnostics that proved the UI layering (the canvas-ladder log probe) are removed, and the first attempt - the sibling-order push keyed on the vanilla inventory window, which SeneaL UI replaces - is deleted. The chat layering is now exactly the verified pin: one cached canvas list, writes only on drift.
+
+## 1.5.53
+
+- Chat behind the crafting window, for real this time. 1.5.52's fix keyed on the VANILLA inventory window - but SeneaL UI replaces it, so the crafting window you use is SeneaL's, and the push never fired. The runtime probe (three canvas ladders in the log) settled the shape: the windows tier is sorted 600 (inventory) / 630 (VNEI crafting), and vanilla's own chat sits at 300. Every canvas inside the chat window is now pinned to that 300 tier - below the HUD (400), the inventory (600) and the crafting window (630) - so messages can never paint over your windows, and closing them changes nothing. Still no config, no knob.
+- The 1.5.52 sibling fix stays as a second layer for the vanilla inventory window.
+
+## 1.5.52
+
+- **Chat no longer draws over your windows.** With the inventory and crafting window open, a message in chat used to paint ON TOP of the crafting panel. Vanilla writes no sorting order anywhere, so the chat window and the inventory/crafting windows are plain siblings on the same HUD canvas - and there, draw order IS tree order, with chat last. While the inventory is open the chat window is moved to the back of that canvas, and its old position is restored when you close it. No config, no knob: chat is simply behind.
+- FPS pass, part 1 (no visual change): the enemy nameplates, the XP card's font lookup, the boss-star row, the resource-bar rows, the Vnei search box, the power-cooldown anchors, the chat text re-mesh and the character-window level label all stopped running full scene/window scans every frame. Each one now caches what it found and retries on a 2 second cadence at worst. The biggest one: the enemy nameplate re-collected every text component of every visible plate EVERY frame, with a regex on each - it now measures each plate once.
+- FPS pass, part 2: with the enemy health numbers feature OFF, the mod no longer releases the same nameplate over and over every frame.
+- FPS pass, part 3: the chat text style is applied ONCE (it used to be written on every frame, forcing the text to re-generate its mesh with it).
+- Removed two dead code paths that scanned every icon in the HUD (slot-cue leftovers from 1.5.x), and the XP card's one-shot diagnostics (the colour/cover probes served their purpose in 1.5.41-1.5.47).
+- The XP card's `Level 99 / 100%` layout, gold border and gold fill are UNCHANGED from 1.5.51.
+
 ## 1.5.51
 
 - `[Hotbar] XpBarFillGold` **removed** - there is no reason to switch the gold progress fill off (the black fill it could restore was invisible progress). The filled part of the bar is now always gold; the config key is gone.
