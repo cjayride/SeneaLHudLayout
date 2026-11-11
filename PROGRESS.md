@@ -6,6 +6,17 @@ User (turn 40): "code works. chat is now properly behind the crafting window. cl
 you need. prepare the zip file for thunderstore, then commit and push to github, and tag latest
 release". Explicit release ask (standing yes for this release, same scope as 1.5.51).
 
+**ICON RULE (user, 2026-11-11, VERBATIM): "stop putting the wrong icon.png into the zip file, it
+has to be 256x256".** Thunderstore zips ship the 256x256 RGB icon (= Package\icon.png =
+tools\icon-source-256.png, 61,876 b) - the shape of every accepted package (the 1.5.26 zip and the
+accepted SkyheimCompat 1.2.6 zip are both 256). The 512x512 LANCZOS upscale added in the 1.5.51
+turn ("documented requirement") was WRONG: Thunderstore accepts 256. Do NOT upscale, do NOT
+regenerate the icon. 1.5.54 FIXED: Package\icon.png = the 256 source art; zip rebuilt; the GitHub
+asset was deleted and re-uploaded - new zip 216,394 b, sha256
+0BB15D86BD35D3944500B72D64B653E7761A4BFBE046A4E1046A768C9F4243A8, digest verified on the release,
+Latest intact. Any PROGRESS note claiming 512 is the compliant icon is VOID (the 1.5.51 zip on
+GitHub still carries the 512 icon - supersede it by shipping forward).
+
 ### Cleanup (the "code works" trim)
 - ChatLayerProbe.cs DELETED (its job - naming the canvas ladder live - is done; the answer is
   recorded above and in the changelog).
@@ -144,6 +155,8 @@ here doesn't compromise FPS").
   git checkout restored the shipped 512x512 RGBA (136,771 b) from HEAD; the raw art is preserved at
   tools\icon-source-256.png. Do NOT regenerate the 512 by plain LANCZOS - the committed blob
   (12c10afe) does not reproduce that way; keep the committed file.
+  [OVERRIDDEN 2026-11-11 by the user: 256x256 IS the correct icon; the 512 upscale was the wrong
+  file. Package\icon.png is now the 256 source art. See the ICON RULE at the top of this file.]
 
 ### Awaiting user (full restart)
 - Expect in ...\profiles\cjayride-beta_test_cjaycraft_ultimate_modpack-4.4.44\BepInEx\LogOutput.log:
