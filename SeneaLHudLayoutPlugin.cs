@@ -1,4 +1,4 @@
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
@@ -39,7 +39,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.5.54";
+        public const string VERSION = "1.5.58";
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -247,7 +247,7 @@ namespace SeneaLHudLayout
                 new ConfigDescription("Extra horizontal spacing for the food bar relative to the health bar. Positive moves right.",
                     new AcceptableValueRange<float>(-2000f, 2000f)));
             HealthBarMaxHeight = Config.Bind("HealthFood", "HealthBarMaxHeight", 250f,
-                new ConfigDescription("Max pixel height of the SeneaL player health bar after HealthCapacity sizing. The bar still grows with max HP up to this cap, then stays this tall. Fill is always current / max of that height (updates with HP). SeneaL ticks, keep-space hatch, numbers, shapes, and rune shield are unchanged. HUD editor Fixed length is also capped. 80–800.",
+                new ConfigDescription("Max pixel height of the SeneaL player health bar after HealthCapacity sizing. The bar still grows with max HP up to this cap, then stays this tall. Fill is always current / max of that height (updates with HP). SeneaL ticks, keep-space hatch, numbers, shapes, and rune shield are unchanged. HUD editor Fixed length is also capped. 80â€“800.",
                     new AcceptableValueRange<float>(80f, 800f)));
             bool showLevelFoodBarDefault = ConfigDefault(
                 Config, "HealthFood", "ShowLevelFoodBar", "Character", "ShowLevelFoodBar", false);

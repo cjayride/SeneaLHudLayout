@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.5.58
+
+- The XP card now hides itself during a portal trip. The card lives on its own nested canvas (order = HUD+1), which is exactly the element that drew over the custom loading screen; CustomLoadingScreens raises the HUD canvas for the duration of a trip, and hiding the card removes the overlap at the source. The card is not useful mid-trip. No per-frame cost (one teleporting check per tick).
+
+## 1.5.57
+
+- Diagnostics removed: the map-state probe from 1.5.55/1.5.56 - it pinned the invisible-map cause (the XP cover guard disabling the fullscreen map), which 1.5.56 fixed. The XP bar's cover guard keeps its map-safe scope (never touches map UI, restores anything it previously disabled). Loading screens painting over the XP card is handled on the CustomLoadingScreens side (v0.9.12 canvas override).
+
+## 1.5.56
+
+- **Fixed: the SeneaL map going invisible (buttons visible, map blank, ESC + M not helping).** The culprit was our own XP-card "cover guard" (the golden-card fix from 1.5.44/1.5.47): it scans the HUD for any graphic covering the XP card and disables it, and a fullscreen map is the biggest graphic in the game - so with the map open the guard switched off SeneaL's map panels (frame, bg, ring) and the map image itself, re-disabling them every 1.5 seconds. The guard now stays in hotbar-region UI and never touches the map tree, and it restores any panel it previously disabled. (Confirmed by the MapProbe log lines from the report: map image inactive with everything else normal, exactly at the "XP cover: fixed .../SeneaLUI_Map/frame" entries.)
+- The VNEI search button fix and the tooltip icon separation from 1.5.55 are included.
+
+## 1.5.55
+
+- **No more stray weapon icons next to Damage / Pierce / Knockback / Backstab in tooltips.** The icons came from the Repair Requires Coins mod (1.2.16, fixed there): SeneaL UI's tooltip is ONE pooled panel, and the repair tooltip draws its item icons as children of the pooled row labels - after hovering the repair button, normal item tooltips reused those rows and drew the leftover icons. Repair 1.2.16 sweeps every repair row icon off the panel the moment a tooltip that is not the repair one starts drawing, and this mod's own type-line icon (ShowItemIcon) now skips third-party tooltips (they brand themselves with a source line and draw their own header icon) so nothing rides from one tooltip into the next. The repair window's icons and the item-name icon stay; the stat rows are clean, controlled separately.
+- **The VNEI search button no longer opens oversized.** Opening the inventory with Tab while the crafting window appears sometimes left the button wider than the "VNEI" label needs. Its width used to be measured once, on text change, with whatever font the label happened to have that frame - on a fast Tab-open the craft-title font is not resolved yet, so the measure fell back to the TMP default face (wider) and the button was never re-measured. The size is now derived from the live label text AND the live font every tick, re-measuring only when the text, the font instance, or the button's width drifts (one ForceMeshUpdate per change, never per frame - FPS-safe).
+- Temporary map diagnostics for the invisible-map report: one log line per second while the world map is open (and one on every mode change) naming the exact state the map renderer is in - vanilla zoom, the large-root graphic (SeneaL UI's map view disables it while shown), the map image's parent chain, sizes, CanvasGroup alphas, maskability, and SeneaL UI's own view-applied/shown/closing flags. If the map vanishes again, the line right before it says exactly what is stuck. Removed in the next build once the cause is pinned.
+
 ## 1.5.54
 
 - Verified in game and cleaned up: the chat-behind-windows canvas pin (1.5.53) confirmed working, so the runtime diagnostics that proved the UI layering (the canvas-ladder log probe) are removed, and the first attempt - the sibling-order push keyed on the vanilla inventory window, which SeneaL UI replaces - is deleted. The chat layering is now exactly the verified pin: one cached canvas list, writes only on drift.

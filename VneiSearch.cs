@@ -66,16 +66,8 @@ namespace SeneaLHudLayout
             }
 
             string text = _open ? "Close" : "VNEI";
-            if (_label.text != text)
-            {
-                _label.text = text;
-                // 1.5.52 FPS: ForceMeshUpdate is the expensive TMP call; it only matters when the
-                // label's text changed (the button says "VNEI" or "Close" and nothing else moves
-                // it), not every frame.
-                _label.ForceMeshUpdate();
-                float width = Mathf.Ceil(_label.preferredWidth) + 16f;
-                _button.GetComponent<RectTransform>().sizeDelta = new Vector2(Mathf.Max(54f, width), 26f);
-            }
+            EnsureFont();
+            ApplySize(text);
 
             if (!_button.gameObject.activeSelf)
             {
@@ -86,6 +78,68 @@ namespace SeneaLHudLayout
             {
                 _aligned = true;
             }
+        }
+
+        // 1.5.55: the button width is measured from the LABEL's text, so it is only correct when
+        // the measurement ran with the FINAL font. The font is sampled from the craft panel title
+        // ("orn/t"), and on a fast Tab-open the title's font is not resolved yet when the button
+        // is created - the label keeps TMP's default face, which lays out WIDER, and the button
+        // landed "bigger than it should be" (the user's report) and stayed that size, because the
+        // old code re-measured ONLY when the text changed. So: (EnsureFont) the craft-title font is
+        // re-checked live and applied the moment it becomes available; (ApplySize) the button is
+        // (re)measured when the text changes, when the font changed since the last measurement, or
+        // when the measured size drifted. Text/font are stable 99.9% of frames, so the per-frame
+        // cost is two comparisons.
+        static string _sizedText;
+        static int _sizedFontId;
+        static float _sizedWidth = float.NaN;
+
+        static void EnsureFont()
+        {
+            if (_label == null || _craft == null)
+            {
+                return;
+            }
+
+            Transform title = _craft.Find("orn/t");
+            TextMeshProUGUI sample = title != null ? title.GetComponent<TextMeshProUGUI>() : null;
+            if (sample == null || sample.font == null)
+            {
+                return;
+            }
+
+            if (_label.font != sample.font)
+            {
+                _label.font = sample.font;
+                if (sample.fontSharedMaterial != null)
+                {
+                    _label.fontSharedMaterial = sample.fontSharedMaterial;
+                }
+            }
+        }
+
+        static void ApplySize(string text)
+        {
+            if (_label == null || _button == null)
+            {
+                return;
+            }
+
+            RectTransform rt = _button.GetComponent<RectTransform>();
+            int fontId = _label.font != null ? _label.font.GetInstanceID() : 0;
+            if (_sizedText == text && _sizedFontId == fontId && !float.IsNaN(_sizedWidth)
+                && Mathf.Abs(rt.sizeDelta.x - _sizedWidth) < 0.5f)
+            {
+                return;
+            }
+
+            _label.text = text;
+            _label.ForceMeshUpdate();
+            float width = Mathf.Max(54f, Mathf.Ceil(_label.preferredWidth) + 16f);
+            rt.sizeDelta = new Vector2(width, 26f);
+            _sizedText = text;
+            _sizedFontId = fontId;
+            _sizedWidth = width;
         }
 
         static bool Bind()

@@ -1,6 +1,386 @@
 # Progress - SeneaLHudLayout
 
-## Current task (2026-11-11): 1.5.54 RELEASED - chat behind windows, verified + cleaned
+## Current task (2026-11-11): 1.5.55 (VNEI button size) + CustomLoadingScreens 0.9.8 (portal screens)
+
+User (turn 42): "sometimes when I open inventory with Tab button, while the crafting window
+appears, the VNEI button is bigger than it should be" -> 1.5.55.
+User (turn 43): "Something we did broke the custom loading screens, i see my character hanging
+mid air while going through portals instead of it showing the custom loading screens from our
+mod" -> CustomLoadingScreens 0.9.8 (sibling repo CustomLoadingScreens_Fork).
+
+### Environment change (IMPORTANT): the Gale test profile was RENAMED
+- `...profiles\cjayride-beta_test_cjaycraft_ultimate_modpack-4.4.44` is GONE. Current test profile:
+  **`...profiles\cjayride-beta_test_cjaycraft_ultimate_modpack-4.4.46`** (Gale updated the pack;
+  a `_dedicated_server-4.4.46` sibling also exists; a stale `test` profile has HudLayout 1.3.19 -
+  not ours). ALL HudLayout tools\*.ps1 were updated 4.4.44 -> 4.4.46 on 2026-11-11. Log and cfg
+  paths in reports use 4.4.46 from now on.
+
+### 1.5.55 - VNEI search button oversized on fast Tab-open
+- Root cause (VneiSearch.cs): width was measured from label text ONLY on text change, with whatever
+  font the label had that frame. On a fast Tab-open the craft-title font (orn/t sample) is not
+  resolved yet -> TMP default face (wider) -> oversized button, never re-measured.
+- Fix: Tick() calls `EnsureFont()` (re-apply the craft-title font + shared material when the label
+  font drifts) and `ApplySize(text)` (re-measure when text, font instance id, or the live width
+  drifts; single ForceMeshUpdate per change; width = Max(54, Ceil(preferredWidth)+16), height 26).
+  FPS: all three checks are cached comparisons; 2s heavy-scan gates unchanged.
+- Built 1.5.55: 9 warnings 0 errors. DLL bin = 00F55BA911E507C2FD2E327B628411A5AB0C464ABE7545F5F930067C5AEF979D
+  (Package copy matches). Profile install PENDING: game running -> DLL mapped; background watcher
+  job `pwsh-822ca1fdc9754b87` (_stage-swap.ps1) swaps HudLayout 1.5.55 + CLS 0.9.8 into 4.4.46 with
+  backups (`.bak-1.5.54`, `.bak-0.9.7`) the moment Valheim exits; watcher prints MATCH per DLL.
+  Verify after restart: stamp `XP bar built, v1.5.55` in `...\4.4.46\BepInEx\LogOutput.log`.
+
+### Turn 44: map went invisible mid-scroll (SeneaL UI map) -> probe shipped in 1.5.55
+- User: scrolling on the SeneaL map made it vanish (buttons visible, map not; ESC + M keeps it
+  invisible). Session ran **1.5.54** - zero big-map code in it. HudLayout touches the big map
+  ZERO times (only AdventureJournal's merchant-gated SetMapMode postfix + minimap corner moves).
+  The map is SeneaL UI's `SeneaLUI.Map.MapView`: `Apply(true)` DISABLES the vanilla large-root
+  Graphic, hides non-whitelisted children under CanvasGroups (alpha 0), reparents m_mapImageLarge
+  into its frame, sets stencil pass 1/3; `Apply(false)` restores everything. A half-applied
+  transition = exactly this bug (buttons on, map not, reopen stuck). The log ALSO shows SeneaL's
+  `Inv.TabsView.Layout` throwing ArgumentOutOfRangeException repeatedly tonight - SeneaL state
+  machine is visibly fragile in this session.
+- SHIPPED (not shipped a guess): `MapProbe.cs` (new file, wired in LateUpdate). Armed stamp
+  `MapProbe armed, v1.5.55`. One line per SECOND while MapMode.Large (1/15s closed):
+  mode/zoom/min/max + largeRoot{active,scale} + mapImage{active,w,h,parent chain,graphic on/OFF,
+  alpha,maskable,cgAlpha,cgUp=...} + seneaL view/allowClose/applied/shown/closing. One line on
+  every mode edge. Next time it vanishes, the line right before names the stuck state. REMOVED in
+  the follow-up build once the cause is pinned.
+- Rebuilt 1.5.55 (probe included): 9 warnings 0 errors, sha256
+  665B84CE7AAA5C05BCB144B06CB0713B21D88BDA2A4CE661EBFEE65B025681A6 (bin == Package). Watcher job
+  unchanged - installs THIS build.
+- Root CHANGELOG.md was stale (ended at 1.5.51); synced from Package (canonical, has 1.5.52-55).
+  Both shas 633807B8D17E38519BD07AB6D89DA38D355C8D8A8F856D32BEACBDCF6C3CD844.
+
+### Turn 58: tips STILL invisible -> probe was pre-fix (lied); 0.9.18 = ancestor activation + tip-above-image reorder + honest 1 Hz probe
+- User: still no Norse tips on portals; asked "should I be?" (answer: vanilla = spawn/death only;
+  our mod owns the portal screen now, tips on portals = intended).
+- Probe flaw found: the trip-start probe logged BEFORE ShowSpawnStyleLoadingPanel's per-frame
+  activation ran that frame -> activeInHierarchy=False was the pre-fix vanilla leftover, proves
+  nothing about final state. Its real value: two blockers visible at start: <Loading> GameObject
+  DISABLED (vanilla enables in SetupLoadScreen = spawn path only) + LoadingBlack CanvasGroup
+  mid-fade (0.03; ShowSpawnStyleLoadingPanel forces group alpha=1 per frame, covers this).
+- CLS 0.9.18 (sha 908C933B9DBDE61C, 22,016 b; INSTALLED .bak-0.9.17, BOM-free docs):
+  (1) RaiseTipAboveImage at trip start: deepest common ancestor of tip + full-screen image; tip's
+  chain SetAsLastSibling every level below it (canvas depth-first walk: image branch walked AFTER
+  tip paints full-screen sprite OVER the text - the exact "label fine, invisible" disease);
+  (2) ancestor activation loop (0.9.17) stays per trip frame; (3) ProbeTipLive 1 Hz DURING trip
+  AFTER fixes: inHier, per-ancestor activeSelf + [cgAlpha] + idx/last, img sibling idx, text,
+  col, fontSize, rect; (4) trip-start probe compacted to "Portal tip start: inHier=... chain...".
+- Expected next log: "RaiseTipAboveImage: tip chain raised N levels under <X>" + "Tip live:
+  inHier=True ... idx=N/N ... imgIdx=..." -> if inHier=True and tip idx > img idx and cgs >=0.5
+  and user STILL sees nothing -> label's CanvasRenderer/cull or TMP font issue (probe covers).
+- Ship queue after tips confirmed: strip both probes -> 0.9.19 final; releases for
+  SeneaLHudLayout 1.5.58 + CustomLoadingScreens (CLS repo is a FORK - pack name/dep set on publish).
+
+### Turn 57b: Thunderstore REJECTED CSS zip (CHANGELOG.md UTF-8 BOM) -> 0.2.3 BOM-free release
+- User upload error: "CHANGELOG.md starts with a UTF-8 BOM, please try to re-save the file without
+  a BOM". Cause: PS 5.1 `Set-Content -Encoding UTF8` writes a BOM - every file I rewrote that way
+  (CHANGELOG + manifest, root/Package/dist) carried EF BB BF; README (never rewritten) was clean.
+- Fix: read/write via [System.IO.File]::WriteAllText with UTF8Encoding(false) (BOM-free). Root
+  CHANGELOG became canonical again (0.2.3 entry added, prepended-concat separator repaired);
+  Package/dist/manifest all audited BOM=False.
+- New rule for ALL packaging: Package023.ps1 checks every Package text file for a BOM (and icon
+  256x256) BEFORE zipping; ABORTs on any BOM. (RRC 1.2.16 zip passed Thunderstore with a BOM'd
+  manifest - validator evidently only enforces on the markdown files; CSS 0.2.3 = fully clean.)
+- Slip during fix: ForEach-Object + WriteAllLines collapsed multiline files to ONE line (Plugin.cs,
+  csproj) - restored via git checkout, bumped with the edit tool. NEVER loop WriteAllLines per line.
+- CSS 0.2.3 (sha C4319AF9B9295BDC): zip dist\cjayride-CompactStatusSquares-0.2.3.zip 94,468 b
+  (flat 5, BOM gate passed, icon 256x256, extracted DLL 0.2.3). Commit 436c47f, tag v0.2.3,
+  pushed; gh release v0.2.3 = Latest with zip. INSTALLED in 4.4.46 with .bak-0.2.2 (profile docs
+  written BOM-free too). User re-uploads zip.
+
+### Turn 57: tip probe cracked it (parent <Loading> DISABLED) -> 0.9.17 activates tip ancestors; CSS 0.2.2 RELEASED
+- User: no Norse tips on normal portals (0.9.16's label enable was not enough); asked CSS release.
+- Probe line (the answer, as designed): `Portal tip: activeInHierarchy=False text='From Odin's...'
+  enabled=True cg=LoadingBlack:0.05 chain self:True <Loading>False <LoadingBlack>True <HUD>True...`
+  -> label enabled WITH our text, but ancestor GameObject `Loading` disabled during portal trips
+  (vanilla enables that branch only in SetupLoadScreen = spawn/respawn path). activeInHierarchy
+  False = a parent is off. Tip text itself was fine (43 tips loaded; text assignment works).
+- CLS 0.9.17 (sha 1923976B7B022BC9, 19,968 b; INSTALLED .bak-0.9.16; CHANGELOG+manifest synced,
+  profile changelog re-synced after edit): ShowSpawnStyleLoadingPanel walks the tip's ancestors
+  to the canvas root and activates any disabled one (<=10 steps, ~4 checks/frame, trips only).
+  Tip probe KEPT one more round (logs activeInHierarchy at trip start - flips to True when fixed).
+- CSS 0.2.2 RELEASED: tools\Package022.ps1 (icon 256x256 in-script check; flat 5-entry zip verified
+  by extract): dist\cjayride-CompactStatusSquares-0.2.2.zip 94,365 b. dist flat copies refreshed
+  (CHANGELOG/manifest/dll; .gitignore keeps dist zip tracked? zip NOT tracked pre-0.2.2 - dist zip
+  pattern dist/*.zip IS ignored, zip goes to GitHub release as asset only). Commit bf4adb4 (8 files),
+  annotated tag v0.2.2, pushed origin/main. gh release create v0.2.2 with zip -> Latest.
+  User uploads zip to Thunderstore themselves.
+- Next: user tests tips on portals (probe flips activeInHierarchy=True); strip tip probe; release
+  cut pending for SeneaLHudLayout 1.5.58 (zip/commit/tag), CLS (zip/commit/tag once 0.9.17+confirmed).
+
+### Turn 56: full layering CONFIRMED CLEAN; tips missing on portal screens -> 0.9.16 enables m_loadingTip + tip probe
+- User: "Test looks clean, everything is working." (portal screen top-most, login screen back, XP
+  card + status squares gone mid-trip) - ONLY gap: no "Valheim tips" text at the bottom on portals.
+- Cause (decompiled Hud L48143-48184 + fork plumbing): vanilla sets the tip in UpdateShownTip and
+  enables the label in SetupLoadScreen - SPAWN/RESPAWN path only. During a portal trip the tip's
+  GameObject is disabled, so the fork's text assignment (ApplySpawnLoadingScreen L558-562, runs
+  every trip frame with loadingTip2) sat on an invisible object. Same disease as the 0.9.10 image
+  bug: text on a disabled object.
+- CLS 0.9.16 (sha 07A40841299E3F14, 19,968 b; INSTALLED .bak-0.9.15; CHANGELOG+manifest synced):
+  ShowSpawnStyleLoadingPanel enables hud.m_loadingTip.gameObject per trip frame (one flag check,
+  FPS-safe; tips loaded fine at startup: 43 tips). Probe added at trip start: "Portal tip:
+  activeInHierarchy=... text='...' enabled=... cg=... chain ..." - strip once user confirms tips.
+  Layering probe (Screen raised:) STRIPPED as promised (test came back clean) - brace slip
+  (CS1022 orphan }) fixed same build.
+- Build slip record: strip left orphan brace -> CS1022 L699; probe used TMP_Text.canvasGroup ->
+  CS1061, switched to GetComponentInParent<CanvasGroup>.
+
+### Turn 55: portal layering CONFIRMED good; CompactStatusSquares was the last survivor -> CSS 0.2.2 skips drawing mid-trip
+- User: "Seems great!" (login screen back, portal screen on top) - only CompactStatusSquares still
+  draws over the loading image.
+- ROOT CAUSE (the real reason no canvas trick ever touched them): CSS draws with OnGUI
+  (StatusSquaresHud.LateUpdate builds _draw, OnGUI calls GUI.DrawTexture L182-188). Unity composites
+  IMGUI AFTER every canvas pass -> no canvas sorting order / nested canvas / root raise can cover
+  IMGUI. Canvas-side fixes were structurally impossible for this one.
+- Fix (small, as asked): StatusSquaresHud.WhyHidden() gains
+  `if (Player.m_localPlayer.IsTeleporting()) return "player is teleporting";` - squares vanish for
+  the trip and return on arrival (effects keep ticking; vanilla UpdateStatusEffects is already
+  skipped by this mod's own guard, so nothing reappears). One bool per LateUpdate: FPS-safe.
+- CSS 0.2.2 (sha 369D38EC17C974B0, 19,456 b): Plugin.cs Version const + csproj 3 fields + root/
+  Package manifests 0.2.2; CHANGELOG 0.2.2 entry, Package synced (root==pkg, hash-identical);
+  Package dll == bin sha; INSTALLED with .bak-0.2.1; manifest+CHANGELOG+README synced in profile.
+  Build: dotnet -p:GamePath=D:\AI-Agent-Projects\cjaycraft\_build_stage\valheim -p:SkipGameCopy=true.
+- Standing: CLS 0.9.15 probe (Screen raised: ... nested/above: ...) can be stripped once the user
+  confirms the whole portal screen is clean WITH the squares gone.
+
+### Turn 54: 0.9.14 HIJACKED the login screen (solid black at server-password) -> portal-only gate 0.9.15; XP card hidden mid-trip 1.5.58
+- User: "after clicking connect to server, i can never see the password screen, it's just a solid
+  black screen". Cause = my own gate: screenUp included setupMoment + group alpha, all TRUE during
+  the menu world-load; the black panel (alpha 1, sprite not applied yet) got raised over the login UI.
+- Lesson recorded: CanvasGroup alpha/activeSelf and setupMoment are NOT in-game signals. The ONLY
+  safe gate is portalLoading (local player, alive, awake, IsTeleporting, not shutting down) -
+  can never be true in a menu. 0.9.15: screenUp = portalLoading only. Spawn/respawn/login keep
+  vanilla layering (the XP-card problem exists only during portals).
+- XP card: probe proved `SeneaLHudLayout_SlotXp` = OWN nested canvas (overrideSorting, HUD order+1
+  = 401) -> sibling moves can never beat it; the root raise (32767) should, but the card is OURS
+  and useless mid-trip: 1.5.58 hides it while Player.m_localPlayer.IsTeleporting() (one bool per
+  tick, FPS-safe). Two independent layers of protection now.
+- Probe FIXED (its own bug): IndexOf over SortingLayer.layers with sortingLayerName returned -1 for
+  every canvas -> filter matched ALL -> the "above:" list was noise (SeneaLUI_Barber:800 etc. were
+  NOT real). Now SortingLayer.GetLayerValueFromID(sortingLayerID) + nested canvases inside the root
+  are listed explicitly as NAME:NESTED:order (that's where the XP card lives). Keep one round.
+- Build/install: CLS 0.9.15 sha 30267F6692249D14 (20,480 b) .bak-0.9.14; HUD 1.5.58 sha
+  F928C4C2E5D9FC6F .bak-1.5.57; manifests synced; DiffReadme 0; game down -> direct installs.
+
+### Turn 53: probe caught the real bug - sortingOrder is int16, 100000 WRAPPED to -31072 (screen went BELOW everything) -> 0.9.14
+- User: "still not on top of the XP Bar" after 0.9.13. The one-shot probe paid off:
+  `Screen raised: root=HUD layer=Default#-1 order=-31072` -> Unity stores canvas sortingOrder as
+  int16; assigning 100000 wrapped NEGATIVE, pushing the loading screen below ALL canvases
+  (explains "most of my UI is visible"). Probe 2nd line also named the in-canvas rival:
+  `SeneaLHudLayout_SlotXp:-1:401` (the XP card's nested canvas, built at HUD order+1).
+- CLS 0.9.14 (sha C06E6CC843BEEDFB, 20,480 b; INSTALLED with .bak-0.9.13; CHANGELOG/manifest synced):
+  (1) raise clamps to int16 max 32767 (beats SeneaL 31000, VNEI 30900, announceEdge 29000, all of
+  it, AND is legal); (2) the loading PANEL is REPARENTED to the canvas root as last child for the
+  screen's duration - the panel was a LOW sibling of the HUD root, so hudroot/hotbar (XP card 401,
+  status squares) painted after it in the depth-first walk; reparent-to-root-last is the only way
+  that walk paints it over every HUD element; restored to saved parent+index on the exit edge.
+  (3) probe kept one more round (now prints panelParent + idx/childCount, expects idx=last).
+- XP card nested canvas (401) loses to raised root (32767) -> no HudLayout change needed (1.5.57
+  stays as installed).
+- WorldSpace Canvas xN in probe output = caption/indicator canvases (order 0, layer Default):
+  under overlay they sort by ORDER then... they stay below 32767, fine.
+
+### Turn 52: 0.9.12 override IGNORED (nested canvas + ScreenSpaceOverlay) -> root-canvas raise 0.9.13; login-screen image bug = 0.9.12's added Canvas
+- User: z-index still wrong, MOST UI visible through portal screens; at the server-password screen the
+  image is missing for a while and unseen world objects show through. (RRC: user uploaded to
+  Thunderstore themselves; RRC work is DONE.)
+- Why 0.9.12 failed (root cause, understood, no guessing): Unity honors a NESTED canvas's
+  overrideSorting only for Screen Space - Camera/World parents; the HUD canvas is ScreenSpaceOverlay
+  (0.9.9 ladder proved `HUD order 400 mode ScreenSpaceOverlay`) -> nested override ignored, UI stayed
+  on top. The added Canvas also reparented the image into a nested overlay pass -> at the login/menu
+  scene the image stopped rendering (the user's "no image for a while, objects I never saw").
+- CLS 0.9.13 (sha 63BAECFB6DA2976B..., 19,968 b; INSTALLED with .bak-0.9.12; manifest/CHANGELOG synced):
+  no components added to HUD objects. Enter edge (any loading screen: portal || setupMoment || group
+  activeSelf && alpha>0.05): (1) walk from m_loadingScreen to the canvas root, SetAsLastSibling at
+  each level (canvas = depth-first walk; last one level down is NOT enough to beat the XP card /
+  status squares living under a sibling branch like hudroot/hotbar), (2) root canvas sortingOrder ->
+  100000 (root orders ARE honored under overlay; beats SeneaL 28000-31000, CompactStatusSquares,
+  chat 300, inventory 600, VNEI 630). Exit edge: restore the saved order (sibling order stays,
+  harmless at alpha 0). Edges only -> FPS-safe.
+- Gate must NOT use IsHudLoadingVisible: it counts m_loadingImage (which 0.9.10 leaves enabled after
+  a trip) -> would pin HUD canvas at 100000 forever (hotbar over inventory). Gated on the group's
+  real alpha instead.
+- CompactStatusSquares = OUR mod (repo Cjayride.CompactStatusSquares v0.2.1): patches Hud.UpdateStatusEffects,
+  reuses SeneaL's StatusEffectsView `_box` (SenealStatusGuard) -> its squares live in mod canvases the
+  root raise beats; no CSS change needed.
+- One-shot probe added at the raise edge: `Screen raised: root=... layer=... order=... | above: <canvases>`
+  - overlay sorts by SORTING LAYER first, then order, so a canvas on a custom layer above Default is
+  not beaten by 100000; the line names any such canvas (expects "nothing (screen is top-most)").
+  Strip once confirmed.
+- HudLayout 1.5.57 unchanged this turn (MapProbe stripped, XP card covered by the raise, no own change).
+
+### Turn 51: portals CONFIRMED working; XP card + CompactStatusSquares over the screen -> canvas override; RRC 1.2.16 RELEASED
+- User: portal screens work now; XP bar and CompactStatusSquares draw ON TOP of the loading
+  screen; "the CustomLoadingScreen image should be on top of everything". Also asked for the
+  RepairRequiresCoins release (zip/commit/push/tag) as separate work.
+- RRC 1.2.16 RELEASED (game side untouched): Package1216.ps1 (icon RULE verified in-script
+  256x256, flat 5-entry zip verified by extract): dist\cjayride-RepairRequiresCoins-1.2.16.zip
+  101,132 b. Package CHANGELOG+manifest synced to 1.2.16; dist flat copies refreshed. Commit
+  ee5f754 "Release 1.2.16..." (12 files), annotated tag v1.2.16, pushed to origin/main
+  (github.com/cjayride/RepairRequiresCoins). gh release create v1.2.16 with the zip asset ->
+  shows Latest (gh release list). User uploads to Thunderstore themselves.
+- Layering ROOT CAUSE (from the 0.9.9 ladder probe, no new probing needed): the loading screen
+  lives on canvas HUD #400. Our XP card is IN that canvas (later sibling -> draws over it), and
+  CompactStatusSquares/SeneaL UI (28000+) have their own canvases -> draw over the whole HUD
+  canvas. Fix = nested Canvas with overrideSorting (order 100000) on the m_loadingScreen node +
+  SetAsLastSibling, applied on the loading-screen ENTER edge (portal OR loadingVisible OR
+  setupMoment => covers spawn/respawn too) and removed on the exit edge (loadingRaiseActive
+  flag, zero per-frame work). Beats every canvas order including SeneaL's 31000.
+- CLS 0.9.12: RaiseLoadingScreen/LowerLoadingScreen wired into UpdateBlackScreen postfix edges;
+  portal probes FULLY REMOVED (ProbePortalState, LoadingImageChain, ladder dump, probeNextAt) -
+  causes pinned: disabled image object (0.9.10) + canvas layering (0.9.12). attr/csproj/
+  manifest/CHANGELOG 0.9.12. Built 18,432 b, sha 0B8113F358AF7146... INSTALLED (game down) with
+  .bak-0.9.11 + CHANGELOG/manifest sync.
+- HudLayout 1.5.57: MapProbe REMOVED (file deleted, Tick call gone) - cause pinned (XP-cover
+  guard, fixed 1.5.56). csproj/VERSION/Package manifest/CHANGELOG 1.5.57; Package DLL == bin
+  sha D58536BB331BE0E2...; DiffReadme 0. INSTALLED with .bak-1.5.56. XP card needs no own
+  change: the CLS override paints above it; cover guard untouched (map-safe scope stays).
+- Next test for user: portal + death/respawn + sleep: screen over XP bar + status squares +
+  everything; after the screen fades, XP bar/status squares/cursor normal; no Portal state/
+  MapProbe log lines anymore (probes gone).
+- Still open: strip CLS 0.9.10 per-frame image SetActive re-assert? Keep (FPS: one flag check
+  per LateUpdate frame during trips only). Release cut for 1.5.57/0.9.12 pending user ask.
+
+### Turn 50: user asked why portals broke ("used to work") -> explained + PortalLoadingScreen knob -> CLS 0.9.11
+- Explanation (from code, not speculation): the mod's ORIGINAL scope = spawn/load screen only,
+  which works because at scene load VANILLA enables the image GameObject + CanvasGroup, so our
+  sprite swap rides an already-on layer. Portal screens are OUR fork's 0.9.7 feature on a
+  different path: UpdateBlackScreen only fades m_loadingScreen + toggles the progress panels and
+  NEVER touches m_loadingImage (grep: field decl is its only appearance) - the image object is
+  OFF. So 0.9.7 painted on a disabled object (mid-air), 0.9.8 raised the group alpha to 1 and the
+  symptom became plain black (art object still off), 0.9.10 enables it = first version that can
+  paint. Nothing that worked before regressed.
+- User choice via ask_user_question: "Custom screens on portals, with an on/off knob (Recommended)".
+- 0.9.11: Config "General"->"PortalLoadingScreen" (bool, default true) added; gate placed in
+  ShouldUsePortalLoadingScreen (drives show + hide + probe in one place, so false = vanilla
+  travelling animation untouched; spawn/respawn path never reads it).
+- Built: bin\Release\net481\CustomLoadingScreens.dll v0.9.11 20,992 b sha
+  2F23F99F0EEE84B7C774BC78271FF532FFE07E28D5374E290B893971E915EFF1 (Build succeeded, no CS errors).
+  attr/csproj/manifest 0.9.11; fork CHANGELOG 0.9.11 entry.
+- INSTALLED (game down): 4.4.46\...\cjayride-CustomLoadingScreens\CustomLoadingScreens.dll v0.9.11
+  sha MATCH; .bak-0.9.10 (and .bak-0.9.9 kept); CHANGELOG+manifest synced.
+- Profile config `BepInEx\config\cjayride.CustomLoadingScreens.cfg` exists from 0.9.9 (mtime
+  04:29); BepInEx appends PortalLoadingScreen = true on next load, no manual edit.
+- Pending user test: one portal trip -> art paints over the world; probe line should read
+  chain=inHierarchy. Then strip MapProbe + portal probe.
+
+### Turn 49: map + VNEI CONFIRMED fixed; portal root cause NAILED by ladder probe -> CLS 0.9.10
+- User: map works, VNEI size ok, tooltips ok; portal still bad. Log (session ~04:30):
+  `Portal canvas ladder (top first): SeneaLUI_Mods:31000 ... HudMessage:1000` +
+  `Portal loading canvas: HUD order 400 rootActive True` + per-second
+  **`chain=NOT-inHierarchy cg<LoadingBlack>1.00 canvas=HUD#400`** (image=CLS_XX, groupAlpha=1.00).
+- ROOT CAUSE: the loading IMAGE's GameObject is deactivated during trips; vanilla's
+  UpdateBlackScreen only toggles m_loadingProgress/m_sleepingProgress/m_teleportingProgress and
+  the m_loadingScreen group - it NEVER enables m_loadingImage (grep: only the field decl
+  L229 touches it). 0.9.8/0.9.9 enabled the group + panel + sprite: black screen, no art
+  (user "still don't load"). No mod deactivates it - it's simply left off after startup.
+- Fix 0.9.10 (probe-confirmed chain): ApplyToLoadingImage SetActive(true) on the image GameObject;
+  ShowSpawnStyleLoadingPanel re-asserts SetActive(true) every trip frame (cheap null+flag check).
+  Ladder also proved NO canvas draws over the loading screen (HUD#400, nothing above it visible
+  during trips) - so the image object was the whole story.
+- Built + INSTALLED (game down):
+  `CustomLoadingScreens_Fork\CustomLoadingScreens\bin\Release\net481\CustomLoadingScreens.dll`
+  v0.9.10 sha 6A2CB13B1F82B9661930564DC500762D4B09328EEC9436C7AB9EFF9EC6B8F024 ->
+  `...\4.4.46\BepInEx\plugins\cjayride-CustomLoadingScreens\CustomLoadingScreens.dll` MATCH,
+  .bak-0.9.9, CHANGELOG+manifest synced. attr/csproj/manifest all 0.9.10.
+- Verify next trip: `chain=inHierarchy` in `Portal state:` lines + art on screen. MapProbe/
+  portal probes stay one more session; then strip.
+
+### Turn 48: test results (tooltips FIXED, map + portals BAD) -> 1.5.56 map-cause fix + CLS 0.9.9 ladder probe
+- User tested on 1.5.55/0.9.8/1.2.16 (installed at 01:50 by watchers; user restarted at 01:56):
+  **repair icons work + tooltip rows clean (1.2.16 fix CONFIRMED)**. Map still invisible. CLS
+  portals still not covering.
+- MAP ROOT CAUSE FOUND (probe + user log): our OWN XP-cover guard (ActionSlotXpBar.GuardCover,
+  1.5.44 golden-card fix; scope widened 1.5.47 to whole HUD root canvas). Log showed
+  `XP cover: fixed .../MiniMap/large/SeneaLUI_Map/frame (draws over the card)` during the
+  invisible bursts: fullscreen map "covers the card" -> guard SetActive(false) on map panels
+  (frame/bg/ring/bg) and the map image; L731 re-hid victim every 1.5 s -> ESC+M can't recover.
+  Probe: mapImage active=False whole episode while cgUp=SeneaLUI_Map:1.00 (fade fine, buttons on).
+- Fix 1.5.56 (ActionSlotXpBar): HotbarScope(t) = NOT under any "MiniMap" ancestor (vanilla minimap,
+  large image, and all SeneaL map UI live under MiniMap; hotbar/card never do). Scan skips
+  non-scope graphics; _coverTop/_cover victims outside scope are RESTORED (SetActive(true)) and
+  dropped. FPS: one name-chain walk per candidate, unchanged cadence.
+- MapProbe extended: ancestors=...:1/:0 per ancestor (names a parent switched off).
+- CLS 0.9.9 (probe-only): 0.9.8 proved groupAlpha=1.000 active + image=CLS_XX showAnim=True the
+  WHOLE trip -> screen drawn under something. Trip-start now logs `Portal canvas ladder (top
+  first): name:order:mode | ...` + the loading group's canvas; per-second line adds
+  `chain=inHierarchy cg<name>alpha... canvas=name#order` (LoadingImageChain). Suspects: parent
+  CanvasGroup (HUD root fade), inactive ancestor, or a canvas above (ladder answers all three).
+- BUILDS + INSTALLS (game was DOWN 04:25 -> direct, no watcher):
+  - `Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll` v1.5.56 sha
+    2AAAFBE7636BD4207614B7B35BF26AB5FAE672D1550A09FDEA78EDCD50C6E2A2 (9 warnings baseline;
+    csproj+manifest 1.5.56; Package DLL == bin; installed .bak-1.5.55 (real 1.5.55 after
+    removing stale same-version bak); installed manifest+CHANGELOG synced; DiffReadme 0.
+  - `CustomLoadingScreens_Fork\CustomLoadingScreens\bin\Release\net481\CustomLoadingScreens.dll`
+    v0.9.9 20,480 b sha 930B57F5AFEE652C1346C365114CACEF40AB1FF5F0C08EF31E5BED6A9DF6C9B6
+    (attr+csproj+manifest 0.9.9; fork CHANGELOG entry; installed with .bak-0.9.8 + docs).
+  - Installed profile paths: `...\4.4.46\BepInEx\plugins\cjayride-SeneaLHudLayout\SeneaLHudLayout.dll`
+    v1.5.56, `...\cjayride-CustomLoadingScreens\CustomLoadingScreens.dll` v0.9.9 (hash MATCH).
+  - RepairRequiresMats 1.2.16 stays (confirmed working by user; no watcher pending; all jobs done).
+
+### Turn 45: weapon icons leaking onto Damage/Pierce/... stat rows -> RepairRequiresCoins 1.2.16
+- User: "tooltips showing random weapons next to damage/pierce/knockback/backstab ... is it because
+  we put icons next to the item names on the repair window with the RepairWithCoins mod? these
+  should be controlled seperately". **User's hunch = root cause.** Repo =
+  `Cjayride.RepairRequiresCoins` (installed 1.2.15 at 21:56 in 4.4.46).
+- Cause: SeneaL UI's `Tooltip` is ONE pooled panel (`SeneaLUI.Components.Tooltip`, static
+  `_panel`, `Layout(Tip tip, int cols)`, `LayRow(Tip.Row row, RowUi r, ...)`). RRC's repair tooltip
+  draws each offer's item icon as a child Image ("RepairRequiresCoinsIcon") of the POOLED row
+  label + indents the label margin. Normal item tooltips reuse those pooled labels -> stray weapon
+  icons on Damage/Pierce/... rows. RRC's LayRow postfix is correctly gated on
+  `Source == "RepairRequiresCoins"` (it never draws on normal tips) - the icons are LEFTOVERS.
+- Fix (RRC 1.2.16, `SeneaLTooltipBuildPrefix`): edge-track `senealOurTipLast`; when a tooltip that
+  is NOT ours starts drawing, sweep every `RepairRequiresCoinsIcon` off `Tooltip._panel`
+  (GetComponentsInChildren, SetActive(false), restore owner TMP margin to 0). Repair window icons
+  untouched (LayRow re-applies every draw while our tip shows).
+- HudLayout `TipItemIcon` hardened the same day (its header icon is anchored to the FIRST visible
+  text line = a pooled label, same leak vector): `AfterLayout(object tip)` now calls `ModdedTip(tip)`
+  - reads the tip's `Source` field; any non-empty Source (third-party branded tip) hides our icon
+  and clears `_sprite` so it cannot ride into the next tooltip. ShowItemIcon knob unchanged; repair
+  window icons remain RRC's, fully separate (user: "controlled seperately").
+- Built RRC 1.2.16 (stage `cjaycraft\_build_stage\valheim` junction, EXIT=0):
+  `...\RepairRequiresCoins\RepairRequiresCoins\bin\Release\net48\RepairRequiresMats.dll`
+  47,104 b sha DB0005732345D6387E57FBC5C853CFA345191572A913F67B259AF2134B696486.
+  BepInPlugin attribute + csproj + manifest all 1.2.16. CHANGELOG entry added.
+- Rebuilt 1.5.55 (probe + VNEI fix + this): 9 warnings 0 errors, sha256
+  057F6245A4DFE7F0096F362DE3A3CB700D2D65A008A7C82466E477D5CF47BE13 (bin == Package).
+- Install: game STILL running. Watcher `pwsh-822ca1fdc9754b87` = HudLayout 1.5.55 + CLS 0.9.8.
+  Watcher `pwsh-eeb77c17ed634aad` (_stage-swap-rrc.ps1) = RepairRequiresCoins 1.2.16 with
+  `.bak-1.2.15`. All swap on game exit; each prints MATCH.
+
+### CustomLoadingScreens 0.9.8 - portal trips showed the world (mid-air character), not the screen
+- NOT HudLayout: HudLayout has zero loading-screen code (grep). The loading screens are the user's
+  own mod `cjayride-CustomLoadingScreens` (fork repo `D:\AI-Agent-Projects\cjaycraft\
+  CustomLoadingScreens_Fork`), installed 21:57 at 0.9.7 - the release that ADDED portal screens.
+- Log proof (4.4.46): every `Teleportation TRIGGER` is followed by `Applied spawn loading screen to
+  Hud.m_loadingImage.` -> the mod DID run; the panel just was not visible.
+- Vanilla truth (decompiled `Hud` from assembly_valheim - NOT Assembly-CSharp, which is stripped):
+  `UpdateBlackScreen` (LateUpdate) during a teleport: sets `m_loadingScreen` (a CanvasGroup) active,
+  MoveTowards alpha 1, shows `m_teleportingProgress` (the portal beam UI), HIDES `m_loadingProgress`.
+  The spawn-style panel (image m_loadingImage + tip) only gets `m_loadingProgress` on
+  WaitingForRespawn. So 0.9.7's enable-panel+set-sprite ran, but on the user's machine the group
+  was not visibly raised -> the "character hanging mid air" IS the world behind a transparent
+  loading screen.
+- 0.9.8 fix (BepInExPlugin.cs): `ShowSpawnStyleLoadingPanel` now also forces the CanvasGroup:
+  active + alpha=1 + interactable/blocksRaycasts=false EVERY frame during the trip (our postfix
+  runs AFTER vanilla's fade, so 1 wins and the panel fully covers). `portalLoadingActive` transition
+  edge: on trip end `HideSpawnStyleLoadingPanel` hides the panel we forced and leaves alpha to
+  vanilla's own fade-out (no instant cut). Probe: 1 log line/sec ONLY while portalLoading
+  (`Portal state: groupAlpha=... groupActive=... loadingProgress=... teleportingProgress=...
+  sleepingProgress=... image=... showAnim=...`) - ship-forward diagnostics, remove after confirmed.
+- Built 0.9.8: 0 errors. `bin\Release\net481\CustomLoadingScreens.dll` 18,432 b sha
+  A90DF67DDE1F424451EF76B38F3D5BA49FBCB3F9143F27ADEA41BE112BFC5514. Install via the same watcher.
+  Verify after restart: `Portal loading screen engaged` + `Portal state:` lines during a trip.
+- Build recipe for THIS fork (no HudLayout-style tools): `dotnet build CustomLoadingScreens\
+  CustomLoadingScreens.csproj -c Release -p:SolutionDir="<fork root>\" -p:GamePath="<fork
+  root>\_buildsandbox"`. `_buildsandbox\valheim_Data\Managed` is a JUNCTION to the real game
+  Managed (read-only reference source); `_buildsandbox\BepInEx\core` holds 0Harmony20.dll +
+  BepInEx.dll copies from `_bepinex\BepInExPack_Valheim\BepInEx\core` (targets HintPaths). The
+  targets PostBuild copies into the SANDBOX plugins dir, so the READ-ONLY game install is untouched.
+- CHANGELOG.md (fork) + manifest.json 0.9.8 updated. Zip NOT built (no explicit ask).
+
+## Previous task (2026-11-11): 1.5.54 RELEASED - chat behind windows, verified + cleaned
 
 User (turn 40): "code works. chat is now properly behind the crafting window. cleanup the code if
 you need. prepare the zip file for thunderstore, then commit and push to github, and tag latest

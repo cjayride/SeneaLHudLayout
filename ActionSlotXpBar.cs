@@ -226,6 +226,14 @@ namespace SeneaLHudLayout
                 && SeneaLHudLayoutPlugin.ShowSlotXpBar.Value
                 && Player.m_localPlayer != null;
 
+            // 1.5.58: during a portal trip the custom loading screen must paint over everything.
+            // The card lives on its OWN nested canvas (order HUD+1 = 401), which sorts against the
+            // HUD canvas's own elements - CustomLoadingScreens raises that canvas while a trip
+            // lasts, and hiding the card removes the question at its root. The card is
+            // meaningless mid-trip anyway. One bool check per tick: FPS-safe.
+            if (show && Player.m_localPlayer.IsTeleporting())
+                show = false;
+
             if (!show)
             {
                 Hide();
@@ -723,14 +731,42 @@ namespace SeneaLHudLayout
             // Owners re-assert their own graphics (the compat overlays SetActive(true) every tick),
             // so keep re-applying the fix on the data cadence: repaint the one behind, hide the one
             // drawn on top. Both are single field writes.
-            if (_cover != null && !Blackened(_cover.color))
+            if (_cover != null)
             {
-                PaintCover(_cover);
+                // 1.5.56: a repaint victim under MiniMap (SeneaL's map frame/bg) is a mispick from
+                // the old fullscreen scope: drop it and stop recoloring; SeneaL re-skins its panels
+                // when the map (re)opens, so the tint heals.
+                if (!HotbarScope(_cover.transform))
+                {
+                    _cover = null;
+                }
+                else if (!Blackened(_cover.color))
+                {
+                    PaintCover(_cover);
+                }
             }
 
-            if (_coverTop != null && _coverTop.gameObject.activeSelf)
+            if (_coverTop != null)
             {
-                _coverTop.gameObject.SetActive(false);
+                // 1.5.56: THIS loop made the user's map invisible. GuardCover's scope (widened in
+                // 1.5.47 to "every graphic in our root canvas") matches FULLSCREEN panels, and the
+                // map UI fills the screen, so the scan picked SeneaL's map panels (frame, bg,
+                // ring/bg - all logged as "XP cover: fixed") and finally vanilla's map image, and
+                // re-hid the victim here every 1.5 s: map buttons visible, map blank, ESC+M did not
+                // help. A victim that is not hotbar UI is restored and dropped.
+                if (!HotbarScope(_coverTop.transform))
+                {
+                    if (!_coverTop.gameObject.activeSelf)
+                    {
+                        _coverTop.gameObject.SetActive(true);
+                    }
+
+                    _coverTop = null;
+                }
+                else if (_coverTop.gameObject.activeSelf)
+                {
+                    _coverTop.gameObject.SetActive(false);
+                }
             }
 
             if (Time.unscaledTime < _nextScan)
@@ -772,6 +808,14 @@ namespace SeneaLHudLayout
                 }
 
                 Transform t = graphic.transform;
+
+                // 1.5.56: the map is off-limits (HotbarScope). While the big map is open its
+                // fullscreen panels sit over the card's screen rect, so the old scan read them as
+                // "covering the card" and switched them - and the map image - off.
+                if (!HotbarScope(t))
+                {
+                    continue;
+                }
 
                 // 1.5.47: scope widened. Searched before: ONLY the shift subtree (slot visuals and
                 // clones). That found nothing in the 1.5.46 session while the user still saw a gold
@@ -860,6 +904,27 @@ namespace SeneaLHudLayout
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 1.5.56: the cover scan must never touch map UI. Every map object - vanilla's minimap
+        /// and large map image AND SeneaL's whole map frame (SeneaLUI_Map/large lives under the
+        /// vanilla MiniMap node) - sits under the transform named "MiniMap", while the hotbar,
+        /// card, and hotbar-adjacent SeneaL/compat panels never do. The XP card lives in the
+        /// hotbar area, so a real cover candidate is hotbar-region UI; a fullscreen graphic that
+        /// "covers the card" is the map.
+        /// </summary>
+        static bool HotbarScope(Transform t)
+        {
+            for (int depth = 0; t != null && depth < 24; ++depth, t = t.parent)
+            {
+                if (t.name == "MiniMap")
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         static float CoverFraction(Rect rect, Rect bar)

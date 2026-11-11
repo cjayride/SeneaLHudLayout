@@ -70,13 +70,13 @@ namespace SeneaLHudLayout
             }
         }
 
-        static void AfterLayout()
+        static void AfterLayout(object tip)
         {
             TMP_Text sub = GetText(_sub);
             TMP_Text title = GetText(_title);
             RectTransform panel = _panel != null ? _panel.GetValue(null) as RectTransform : null;
             TMP_Text line = Shown(sub) ? sub : title;
-            if (!On || panel == null || line == null || _sprite == null)
+            if (!On || panel == null || line == null || _sprite == null || ModdedTip(tip))
             {
                 Hide();
                 return;
@@ -108,6 +108,33 @@ namespace SeneaLHudLayout
             Vector2 pos = tr.anchoredPosition;
             ir.anchoredPosition = new Vector2(pos.x, pos.y - Mathf.Max(0f, (lineH - size) * 0.15f));
             tr.anchoredPosition = new Vector2(pos.x + size + Gap, pos.y);
+        }
+
+        static bool ModdedTip(object tip)
+        {
+            // SeneaL's tooltip panel is POOLED: one panel serves every tooltip. A third-party
+            // tooltip (RepairRequiresCoins and friends) sets tip.Source to brand itself and draws
+            // its own header icon. Never add ours on top of theirs, and clear our sprite once so
+            // the pooled header icon cannot leak from an item tooltip into theirs.
+            try
+            {
+                if (tip == null)
+                {
+                    return false;
+                }
+
+                object source = AccessTools.Field(tip.GetType(), "Source")?.GetValue(tip);
+                if (source is string s && s.Length > 0)
+                {
+                    _sprite = null;
+                    return true;
+                }
+            }
+            catch (Exception)
+            {
+            }
+
+            return false;
         }
 
         static Image Ensure(RectTransform panel)
