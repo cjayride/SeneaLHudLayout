@@ -328,6 +328,13 @@ namespace SeneaLHudLayout
         static void TickXpBar(bool levelShown)
         {
             bool show = levelShown && SeneaLHudLayoutPlugin.ShowLevelXpBar != null && SeneaLHudLayoutPlugin.ShowLevelXpBar.Value;
+            // 1.5.60: one XP display at a time. The character-window bar is the lowest priority:
+            // the action-slot card and the food-timers plate both own the display over it.
+            if (show && !SeneaLHudLayoutPlugin.XpBarOwned(SeneaLHudLayoutPlugin.XpBarOwner.CharacterWindow))
+            {
+                show = false;
+            }
+
             float fraction = show ? ReadLevelFraction(Player.m_localPlayer) : -1f;
             if (fraction < 0f)
             {
@@ -634,6 +641,10 @@ namespace SeneaLHudLayout
 
         static void TickFoodLevel(bool show, int level)
         {
+            // 1.5.62: the food-timers plate answers ONLY to [HealthFood] ShowLevelFoodBar -
+            // XpBarOneAtATime never hides it (the user: "Allow ShowLevelFoodBar to be turned on,
+            // regardless if XpBarOneAtATime is off or on"). OneAtATime arbitrates the action-slot
+            // card vs the character-window bar.
             if (!EnsureFoodLevel())
             {
                 return;

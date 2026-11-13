@@ -1,4 +1,5 @@
-﻿using BepInEx;
+using System;
+using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
@@ -39,7 +40,82 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.5.58";
+        public const string VERSION = "1.5.62";
+
+        /// <summary>
+        /// 1.5.60: the mod ships THREE XP displays - the action-slot card ([Hotbar] ShowXpBar),
+        /// the plate under the food timers (HealthFood.ShowLevelFoodBar), and the character
+        /// window's bar (Character Window.ShowLevelXpBar). Enabling more than one at once made
+        /// the controls fight: three cards, one set of knobs. Exactly ONE is live at a time,
+        /// by this priority: Hotbar card > food-timers plate > character-window bar. The
+        /// highest-priority enabled one wins and the others hide themselves.
+        /// </summary>
+        /// <summary>
+        /// Which XP display wins when [Hotbar] XpBarOneAtATime is on. 1.5.62: the food-timers
+        /// plate ([HealthFood] ShowLevelFoodBar) is NOT part of this - it shows whenever its own
+        /// toggle is on, OneAtATime never hides it (the user asked for exactly that). Only the
+        /// action-slot card and the character-window bar take turns.
+        /// </summary>
+        public enum XpBarOwner
+        {
+            None,
+            Hotbar,
+            FoodBar,
+            CharacterWindow
+        }
+
+        static XpBarOwner _xpOwner = XpBarOwner.None;
+
+        public static ConfigEntry<bool> ShowSlotXpBarOneAtATime;
+
+        /// <summary>The single XP display that is live right now.</summary>
+        public static XpBarOwner ActiveXpBar()
+        {
+            if (ShowSlotXpBar != null && ShowSlotXpBar.Value)
+            {
+                return XpBarOwner.Hotbar;
+            }
+
+            if (ShowLevelXpBar != null && ShowLevelXpBar.Value)
+            {
+                return XpBarOwner.CharacterWindow;
+            }
+
+            return XpBarOwner.None;
+        }
+
+        /// <summary>
+        /// True when THIS feature owns the XP display. Called once per tick per feature; the
+        /// owner is logged once per change (and only when more than one bar is switched on),
+        /// so "my bar vanished" explains itself in LogOutput.txt. The food-timers plate never
+        /// calls this (1.5.62: it is independent of the one-at-a-time rule).
+        /// </summary>
+        public static bool XpBarOwned(XpBarOwner who)
+        {
+            if (ShowSlotXpBarOneAtATime == null || !ShowSlotXpBarOneAtATime.Value)
+            {
+                return true;
+            }
+
+            XpBarOwner owner = ActiveXpBar();
+            if (owner != _xpOwner)
+            {
+                int enabled = (ShowSlotXpBar != null && ShowSlotXpBar.Value ? 1 : 0)
+                    + (ShowLevelXpBar != null && ShowLevelXpBar.Value ? 1 : 0);
+                if (enabled > 1)
+                {
+                    Debug.Log(
+                        "[SeneaL HUD Layout] " + enabled +
+                        " XP bars are enabled - the action-slot card and the character-window bar" +
+                        " take turns (the food-timers plate always follows its own toggle)." +
+                        " Showing: " + owner);
+                }
+
+                _xpOwner = owner;
+            }
+
+            return owner == who;
+        }
         public static ConfigEntry<bool> Enabled;
         public static ConfigEntry<bool> HotbarBottomLeft;
         public static ConfigEntry<float> HotbarBottomMargin;
@@ -121,6 +197,8 @@ namespace SeneaLHudLayout
         public static ConfigEntry<bool> FixSkillRespendAfterDeath;
         public static ConfigEntry<bool> ShowLevelFoodBar;
         public static ConfigEntry<bool> ShowSlotXpBar;
+        public static ConfigEntry<float> ShowHotbarSlotsOffsetX;
+        public static ConfigEntry<float> ShowHotbarSlotsOffsetY;
         public static ConfigEntry<float> ShowSlotXpBarScale;
         public static ConfigEntry<float> ShowSlotXpBarTrackOpacity;
         public static ConfigEntry<float> ShowSlotXpBarOpacity;
@@ -128,6 +206,12 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> ShowSlotXpBarBorderWidth;
         public static ConfigEntry<float> ShowSlotXpBarBorderOpacity;
         public static ConfigEntry<bool> ShowSlotXpBarWhiteNumbers;
+        public static ConfigEntry<XpBarAnchor> ShowSlotXpBarAnchor;
+        public static ConfigEntry<float> ShowSlotXpBarPaddingX;
+        public static ConfigEntry<float> ShowSlotXpBarPaddingY;
+        public static ConfigEntry<bool> ShowSlotXpBarCompact;
+        public static ConfigEntry<float> ShowSlotXpBarCompactBarWidth;
+        public static ConfigEntry<float> ShowSlotXpBarCompactBottomPad;
         public static ConfigEntry<float> ShowLevelFoodBarOffsetX;
         public static ConfigEntry<float> ShowLevelFoodBarOffsetY;
         public static ConfigEntry<bool> HideMinimapStats;
@@ -194,6 +278,20 @@ namespace SeneaLHudLayout
 
         void Awake()
         {
+            // 1.5.60: THREE XP displays, ONE at a time. The user enabled all three and the knobs
+            // fought ("we have 3 independently controlled xp bars, i don't want that"), so
+            // [Hotbar] XpBarOneAtATime (ON default) lets only the highest-priority ENABLED display
+            // draw: action-slot card > food-timers plate > character-window bar. The other two
+            // hide themselves. The switches keep their long-standing keys ([Hotbar] ShowXpBar,
+            // [HealthFood] ShowLevelFoodBar, [Character Window] ShowLevelXpBar) - a 1.5.60 draft
+            // moved them into a new [XpBar] section, which made ConfigHousekeeping DELETE the
+            // players' tuned [Hotbar] ShowXpBar line, so that rename is reverted and removed.
+            ShowSlotXpBar = Config.Bind("Hotbar", "ShowXpBar",
+                ConfigDefault(Config, "Hotbar", "ShowXpBar", "Character", "ShowXpBar", false),
+                "Show your SkillsReworked level and XP bar on the HUD as a gold card (Hotbar.XpBarAnchor picks WHERE: RightOfSlots, TopLeft, or UnderFoodBar). All its knobs are the [Hotbar] XpBar* settings: anchor, padding, scale, compact, colours. OFF by default; the CJAYCRAFT pack ships it ON with XpBarAnchor = UnderFoodBar. With [Hotbar] XpBarOneAtATime on, this display wins over the food-timers plate and the character-window bar. Client-only.");
+            ShowSlotXpBarOneAtATime = Config.Bind("Hotbar", "XpBarOneAtATime", true,
+                "Show only ONE of the mod's three XP displays at a time (1.5.60, ON default): the action-slot card ([Hotbar] ShowXpBar), the level plate under the food timers ([HealthFood] ShowLevelFoodBar), and the character window's bar ([Character Window] ShowLevelXpBar). Switching on more than one used to stack them, three cards sharing one set of knobs. ON: the highest-priority enabled one draws - action-slot card, then food-timers plate, then character-window bar - and the rest hide. OFF: all three show at once, the pre-1.5.60 behaviour. Applies live, no restart. Client-only.");
+
             Enabled = Config.Bind("General", "Enabled", true,
                 "Apply the layout offsets below. Turn this off to restore SeneaL UI's own placement.");
             HotbarBottomLeft = Config.Bind("Hotbar", "BottomLeft", true,
@@ -207,36 +305,59 @@ namespace SeneaLHudLayout
             HotbarOffsetY = Config.Bind("Hotbar", "OffsetY", 14.5f,
                 new ConfigDescription("Extra vertical nudge in pixels, after BottomLeft placement. Positive moves up.",
                     new AcceptableValueRange<float>(-2000f, 2000f)));
-            ShowSlotXpBar = Config.Bind("Hotbar", "ShowXpBar", false,
-                "Show your level and full SkillsReworked XP bar right of the action slots, at the slots' mid height: "
-                + "Level 42, bar, percent on the top line and the XP numbers underneath, the same data as the character window. "
-                + "Every line sits on a dark thin-bordered plate so it reads over any scenery. "
-                + "Off by default; the CJAYCRAFT pack ships it on.");
+            ShowHotbarSlotsOffsetX = Config.Bind("Hotbar", "SlotsOffsetX", 0f,
+                new ConfigDescription("Move the ACTION SLOTS and the QUIVER frame (arrows) right, on top of the layout everything else uses. Positive moves right, negative left. 1.5.60: the user asked to clear the slots' old spot so the XP card can sit there - slide the slots right with this, then park the card in the vacated place with Hotbar.XpBarPaddingX (the card anchors to the slots, so it rides this nudge and measures from the slots' NEW edge). The item bar and the food quick slots stay put. Applies on the next world load / F1, no restart. Client-only.",
+                    new AcceptableValueRange<float>(-2000f, 2000f)));
+            ShowHotbarSlotsOffsetY = Config.Bind("Hotbar", "SlotsOffsetY", 0f,
+                new ConfigDescription("Vertical partner of Hotbar.SlotsOffsetX, for the same two groups. 0 keeps their shipped height. Positive moves up. Applies on the next world load / F1, no restart. Client-only.",
+                    new AcceptableValueRange<float>(-2000f, 2000f)));
+            // 1.5.60: the ON switch moved to [Hotbar] ShowXpBar (the section at the top of
+            // the file the user asked for); every XpBar* knob stays here and names it.
             ShowSlotXpBarScale = Config.Bind("Hotbar", "XpBarScale", 1f,
                 new ConfigDescription(
-                    "Size multiplier for that action-slot XP bar (Hotbar.ShowXpBar): the level line, bar, percent, and XP numbers with their plates. "
+                    "Size multiplier for that action-slot XP bar ([Hotbar] ShowXpBar): the level line, bar, percent, and XP numbers with their plates. "
                     + "1 is the character window's own size, 2 doubles it, 0.5 halves it. 0.5-3. Client-only.",
                     new AcceptableValueRange<float>(0.5f, 3f)));
             ShowSlotXpBarTrackOpacity = Config.Bind("Hotbar", "XpBarTrackOpacity", 0.75f,
                 new ConfigDescription(
-                    "Black opacity of the action-slot XP bar's track (Hotbar.ShowXpBar): 0.75 (the default) is a dark groove with the gold progress bar standing out; 0.25 shows the scenery through it, 1 is solid black. Applies live, no restart. Client-only.",
+                    "Black opacity of the action-slot XP bar's track ([Hotbar] ShowXpBar): 0.75 (the default) is a dark groove with the gold progress bar standing out; 0.25 shows the scenery through it, 1 is solid black. Applies live, no restart. Client-only.",
                     new AcceptableValueRange<float>(0f, 1f)));
             ShowSlotXpBarOpacity = Config.Bind("Hotbar", "XpBarOpacity", 0.75f,
                 new ConfigDescription(
-                    "Black opacity of the action-slot XP bar's BACKDROP plates (Hotbar.ShowXpBar): 0.75 (the default) is a dark card the scenery shows faintly through; 0.5 is see-through (the 1.5.45 default - washed out to invisible over bright scenery), 1 is solid black. Applies live, no restart. Client-only.",
+                    "Black opacity of the action-slot XP bar's BACKDROP plates ([Hotbar] ShowXpBar): 0.75 (the default) is a dark card the scenery shows faintly through; 0.5 is see-through (the 1.5.45 default - washed out to invisible over bright scenery), 1 is solid black. Applies live, no restart. Client-only.",
                     new AcceptableValueRange<float>(0f, 1f)));
             ShowSlotXpBarBorder = Config.Bind("Hotbar", "XpBarBorder", true,
-                "Draw the gold BORDER line around the action-slot XP bar card (Hotbar.ShowXpBar). The border is four solid line quads (top/bottom/left/right), never a filled rectangle. Off removes it entirely; applies live, no restart. Client-only.");
+                "Draw the gold BORDER line around the action-slot XP bar card ([Hotbar] ShowXpBar). The border is four solid line quads (top/bottom/left/right), never a filled rectangle. Off removes it entirely; applies live, no restart. Client-only.");
             ShowSlotXpBarBorderWidth = Config.Bind("Hotbar", "XpBarBorderWidth", 0.5f,
                 new ConfigDescription(
-                    "Thickness of the action-slot XP bar card's border LINE in HUD pixels (Hotbar.ShowXpBar): 0.5 (the default) is a hairline, 1 is a pixel, 2 is chunky. Scales with Hotbar.XpBarScale; applies live, no restart. Client-only.",
+                    "Thickness of the action-slot XP bar card's border LINE in HUD pixels ([Hotbar] ShowXpBar): 0.5 (the default) is a hairline, 1 is a pixel, 2 is chunky. Scales with Hotbar.XpBarScale; applies live, no restart. Client-only.",
                     new AcceptableValueRange<float>(0.1f, 4f)));
             ShowSlotXpBarBorderOpacity = Config.Bind("Hotbar", "XpBarBorderOpacity", 0.15f,
                 new ConfigDescription(
-                    "Gold opacity of the action-slot XP bar card's border (Hotbar.ShowXpBar): 0.15 (the default) is a faint gold edge; 1 is a solid gold line. The gold TEXT keeps full alpha. Applies live, no restart. Client-only.",
+                    "Gold opacity of the action-slot XP bar card's border ([Hotbar] ShowXpBar): 0.15 (the default) is a faint gold edge; 1 is a solid gold line. The gold TEXT keeps full alpha. Applies live, no restart. Client-only.",
                     new AcceptableValueRange<float>(0f, 1f)));
             ShowSlotXpBarWhiteNumbers = Config.Bind("Hotbar", "XpBarWhiteNumbers", false,
-                "Draw the action-slot XP bar's NUMBERS in white (Hotbar.ShowXpBar, off by default): the level number, the percentage and the `## / ##` values go white while the words and symbols around them - `Level `, the ` / ` between the values and the `%` - keep the gold text colour. Off keeps everything gold. Applies live, no restart. Client-only.");
+                "Draw the action-slot XP bar's NUMBERS in white ([Hotbar] ShowXpBar, off by default): the level number, the percentage and the `## / ##` values go white while the words and symbols around them - `Level `, the ` / ` between the values and the `%` - keep the gold text colour. Off keeps everything gold. Applies live, no restart. Client-only.");
+            ShowSlotXpBarAnchor = Config.Bind("Hotbar", "XpBarAnchor", XpBarAnchor.RightOfSlots,
+                "Where the action-slot XP bar hangs ([Hotbar] ShowXpBar). Starter layouts: RightOfSlots = beside the action/quiver HUD slots (XpBarPaddingX default 222 clears three quiver cells); TopLeft = top-left of the screen (PaddingX/Y 12); UnderFoodBar = under the food timers (PaddingX/Y 12, 0.75x). Existing configs keep their own values. Applies live, no restart. Client-only.");
+            ShowSlotXpBarPaddingX = Config.Bind("Hotbar", "XpBarPaddingX", 222f,
+                new ConfigDescription(
+                    "Horizontal padding in HUD pixels for the action-slot XP bar ([Hotbar] ShowXpBar). RightOfSlots: gap after the last action slot - 222 is the new starter (three 70px quiver cells + 12) so the card does not sit on the arrows; 12 was the old gap. TopLeft: inset from the screen LEFT. UnderFoodBar: inset from the food cluster LEFT. Your saved value is never overwritten. Applies live, no restart. Client-only.",
+                    new AcceptableValueRange<float>(-400f, 1600f)));
+            ShowSlotXpBarPaddingY = Config.Bind("Hotbar", "XpBarPaddingY", 12f,
+                new ConfigDescription(
+                    "Vertical padding in HUD pixels for the XP bar ([Hotbar] ShowXpBar). Starters: TopLeft 12 from the screen top; UnderFoodBar 12 below the food timers; RightOfSlots 12 centres on the action slots (above 12 moves up). Saved configs keep their value.",
+                    new AcceptableValueRange<float>(-1600f, 1600f)));
+            ShowSlotXpBarCompact = Config.Bind("Hotbar", "XpBarCompact", false,
+                "Condense the action-slot XP bar to ONE row ([Hotbar] ShowXpBar): `Lv 42  bar  37%  1234/3333` on a single plate - shorter level word, no spaces around the slash, a narrower bar (Hotbar.XpBarCompactBarWidth) and tighter gaps - so the card fits in tight HUD space. Off keeps the shipped two-row card (`Level 42 · bar · 37%` over the XP numbers). Works on EVERY anchor, UnderFoodBar included (1.5.61: that anchor used to force this ON, which is why the toggle looked dead). Applies live, no restart. Client-only.");
+            ShowSlotXpBarCompactBarWidth = Config.Bind("Hotbar", "XpBarCompactBarWidth", 70f,
+                new ConfigDescription(
+                    "Width in HUD pixels of the CONDENSED XP bar's track (Hotbar.XpBarCompact): 70 is the default, 100 matches the full card's bar. Scales with Hotbar.XpBarScale. Applies live, no restart. Client-only.",
+                    new AcceptableValueRange<float>(30f, 400f)));
+            ShowSlotXpBarCompactBottomPad = Config.Bind("Hotbar", "XpBarCompactBottomPad", 4f,
+                new ConfigDescription(
+                    "Empty space in HUD pixels BELOW the text row inside the CONDENSED XP bar card (Hotbar.XpBarCompact): 4 is the 1.5.61 default (your report: 'add 4 pixels to the padding bottom'), 0 makes the card's bottom border hug the text, 8 is roomy. The condensed card also trims 3 pixels off its TOP (the 'remove 3 pixels from the padding top' half) at a fixed rate this knob does not touch. The pad grows the card DOWNWARD only - the text row and the food timers above never move. Scales with Hotbar.XpBarScale. Applies live, no restart. Client-only.",
+                    new AcceptableValueRange<float>(0f, 40f)));
 
             LiftHealthAboveHotbar = Config.Bind("HealthFood", "LiftAboveHotbar", true,
                 "Raise the health, food, and guardian-power cluster so it sits above the relocated hotbar.");
@@ -252,16 +373,16 @@ namespace SeneaLHudLayout
             bool showLevelFoodBarDefault = ConfigDefault(
                 Config, "HealthFood", "ShowLevelFoodBar", "Character", "ShowLevelFoodBar", false);
             ShowLevelFoodBar = Config.Bind("HealthFood", "ShowLevelFoodBar", showLevelFoodBarDefault,
-                "Show your SkillsReworked level directly under the food timers. Off by default: the level and full XP bar now show next to the action slots (Hotbar.ShowXpBar).");
+                "Show your SkillsReworked level directly under the food timers. Off by default. This plate is INDEPENDENT of [Hotbar] XpBarOneAtATime (1.5.62): turn it on and it shows, even when the action-slot XP card is also on - it does not take turns with the other XP bars.");
             float showLevelFoodBarOffsetXDefault = ConfigDefault(
                 Config, "HealthFood", "ShowLevelFoodBarOffsetX", "Character", "ShowLevelFoodBarOffsetX", 12f);
             ShowLevelFoodBarOffsetX = Config.Bind("HealthFood", "ShowLevelFoodBarOffsetX", showLevelFoodBarOffsetXDefault,
-                new ConfigDescription("Horizontal nudge for that food-bar level, in pixels. Positive moves right. Default 12 nudges slightly right from slot center (1.5.8+).",
+                new ConfigDescription("Horizontal nudge for the food-timer XP plate. Starter is 12 (slightly right of the food slots). Positive moves right. Saved configs keep their value.",
                     new AcceptableValueRange<float>(-200f, 200f)));
             float showLevelFoodBarOffsetYDefault = ConfigDefault(
                 Config, "HealthFood", "ShowLevelFoodBarOffsetY", "Character", "ShowLevelFoodBarOffsetY", -11f);
             ShowLevelFoodBarOffsetY = Config.Bind("HealthFood", "ShowLevelFoodBarOffsetY", showLevelFoodBarOffsetYDefault,
-                new ConfigDescription("Vertical nudge for that food-bar level, in pixels. Positive moves up.",
+                new ConfigDescription("Vertical nudge for the food-timer XP plate. Starter is -11 (just under the timers). Positive moves up. Saved configs keep their value.",
                     new AcceptableValueRange<float>(-200f, 200f)));
 
             MinimapOffsetX = Config.Bind("Minimap", "OffsetX", -36f,
@@ -541,9 +662,9 @@ namespace SeneaLHudLayout
             QuestBackground.SettingChanged += (_, __) => AdventureJournal.PaintBackground();
             QuestBackgroundAlpha.SettingChanged += (_, __) => AdventureJournal.PaintBackground();
             bool showLevelXpBarDefault = ConfigDefault(
-                Config, "Character Window", "ShowLevelXpBar", "Character", "ShowLevelXpBar", true);
+                Config, "Character Window", "ShowLevelXpBar", "Character", "ShowLevelXpBar", false);
             ShowLevelXpBar = Config.Bind("Character Window", "ShowLevelXpBar", showLevelXpBarDefault,
-                "Show a 100 pixel SkillsReworked XP bar under that character-window level.");
+                "Show a 100 pixel SkillsReworked XP bar under the character-window level line (starter: immediately to the right of the level text). OFF by default; the pack may ship it ON. With [Hotbar] XpBarOneAtATime on, this bar yields to the action-slot card. Client-only.");
             bool fixSkillRespendDefault = ConfigDefault(
                 Config, "Character Window", "FixSkillRespendAfterDeath", "Character", "FixSkillRespendAfterDeath", true);
             FixSkillRespendAfterDeath = Config.Bind("Character Window", "FixSkillRespendAfterDeath", fixSkillRespendDefault,
@@ -596,6 +717,8 @@ namespace SeneaLHudLayout
                 "Keep the coin purse out of chest deposits. Deposit All, Deposit Similar, and Stack All never take coins from the purse. Move coins into your inventory first if you want them in a chest. Turn this off to let those buttons take the purse.");
             WishboneInKeySlot = Config.Bind("Inventory", "WishboneInKeySlot", false,
                 "Put the wishbone in a SeneaL dungeon-key slot instead of the charm / utility cell. Off (default) keeps SeneaL's normal wishbone slot. Needs key slots enabled in SeneaL UI. The wishbone is stored there, not worn; this mod keeps its finder ping effect running while it sits in a key slot, as long as it is not equipped. Turn off to return it to the charm cell.");
+            InventoryRowMerge.MergeSlotRows = Config.Bind("Inventory", "MergeSlotRows", false,
+                "EXPERIMENTAL (1.5.62): FOOD, ACTION and QUIVER ARROW cells on ONE row of the SeneaL inventory panel (where the food slots sit), labels above the action and arrow groups, empty action-row space reclaimed. Display only - items keep their real grid cells. OFF (default) is stock SeneaL. Client-only; world re-load / F1.");
             BuildPanelScale = Config.Bind("BuildPanel", "Scale", 0.8f,
                 new ConfigDescription(
                     "Size of SeneaL's selected-piece BuildPanel (the hammer piece card). 1 is SeneaL's current size. 0.8 is this mod's default. SeneaL's own [Sizes] BuildPanel stays at 1 unless you change that too.",
@@ -624,40 +747,67 @@ namespace SeneaLHudLayout
 
             Harmony harmony = new Harmony(GUID);
             ConfigHousekeeping.PruneLegacyEntries(Config, Logger);
-            HealthBarCap.Apply(harmony);
-            ShudnalConfigBridge.Apply(harmony);
-            CompassPin.Apply(harmony);
-            CompassLivePins.Apply(harmony);
-            DeathPinCompass.Apply(harmony);
-            StatsWindow.Apply(harmony);
-            DrawerPreview.Apply(harmony);
-            PieceHealthLabel.Apply(harmony);
-            WorldHealthText.Apply(harmony);
-            SlotCue.Apply(harmony);
-            CharacterExtras.Apply(harmony);
-            AdventureJournal.Apply(harmony);
-            RulesNotice.Apply(harmony);
-            ChatHide.Apply(harmony);
-            ChatWindowLayout.Apply(harmony);
-            ChatPrefix.Apply(harmony);
-            ChatShoutText.Apply(harmony);
-            CenterMessageRoute.Apply(harmony);
-            WalletStacks.Apply(harmony);
-            RepairTipPlace.Apply(harmony);
-            BuildSearchMemory.Apply(harmony);
-            StatValues.Apply(harmony);
-            TipItemIcon.Apply(harmony);
-            TipColumnOverflow.Apply(harmony);
-            CraftMaterials.Apply(harmony);
-            StatusEffectsPlace.Apply(harmony);
-            SkillRespendFix.Apply(harmony);
-            VanillaSkillsWindow.Apply(harmony);
-            RebirthNotice.Apply(harmony);
-            KillXpNotice.Apply(harmony);
-            EquipQueueMark.Apply(harmony);
-            WishboneKeySlot.Apply(harmony);
-            EpicLootShardWindow.Apply(harmony);
+
+            // 1.5.62 lesson (your UI wipe-out): one feature's Harmony patch threw during Awake
+            // ("Parameter __inv does not contain a valid index" in the inventory row merge),
+            // the exception left Awake, BepInEx marked the plugin FAILED, and the whole mod
+            // stopped running - hotbar placement, XP bar, notices, everything. Every feature is
+            // now registered through Safe(): a feature that fails logs its name and the rest of
+            // the mod keeps working exactly as configured.
+            Safe("HealthBarCap", () => HealthBarCap.Apply(harmony));
+            Safe("ShudnalConfigBridge", () => ShudnalConfigBridge.Apply(harmony));
+            Safe("CompassPin", () => CompassPin.Apply(harmony));
+            Safe("CompassLivePins", () => CompassLivePins.Apply(harmony));
+            Safe("DeathPinCompass", () => DeathPinCompass.Apply(harmony));
+            Safe("StatsWindow", () => StatsWindow.Apply(harmony));
+            Safe("DrawerPreview", () => DrawerPreview.Apply(harmony));
+            Safe("PieceHealthLabel", () => PieceHealthLabel.Apply(harmony));
+            Safe("WorldHealthText", () => WorldHealthText.Apply(harmony));
+            Safe("SlotCue", () => SlotCue.Apply(harmony));
+            Safe("CharacterExtras", () => CharacterExtras.Apply(harmony));
+            Safe("AdventureJournal", () => AdventureJournal.Apply(harmony));
+            Safe("RulesNotice", () => RulesNotice.Apply(harmony));
+            Safe("ChatHide", () => ChatHide.Apply(harmony));
+            Safe("ChatWindowLayout", () => ChatWindowLayout.Apply(harmony));
+            Safe("ChatPrefix", () => ChatPrefix.Apply(harmony));
+            Safe("ChatShoutText", () => ChatShoutText.Apply(harmony));
+            Safe("CenterMessageRoute", () => CenterMessageRoute.Apply(harmony));
+            Safe("WalletStacks", () => WalletStacks.Apply(harmony));
+            Safe("RepairTipPlace", () => RepairTipPlace.Apply(harmony));
+            Safe("BuildSearchMemory", () => BuildSearchMemory.Apply(harmony));
+            Safe("StatValues", () => StatValues.Apply(harmony));
+            Safe("TipItemIcon", () => TipItemIcon.Apply(harmony));
+            Safe("TipColumnOverflow", () => TipColumnOverflow.Apply(harmony));
+            Safe("CraftMaterials", () => CraftMaterials.Apply(harmony));
+            Safe("StatusEffectsPlace", () => StatusEffectsPlace.Apply(harmony));
+            Safe("SkillRespendFix", () => SkillRespendFix.Apply(harmony));
+            Safe("VanillaSkillsWindow", () => VanillaSkillsWindow.Apply(harmony));
+            Safe("RebirthNotice", () => RebirthNotice.Apply(harmony));
+            Safe("KillXpNotice", () => KillXpNotice.Apply(harmony));
+            Safe("EquipQueueMark", () => EquipQueueMark.Apply(harmony));
+            Safe("WishboneKeySlot", () => WishboneKeySlot.Apply(harmony));
+            Safe("InventoryRowMerge", () => InventoryRowMerge.Apply(harmony));
+            Safe("EpicLootShardWindow", () => EpicLootShardWindow.Apply(harmony));
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
+        }
+
+        /// <summary>
+        /// Run one feature's registration. A feature that throws (bad patch signature, a mod's
+        /// method moved, ...) is reported by name and SKIPPED - it can never take the whole
+        /// plugin down. Every other feature and the per-frame placement keep running.
+        /// </summary>
+        static void Safe(string feature, Action apply)
+        {
+            try
+            {
+                apply();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(
+                    "[SeneaL HUD Layout] feature '" + feature + "' failed to start and is " +
+                    "skipped; every other feature of the mod keeps running. " + e);
+            }
         }
 
         void LateUpdate()

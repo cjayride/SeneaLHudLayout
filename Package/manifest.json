@@ -1,8 +1,8 @@
 {
     "name": "SeneaLHudLayout",
-    "version_number": "1.5.58",
+    "version_number": "1.5.62",
     "website_url": "https://discord.gg/cjayride",
-    "description": "Rearranges SeneaL UI's HUD: hotbar bottom-left, XP bar, labels.",
+    "description": "Rearranges SeneaL UI HUD: hotbar, XP bars, and optional one-row inventory slots (MergeSlotRows).",
     "dependencies": [
         "denikson-BepInExPack_Valheim-5.4.2360",
         "seneaL-SeneaL_UI-1.2.8"

@@ -53,13 +53,16 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 - Optional equip and gear countdown timers.
 - PotionsPlus potions and other consumables show their consume-cooldown countdown (`[Items] PotionCooldowns`, on by default) on the quick-action row AND the main hotbar row (food, meads, anything with a consume cooldown): the slot is tinted (`PotionCooldownDimOpacity`, 0.55) and the seconds are drawn at `PotionCooldownTextOpacity` (0.65 default), `PotionCooldownTextOffsetY` (5) pixels below the slot's centre, so the potion icon stays visible. The tint square is centred on the drawn button and inset by `[Items] PotionCooldownInset` (10 default) so it stops at the button's edge, not past it. With Cjayride Skyheim Compat installed, set its `[Cooldown overlay] OnSenealHotbar = false` (1.2.7 default) so Skyheim's own full-slot square + centred number don't stack on top of these.
 - Shows your level and full XP bar flush on the action slots' right edge (a small gap clear of the last slot), centred on them (`[Hotbar] ShowXpBar`, off by default): `Level 42 · bar · 37%` on the top row and the `1234 / 3333` XP numbers under the bar with 6px of plate BELOW them, full card width, left-aligned from the bar's start like the character panel. All the text is gold; `[Hotbar] XpBarWhiteNumbers` (off by default, live) makes just the NUMBERS white and leaves the words/symbols (`Level `, ` / `, `%`) gold. The card is black at `[Hotbar] XpBarOpacity` (0.75 default, live), outlined by a hairline gold border - 0.5px at 15% opacity, drawn as FOUR solid line quads (top/bottom/left/right strips), never a sprite that can fill the card (`[Hotbar] XpBarBorder`, `[Hotbar] XpBarBorderWidth`, `[Hotbar] XpBarBorderOpacity`, all live). The bar's track is a black groove (track opacity `[Hotbar] XpBarTrackOpacity`, 0.75 default) and the FILLED part shows as a gold progress bar. In the same font as the food-timer text, sized by `[Hotbar] XpBarScale` (1.0 default). The card keeps itself on top of hotbar overlays and blacks out any foreign graphic stretched across it. Turning it on never moves the action slots or any other HUD element.
+- Three XP bar positions (`[Hotbar] XpBarAnchor`, live): `RightOfSlots` is the shipped look above - the gap is its own knob, `[Hotbar] XpBarPaddingX` (12 default): raise it to push the card farther RIGHT, clear of the QUIVER frame (arrows), which sits exactly where the card hangs when a bow is equipped. `TopLeft` pins the card to the screen's top-left corner (insets `[Hotbar] XpBarPaddingX` / `XpBarPaddingY`, 12 default). `UnderFoodBar` hangs a CONDENSED one-row card under the food timers: `Lv 42 · bar · 37% · 1234/3333` on a single plate, 0.75x smaller, the bar narrowed to `[Hotbar] XpBarCompactBarWidth` (70 default) - the CJAYCRAFT pack ships this anchor with `XpBarPaddingX = -100`, `XpBarPaddingY = 26`. `[Hotbar] XpBarCompact` (off default) turns the same one-row condense on for ANY anchor (1.5.61: it now drives `UnderFoodBar` too, where it used to be forced, and the card's pad is `[Hotbar] XpBarCompactBottomPad`, 4 default, below the text row plus a fixed 3px off its top). `[Hotbar] XpBarPaddingY` moves the card vertically on every anchor, `RightOfSlots` included - 12 stays the shipped centred look, up above it, down below.
+- **Move the quick slots out of the card's way** (`[Hotbar] SlotsOffsetX` / `[Hotbar] SlotsOffsetY`, 0 default, 1.5.61): slides ONLY the action-slot group and the QUIVER frame right/up, leaving the item bar and the food quick slots alone - so the XP card can sit in the spot the slots used to occupy (park it there with a negative `[Hotbar] XpBarPaddingX`; the card anchors to the slots, so it rides the nudge and measures from their new edge).
+- **One XP display at a time** (`[Hotbar] XpBarOneAtATime`, on by default, 1.5.60): the action-slot card and the character-window bar (`[Character Window] ShowLevelXpBar`) no longer stack - only the highest-priority enabled one draws, and the log says which. Turn it off to show both at once. The level plate under the food timers (`[HealthFood] ShowLevelFoodBar`) is NOT part of this rule (1.5.62): it shows whenever its own toggle is on.
 - Configurable highlight colors, sizes, and effects.
 
 ### Character & Skills
 
 - **Character Stats** tab on the SeneaL character panel: live health, stamina, eitr, armor, resists, food, status effects, weapon skills, and more (`[Stats] StatsTab`, optional hotkey and Steam portrait).
 - Displays the SkillsReworked level in the character window (`[Character Window]`).
-- Optionally displays that level under the food timers (`[HealthFood] ShowLevelFoodBar` and offset keys). Off by default now that the action-slot bar (`[Hotbar] ShowXpBar`) carries the level.
+- Optionally displays that level under the food timers (`[HealthFood] ShowLevelFoodBar` and offset keys). Off by default. This plate is INDEPENDENT of `[Hotbar] XpBarOneAtATime` (1.5.62) - turn it on and it shows, alongside the action-slot card.
 - On a creature kill, shows how much SkillsReworked Level XP you gained next to the damage-share percent (`[Notices] ShowKillXp`).
 - **Guardian powers** rows on the Stats sheet (`[Stats] GuardianPowers`, on by default): one row per boss power you have equipped in Passive Powers, each with its live passive state — `Active 1m 59s` during the activation buff, `Depleted 1m 45s` during the lockout, `Passive` at rest — and the power's passive effect lines from the Passive Powers config underneath. Needs Passive Powers; vanilla's single power stays on the Forsaken power row.
 - The level XP bar (`[Character Window] ShowLevelXpBar`) shows the same XP as those kill notices, so a "+12 XP" kill moves the numbers under the bar by the 12 XP it is worth.
@@ -86,6 +89,7 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 - Balances two-column item tooltips by moving whole sections between columns for similar height (`[ItemTooltips] LeftOverflow`).
 - Shows a small item sprite on the tooltip type line (`[ItemTooltips] ShowItemIcon`), for example a hoe next to **Tool**.
 - With Epic Loot loaded, opens shard (and rune) sockets in a dedicated window so they can be filled or emptied while SeneaL CustomUI is on. Hover the gear and press E. Turn `[EpicLoot] ShardSocketWindow` off to leave this to Epic Loot alone.
+- **EXPERIMENTAL: one slot row in the inventory** (`[Inventory] MergeSlotRows`, off by default, 1.5.62): the FOOD quick slots, the ACTION slots and the QUIVER slot share one horizontal row of the SeneaL inventory panel - FOOD | ACTION | QUIVER | BACKPACK left to right - instead of the action row stacked under the food row, so the panel is two grid rows shorter. Needs `[Inventory] QuickSlotCount` + `ActionSlotCount` + 2 (quiver, backpack) cells inside the 8-cell row width (the pack's 3 + 3 fits exactly); when the counts do not fit the inventory keeps SeneaL's own stacked rows. The merge rides SeneaL's own row math, so drags, sorts, stacks, right-clicks, number/Alt keys and the accept rules all follow the new band. Off restores the shipped layout. Client-only; tell us what breaks - item safety first, panel height next.
 
 ### Interface & Notifications
 
@@ -173,7 +177,18 @@ Settings are organized by category. Key options include:
 | Hotbar | `XpBarBorderWidth` | 0.5 |
 | Hotbar | `XpBarBorderOpacity` | 0.15 |
 | Hotbar | `XpBarWhiteNumbers` | false |
+| Hotbar | `XpBarAnchor` | RightOfSlots |
+| Hotbar | `XpBarPaddingX` | 12 |
+| Hotbar | `XpBarPaddingY` | 12 |
+| Hotbar | `XpBarCompact` | false |
+| Hotbar | `XpBarCompactBarWidth` | 70 |
+| Hotbar | `XpBarCompactBottomPad` | 4 |
+| Hotbar | `XpBarOneAtATime` | true |
+| Hotbar | `SlotsOffsetX` | 0 |
+| Hotbar | `SlotsOffsetY` | 0 |
 | HealthFood | `ShowLevelFoodBar` | Off |
+| Inventory | `MergeSlotRows` | Off (experimental) |
+| Character Window | `ShowLevelXpBar` | Off (pack ships On) |
 | Stats | `GuardianPowers` | On |
 | Chat | `chatMessageFontEnabled` | Off |
 | Chat | `chatMessageTextFontAsset` | Valheim-AveriaSansLibre |

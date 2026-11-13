@@ -8,6 +8,21 @@ using UnityEngine.UI;
 namespace SeneaLHudLayout
 {
     /// <summary>
+    /// Where the XP card lives ([Hotbar] XpBarAnchor, 1.5.59). The quiver frame (arrows, when a
+    /// bow is equipped) sits exactly where the card used to hang off the action slots, so the
+    /// right-of-slots anchor collides with it; the two extra anchors are the ways around.
+    ///   RightOfSlots - the shipped look: flush right of the widest visible right-hand row.
+    ///   TopLeft      - pinned to the screen's top-left corner.
+    ///   UnderFoodBar - condensed, hanging under the food timers (the food bar's own node).
+    /// </summary>
+    public enum XpBarAnchor
+    {
+        RightOfSlots,
+        TopLeft,
+        UnderFoodBar
+    }
+
+    /// <summary>
     /// [Hotbar] ShowXpBar: the character window's level/XP display copied to the HUD, attached
     /// flush to the right side of the action slots and centred on their exact middle.
     ///
@@ -39,7 +54,23 @@ namespace SeneaLHudLayout
         const float PlatePadY = 4f;
         const float BaseNumbersPad = 6f;  // 1.5.50: 4px (1.5.49) + 2 more below the numbers
         const float PlateMinHeight = 18f;
-        const float SlotGap = 12f;
+
+        // 1.5.59: the gap between the slots' content edge and the card is the live knob
+        // [Hotbar] XpBarPaddingX (default = the 12px every build before 1.5.59 used), so "move the
+        // XP bar farther right" is a slider, not a build. It is also the inset from the screen's
+        // left edge in TopLeft mode and from the food cluster's left edge in UnderFoodBar mode.
+        const float DefaultPaddingX = 12f;
+
+        // 1.5.59: the condensed bar's track width ([Hotbar] XpBarCompactBarWidth, 70 default), and
+        // the pad the condensed card leaves UNDER its single row ([Hotbar] XpBarCompactBottomPad,
+        // 4 default). 1.5.60: the pad exists because the condensed card's bottom border used to
+        // hug the text row with nothing between them - the user, on 1.5.59: "it sits too close to
+        // the bottom edge... add 4 pixels to the padding bottom, remove 3 pixels from the padding
+        // top". The 1.5.59 row left ~8px above the numbers and ~1px under them, so the fix is a
+        // 4px plate under the row AND a 3px trim of the dead space above it (CompactTopTrim).
+        const float DefaultCompactBarWidth = 70f;
+        const float DefaultCompactBottomPad = 4f;
+        const float CompactTopTrim = 3f;
 
         // Card plates: black (1.5.44 made them opaque). 1.5.45: the alpha is [Hotbar] XpBarOpacity
         // (0.5 default, live) — the user asked for a 50% black backdrop; the gold border is the
@@ -93,6 +124,14 @@ namespace SeneaLHudLayout
         static TextMeshProUGUI _amount;
         static TextMeshProUGUI _percent;
 
+        // 1.5.59: the condensed card's numbers live on the TOP plate (one row), so the full card's
+        // numbers plate is switched off. Two labels, never reparented in Place: Tick flips it once.
+        static bool _compactApplied;
+
+        // 1.5.59: where the card is hung ([Hotbar] XpBarAnchor). RightOfSlots keeps the shipped
+        // parent (HudLayout.HotbarShift, so the card rides the hotbar nudge); the two new anchors
+        // parent to SeneaL's own HUD root so the hotbar's placement never moves them.
+
         static System.Reflection.FieldInfo _hotbarField;
         static System.Reflection.FieldInfo _frameActions;
         static System.Reflection.FieldInfo _frameQuiver;
@@ -117,8 +156,16 @@ namespace SeneaLHudLayout
         static float _placedAmountWidth = float.NaN;
         static float _placedPercentWidth = float.NaN;
         static float _placedScale = float.NaN;
+        static float _placedPadX = float.NaN;
+        static float _placedPadY = float.NaN;
+        static float _placedBarW = float.NaN;
+        static float _placedBottomPad = float.NaN;
         static string _placedText = "";
         static float _placedFill = float.NaN;
+
+        // 1.5.59: the bar track width actually used by the last Place (BarWidth, or the compact
+        // knob). Tick sizes the fill from this, since compact shrinks the track.
+        static float _barW = BaseBarWidth;
 
         // The font copy is best-effort: SeneaL's food-timer label (the font source) only
         // exists once its HUD is built. While the copy fell back to TMP's default font,
@@ -199,6 +246,78 @@ namespace SeneaLHudLayout
             return white ? "<color=#FFFFFFFF>" + number + "</color>" : number;
         }
 
+        // ---- 1.5.59 placement knobs, all live (F1 writes the entry, no restart) ----
+
+        /// <summary>[Hotbar] XpBarAnchor: RightOfSlots (shipped) / TopLeft / UnderFoodBar.</summary>
+        static XpBarAnchor AnchorMode()
+        {
+            ConfigEntry<XpBarAnchor> entry = SeneaLHudLayoutPlugin.ShowSlotXpBarAnchor;
+            return entry == null ? XpBarAnchor.RightOfSlots : entry.Value;
+        }
+
+        /// <summary>
+        /// [Hotbar] XpBarPaddingX: the horizontal pad in HUD pixels. RightOfSlots pushes the card
+        /// that far right of the slots (the shipped look is 12); TopLeft is the inset from the
+        /// screen's left edge; UnderFoodBar from the food cluster's left edge.
+        /// </summary>
+        static float PaddingX()
+        {
+            ConfigEntry<float> entry = SeneaLHudLayoutPlugin.ShowSlotXpBarPaddingX;
+            float pad = entry != null ? entry.Value : DefaultPaddingX;
+            return Mathf.Clamp(pad, -400f, 1600f);
+        }
+
+        /// <summary>[Hotbar] XpBarPaddingY: vertical pad for the two screen-anchored modes.</summary>
+        static float PaddingY()
+        {
+            ConfigEntry<float> entry = SeneaLHudLayoutPlugin.ShowSlotXpBarPaddingY;
+            float pad = entry != null ? entry.Value : 12f;
+            return Mathf.Clamp(pad, -1600f, 1600f);
+        }
+
+        /// <summary>
+        /// The condensed single-row card, straight from [Hotbar] XpBarCompact - every anchor,
+        /// UnderFoodBar included.
+        /// 1.5.59 FORCED it on for UnderFoodBar, which is why the knob "doesn't seem to be doing
+        /// anything to my Under Food Bar": under that anchor the config entry could not change the
+        /// card's shape. 1.5.60 makes it a real knob: a two-row card is allowed under the food
+        /// timers too (it hangs further down; XpBarPaddingY moves it).
+        /// </summary>
+        static bool Compact()
+        {
+            ConfigEntry<bool> entry = SeneaLHudLayoutPlugin.ShowSlotXpBarCompact;
+            return entry != null && entry.Value;
+        }
+
+        /// <summary>The condensed bar's track width from [Hotbar] XpBarCompactBarWidth.</summary>
+        static float CompactBarWidth()
+        {
+            ConfigEntry<float> entry = SeneaLHudLayoutPlugin.ShowSlotXpBarCompactBarWidth;
+            float width = entry != null ? entry.Value : DefaultCompactBarWidth;
+            return Mathf.Clamp(width, 30f, 400f) * _scale;
+        }
+
+        /// <summary>
+        /// 1.5.60: the pad under the condensed row's text, from [Hotbar] XpBarCompactBottomPad
+        /// (5 default). The condensed card is ONE row tall, so its bottom border used to sit right
+        /// under the glyphs. This pad grows the card's bottom plate downward only.
+        /// </summary>
+        static float CompactBottomPad()
+        {
+            ConfigEntry<float> entry = SeneaLHudLayoutPlugin.ShowSlotXpBarCompactBottomPad;
+            float pad = entry != null ? entry.Value : DefaultCompactBottomPad;
+            return Mathf.Clamp(pad, 0f, 40f) * _scale;
+        }
+
+        /// <summary>
+        /// The UnderFoodBar anchor shrinks the whole card (0.75x on top of XpBarScale): the food
+        /// timers row is short, and the shipped 1.0 size is wider than the food cluster.
+        /// </summary>
+        static float ModeScale(XpBarAnchor mode)
+        {
+            return mode == XpBarAnchor.UnderFoodBar ? 0.75f : 1f;
+        }
+
         // Lay the four border strips on the card box Place recorded. Called from Place and
         // whenever the live width knob moves, so a thickness change needs no re-measure.
         static void PlaceBorder()
@@ -224,6 +343,11 @@ namespace SeneaLHudLayout
         {
             bool show = SeneaLHudLayoutPlugin.ShowSlotXpBar != null
                 && SeneaLHudLayoutPlugin.ShowSlotXpBar.Value
+                // 1.5.60: three XP displays, ONE at a time (the user enabled all three and the
+                // controls fought). The action-slot card is the top-priority owner; when a
+                // higher-priority feature exists it never outranks this one, so this is simply
+                // "my card is the one that shows".
+                && SeneaLHudLayoutPlugin.XpBarOwned(SeneaLHudLayoutPlugin.XpBarOwner.Hotbar)
                 && Player.m_localPlayer != null;
 
             // 1.5.58: during a portal trip the custom loading screen must paint over everything.
@@ -242,13 +366,27 @@ namespace SeneaLHudLayout
 
             RectTransform anchor = Anchor();
             RectTransform shift = HudLayout.HotbarShift;
-            if (anchor == null || shift == null || !anchor.gameObject.activeInHierarchy)
+            XpBarAnchor mode = AnchorMode();
+
+            // 1.5.59: the card's PARENT follows the anchor. RightOfSlots keeps the hotbar shift
+            // container so the card rides the hotbar nudge (the shipped behaviour); TopLeft and
+            // UnderFoodBar parent to SeneaL's own HUD root, so the hotbar's placement never moves
+            // them. Ensure() rebuilds the card when the parent changes.
+            RectTransform parent = ParentFor(mode, shift);
+            if (parent == null || (mode == XpBarAnchor.RightOfSlots
+                && (anchor == null || !anchor.gameObject.activeInHierarchy)))
             {
                 Hide();
                 return;
             }
 
-            if (!Ensure(shift))
+            if (mode == XpBarAnchor.UnderFoodBar && !FoodActive())
+            {
+                Hide();
+                return;
+            }
+
+            if (!Ensure(parent))
             {
                 return;
             }
@@ -267,7 +405,21 @@ namespace SeneaLHudLayout
             {
                 _nextData = Time.unscaledTime + DataInterval;
                 SyncOrder();
-                GuardCover();
+
+                // 1.5.59: GuardCover paints/hides foreign graphics that sit over the card, and it
+                // exists for ONE job: the hotbar overlays (Skyheim Compat clones) that stretched
+                // across the card in its shipped slot position. TopLeft and UnderFoodBar sit over
+                // the minimap and the food icons, where that scan would switch real HUD off, so it
+                // only runs for RightOfSlots; leaving the mode restores the victim it painted.
+                if (mode == XpBarAnchor.RightOfSlots)
+                {
+                    GuardCover();
+                }
+                else
+                {
+                    ReleaseCover();
+                }
+
                 _dataLevel = CharacterExtras.Level(Player.m_localPlayer);
 
                 // Fraction resolves the SkillsReworked reflection ReadLevelXp also uses, so call
@@ -288,13 +440,35 @@ namespace SeneaLHudLayout
             float scale = SeneaLHudLayoutPlugin.ShowSlotXpBarScale == null
                 ? 1f
                 : Mathf.Clamp(SeneaLHudLayoutPlugin.ShowSlotXpBarScale.Value, 0.5f, 3f);
+
+            // 1.5.59: the condensed under-food-timers card is shrunk as well as condensed.
+            scale *= ModeScale(mode);
             if (!Mathf.Approximately(scale, _scale))
             {
                 _scale = scale;
                 _placedFill = float.NaN;  // BarHeight changed: re-run the fill write at the new size
+
+                // 1.5.60: XpBarScale "isn't doing anything anymore" - MakeLabel sets fontSize from
+                // the scale the card was BUILT at, and a slider move never re-applied it. The
+                // plates, bar and gaps grew with _scale while the TEXT stayed at the build-time
+                // size, and a centred card rescaled around fixed text read as "nothing happened".
+                // Re-apply the sizes the label builders would use now, and force a re-measure:
+                // clearing _placedText takes Tick down the changed path (set text,
+                // ForceMeshUpdate, measure, Place) at the new scale.
+                if (_level != null && _percent != null && _amount != null)
+                {
+                    _level.fontSize = LevelFont;
+                    _percent.fontSize = SmallFont;
+                    _amount.fontSize = SmallFont;
+                    _placedText = null;
+                }
             }
 
             float fraction = _dataFraction < 0f ? 0f : _dataFraction;
+
+            // 1.5.60: XpBarCompact is a REAL knob for every anchor now (1.5.59 forced it on for
+            // UnderFoodBar, so it provably did nothing there).
+            bool compact = Compact();
 
             // 1.5.50: DIGITS WHITE, SYMBOLS GOLD ([Hotbar] XpBarWhiteNumbers, live). TMP rich text:
             // the digits ride in a <color=#FFFFFF> run, and "Level ", " / " and "%" stay untagged so
@@ -302,12 +476,15 @@ namespace SeneaLHudLayout
             // (preferredWidth) measures exactly as before, and the change key below flips with it.
             bool white = DigitsWhite();
 
-            string levelText = "Level " + Digits(_dataLevel.ToString(), white);
+            // 1.5.59: the condensed card says "Lv 42" and "1234/3333" - the words and the spaces
+            // around the slash are what made the shipped card wider than the food cluster.
+            string levelText = (compact ? "Lv " : "Level ") + Digits(_dataLevel.ToString(), white);
             string amount = Digits(CharacterExtras.XpText(_dataCurrent), white)
-                + " / "
+                + (compact ? "/" : " / ")
                 + Digits(CharacterExtras.XpText(_dataRequired), white);
             string percent = Digits(Mathf.RoundToInt(fraction * 100f).ToString(), white) + "%";
-            string content = levelText + "|" + amount + "|" + percent + "|" + _scale;
+            string content = levelText + "|" + amount + "|" + percent + "|" + _scale
+                + "|" + compact + "|" + mode;
 
             // Text is measured in the same step it changes, so the plates are sized to the words.
             bool changed = content != _placedText;
@@ -321,13 +498,37 @@ namespace SeneaLHudLayout
                 _percent.ForceMeshUpdate();
             }
 
+            // 1.5.59: the condensed card draws its numbers on the top plate. Switching the
+            // children's parent here (not in Place) keeps Place a pure geometry write.
+            if (compact != _compactApplied)
+            {
+                _compactApplied = compact;
+                _amount.transform.SetParent(
+                    compact ? _plateTop.transform : _plateAmount.transform, false);
+                _plateAmount.enabled = !compact;
+                _placedRight = float.NaN;  // plate geometry moved: force a full re-place
+            }
+
             float levelWidth = Mathf.Ceil(_level.preferredWidth);
             float amountWidth = Mathf.Ceil(_amount.preferredWidth);
             float percentWidth = Mathf.Ceil(_percent.preferredWidth);
 
-            // Right edge and exact vertical centre of the widest visible right-hand row (action
-            // slots, quiver), in the shift's space. Both boxes are re-framed by SeneaL every tick.
-            Vector2 attach = AttachPoint(anchor, shift);
+            // 1.5.59: the attachment point is per anchor - in the PARENT's space.
+            //   RightOfSlots: right edge and exact vertical centre of the widest visible
+            //     right-hand row (action slots, quiver), plus [Hotbar] XpBarPaddingX.
+            //   TopLeft: the screen's top-left corner inset by XpBarPaddingX / XpBarPaddingY.
+            //   UnderFoodBar: the left edge of the food cluster, hanging XpBarPaddingY under it.
+            // The padding knobs are part of the change key, so sliding one re-places live.
+            float padX = PaddingX();
+            float padY = PaddingY();
+            // 1.5.60: the condensed track width and the condensed bottom pad join the change key.
+            // XpBarCompactBarWidth "did nothing" before because Place read it internally and Place
+            // only ran on a text/anchor change, never when the knob moved; feeding it through here
+            // makes the slider live.
+            float barW = compact ? CompactBarWidth() : BarWidth;
+            float bottomPad = compact ? CompactBottomPad() : 0f;
+            Vector2 attach = AttachPoint(mode, anchor, parent, compact, levelWidth, amountWidth,
+                percentWidth, padX, padY, bottomPad);
 
             if (changed
                 || !Mathf.Approximately(attach.x, _placedRight)
@@ -335,15 +536,23 @@ namespace SeneaLHudLayout
                 || !Mathf.Approximately(levelWidth, _placedLevelWidth)
                 || !Mathf.Approximately(amountWidth, _placedAmountWidth)
                 || !Mathf.Approximately(percentWidth, _placedPercentWidth)
+                || !Mathf.Approximately(padX, _placedPadX)
+                || !Mathf.Approximately(padY, _placedPadY)
+                || !Mathf.Approximately(barW, _placedBarW)
+                || !Mathf.Approximately(bottomPad, _placedBottomPad)
                 || !Mathf.Approximately(_scale, _placedScale))
             {
                 _root.localPosition = new Vector3(attach.x, attach.y, 0f);
-                Place(levelWidth, amountWidth, percentWidth);
+                Place(levelWidth, amountWidth, percentWidth, compact, barW, bottomPad);
                 _placedRight = attach.x;
                 _placedCenter = attach.y;
                 _placedLevelWidth = levelWidth;
                 _placedAmountWidth = amountWidth;
                 _placedPercentWidth = percentWidth;
+                _placedPadX = padX;
+                _placedPadY = padY;
+                _placedBarW = barW;
+                _placedBottomPad = bottomPad;
                 _placedScale = _scale;
                 _placedText = content;
             }
@@ -353,7 +562,8 @@ namespace SeneaLHudLayout
             // fill of 1.5.41 was invisible progress, which is what the 1.5.48 report was.)
             // The very first write must happen even from the NaN start: Mathf.Abs(NaN - x) is
             // false, which is what left the 1.5.29 fill at Unity's default 100x100 box.
-            float innerWidth = Mathf.Max(0f, BarWidth - 2f);
+            // 1.5.59: the condensed card's track is the narrower XpBarCompactBarWidth (_barW).
+            float innerWidth = Mathf.Max(0f, _barW - 2f);
             float fill = innerWidth * fraction;
             if (float.IsNaN(_placedFill) || Mathf.Abs(fill - _placedFill) > 0.1f)
             {
@@ -440,6 +650,58 @@ namespace SeneaLHudLayout
             return actions != null ? actions : quiver;
         }
 
+        /// <summary>
+        /// 1.5.59: the container the card lives in for each anchor mode.
+        ///   RightOfSlots   - the hotbar shift container, so the card rides the hotbar nudge.
+        ///   TopLeft        - SeneaL's HUD root (the anchor for a fixed screen corner).
+        ///   UnderFoodBar   - SeneaL's Food/fx/vitals node, the same box the food timers and the
+        ///     food-bar level plate live in, so the card sits under the timers.
+        /// Null when that container does not exist (SeneaL HUD not built yet).
+        /// </summary>
+        static RectTransform ParentFor(XpBarAnchor mode, RectTransform shift)
+        {
+            if (mode == XpBarAnchor.RightOfSlots)
+            {
+                return shift;
+            }
+
+            Hud hud = Hud.instance;
+            if (hud == null || hud.m_rootObject == null)
+            {
+                return null;
+            }
+
+            Transform seneal = hud.m_rootObject.transform.Find("SeneaLUI_Hud");
+            if (seneal == null)
+            {
+                return null;
+            }
+
+            if (mode == XpBarAnchor.UnderFoodBar)
+            {
+                return seneal.Find("Food/fx/vitals") as RectTransform;
+            }
+
+            return seneal as RectTransform;
+        }
+
+        /// <summary>
+        /// 1.5.59: the food timers are the anchor's content for UnderFoodBar; hidden timers
+        /// (nothing eaten) leave the card with nothing to hang under, so it hides.
+        /// </summary>
+        static bool FoodActive()
+        {
+            Hud hud = Hud.instance;
+            if (hud == null || hud.m_rootObject == null)
+            {
+                return false;
+            }
+
+            Transform seneal = hud.m_rootObject.transform.Find("SeneaLUI_Hud");
+            Transform food = seneal != null ? seneal.Find("Food/fx/vitals/food") : null;
+            return food != null && food.gameObject.activeInHierarchy;
+        }
+
         static RectTransform Frame(System.Reflection.FieldInfo field)
         {
             if (field == null || _hotbarField == null)
@@ -457,18 +719,68 @@ namespace SeneaLHudLayout
         }
 
         /// <summary>
-        /// (x, y) of the attachment point in the shift's space: the anchor's CONTENT right edge
-        /// (the last visible slot, not the frame's padded rect), at the anchor's exact rect centre
-        /// — the vertical middle of the action-slot buttons.
+        /// 1.5.59: (x, y) of the card's root origin in the PARENT's space, per anchor.
+        /// The root's pivot is (0, 0.5): x is its LEFT edge, y its middle.
+        ///   RightOfSlots   - the anchor's CONTENT right edge (the last visible slot, not the
+        ///                    frame's padded rect) at the anchor's exact rect centre, plus padX
+        ///                    ([Hotbar] XpBarPaddingX, the shipped 12 is its old constant).
+        ///   TopLeft        - the screen's top-left corner inset by padX / padY. The card's top
+        ///                    edge sits at (rootY + half its height), so padY measures from the
+        ///                    top edge to the card's top - intuitive in F1. Parent is
+        ///                    SeneaLUI_Hud, whose rect fills the screen, so this is stable.
+        ///   UnderFoodBar   - the left edge of the visible food slots, with padY hanging the card
+        ///                    below the timers' bottom edge.
         /// </summary>
-        static Vector2 AttachPoint(RectTransform anchor, RectTransform shift)
+        static Vector2 AttachPoint(XpBarAnchor mode, RectTransform anchor, RectTransform parent,
+            bool compact, float levelWidth, float amountWidth, float percentWidth,
+            float padX, float padY, float bottomPad)
         {
+            if (mode == XpBarAnchor.TopLeft)
+            {
+                // The parent's rect is the whole screen with a CENTRED pivot, so its left edge is
+                // rect.xMin and its top edge rect.yMax; the root is a zero-size point, so
+                // localPosition is the offset from the parent's LOWER-LEFT corner. The card's top
+                // edge sits half a card above the root origin, so padY measures from the screen's
+                // top to the card's top - the intuitive reading in F1.
+                float rowH = CardHeight(compact, bottomPad);
+                return new Vector2(parent.rect.xMin + padX, parent.rect.yMax - padY - rowH * 0.5f);
+            }
+
+            if (mode == XpBarAnchor.UnderFoodBar)
+            {
+                Hud hud = Hud.instance;
+                Transform seneal = hud != null && hud.m_rootObject != null
+                    ? hud.m_rootObject.transform.Find("SeneaLUI_Hud")
+                    : null;
+                Transform food = seneal != null ? seneal.Find("Food/fx/vitals/food") : null;
+                if (food == null)
+                {
+                    return new Vector2(padX, 0f);
+                }
+
+                float left = FoodContentLeft(food);
+                float under = FoodContentBottom(food);
+                Vector3 leftWorld = food.TransformPoint(new Vector3(left, 0f, 0f));
+                Vector3 underWorld = food.TransformPoint(new Vector3(0f, under, 0f));
+                Vector2 leftLocal = parent.InverseTransformPoint(leftWorld);
+                Vector2 underLocal = parent.InverseTransformPoint(underWorld);
+                // padX/padY are measured from the food cluster's LEFT and BOTTOM edges to the
+                // card's left / TOP edge, so both knobs read outward in F1.
+                return new Vector2(leftLocal.x + padX, underLocal.y - padY - CardHeight(compact, bottomPad) * 0.5f);
+            }
+
             float rightX = ContentRight(anchor);
             Vector3 rightWorld = anchor.TransformPoint(new Vector3(rightX, 0f, 0f));
             Vector3 centerWorld = anchor.TransformPoint(new Vector3(0f, anchor.rect.center.y, 0f));
-            Vector2 rightLocal = shift.InverseTransformPoint(rightWorld);
-            Vector2 centerLocal = shift.InverseTransformPoint(centerWorld);
-            return new Vector2(rightLocal.x + SlotGap, centerLocal.y);
+            Vector2 rightLocal = parent.InverseTransformPoint(rightWorld);
+            Vector2 centerLocal = parent.InverseTransformPoint(centerWorld);
+            // 1.5.60: XpBarPaddingY now moves the RightOfSlots card too. The knob's DEFAULT (12)
+            // is the shipped centred look, so every existing config keeps its position and the
+            // slider works in both directions from there. (1.5.59 ignored padY in this branch -
+            // "XPBarPaddingY does nothing for the Right of Slots xp bar (Broken, need to fix)".)
+            return new Vector2(
+                rightLocal.x + padX,
+                centerLocal.y + (padY - DefaultPaddingX));
         }
 
         /// <summary>
@@ -491,18 +803,101 @@ namespace SeneaLHudLayout
         }
 
         /// <summary>
-        /// Lay out the card in the zero-size root (root origin = slots' right edge, at their mid
-        /// height; y is up):
-        ///   top row:    [Level 37]  gap  [bar]  gap  [37%]
-        ///   bottom row: [1234 / 3333]  hugging its numbers, lifted close under the bar,
-        ///               FULL card width, left-aligned at the bar's start (like the character panel)
-        /// One thin 30%-alpha gold frame outlines the whole card (top edge, both sides, bottom
-        /// edge). The top plate's centre sits at the root origin's height, so the level/bar/% row
-        /// is exactly on the slots' vertical middle.
+        /// 1.5.59: the food cluster's left / bottom edge in the "food" node's space — the visible
+        /// slot icons and timers, ignoring SeneaL's own padded rect and our overlays.
         /// </summary>
-        static void Place(float levelWidth, float amountWidth, float percentWidth)
+        static float FoodContentLeft(Transform food)
         {
-            float topRowH = Mathf.Max(14f * _scale, LevelFont + 6f * _scale);
+            return FoodExtent(food, true);
+        }
+
+        static float FoodContentBottom(Transform food)
+        {
+            return FoodExtent(food, false);
+        }
+
+        static float FoodExtent(Transform food, bool left)
+        {
+            if (food == null)
+            {
+                return 0f;
+            }
+
+            var rt = (RectTransform)food;
+            float best = float.PositiveInfinity;
+            bool found = false;
+            for (int i = 0; i < rt.childCount; i++)
+            {
+                if (!(rt.GetChild(i) is RectTransform child)
+                    || !child.gameObject.activeInHierarchy
+                    || child.name.StartsWith("SeneaLHudLayout", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                found = true;
+                float edge = left
+                    ? child.anchoredPosition.x + child.rect.xMin
+                    : child.anchoredPosition.y + child.rect.yMin;
+                best = Mathf.Min(best, edge);
+            }
+
+            return found ? best : (left ? rt.rect.xMin : rt.rect.yMin);
+        }
+
+        /// <summary>
+        /// 1.5.59: the card's height — one row compact, two rows full.
+        /// 1.5.60: takes the condensed bottom pad explicitly (no live-config read in here), so
+        /// Tick's change key and AttachPoint measure the card exactly like Place builds it.
+        /// </summary>
+        static float CardHeight(bool compact, float bottomPad)
+        {
+            // 1.5.60: the condensed row is 3px shorter than the full card's top row
+            // (CompactTopTrim) - the user's "remove 3 pixels from the padding top".
+            float topRowH = compact
+                ? CompactRowHeight()
+                : Mathf.Max(14f * _scale, LevelFont + 6f * _scale);
+            if (compact)
+            {
+                // The condensed card is the row PLUS the pad under it, so the top-edge anchoring
+                // in AttachPoint keeps the row pinned under its reference edge.
+                return topRowH + bottomPad;
+            }
+
+            float digitsRowH = SmallFont + 2f * _scale;
+            return topRowH + digitsRowH + NumbersPad;
+        }
+
+        /// <summary>
+        /// 1.5.60: the condensed card's row height - the full card's top row (18px at 1.0x) minus
+        /// CompactTopTrim (3px at 1.0x), floored so the 12pt level text + 6px bar always fit.
+        /// </summary>
+        static float CompactRowHeight()
+        {
+            return Mathf.Max(11f * _scale, LevelFont + 3f * _scale);
+        }
+
+        /// <summary>
+        /// Lay out the card in the zero-size root (root origin = the anchor point; x is the card's
+        /// LEFT edge, y its vertical middle; y is up):
+        ///   full card, top row:    [Level 37]  gap  [bar]  gap  [37%]
+        ///   full card, bottom row: [1234 / 3333]  full card width, left-aligned at the bar's
+        ///                          start (like the character panel), pad only BELOW the digits
+        ///   compact (1.5.59):      ONE row  [Lv 37] [bar] [37%] [1234/3333]
+        /// One thin gold border outlines the whole card (four line quads).
+        /// 1.5.60: barW and bottomPad arrive from Tick so the live XpBarCompactBarWidth and
+        /// XpBarCompactBottomPad sliders re-place the card (they "did nothing" while Place read
+        /// the entries itself and only ran on a text/anchor change).
+        /// </summary>
+        static void Place(float levelWidth, float amountWidth, float percentWidth, bool compact,
+            float barW, float bottomPad)
+        {
+            // 1.5.60: the condensed card's row is 3px (at 1.0x) shorter than the full card's top
+            // row - the user's "remove 3 pixels from the padding top" next to the 4px
+            // XpBarCompactBottomPad that opens the plate under the numbers.
+            float topRowH = compact
+                ? CompactRowHeight()
+                : Mathf.Max(14f * _scale, LevelFont + 6f * _scale);
             // The numbers plate hugs its digits and is flush under the top plate, and the bar
             // sits at the BOTTOM of the top plate (not centred in it): the digits start ~2px
             // under the bar (1.5.36 shipped with the numbers' CENTRE at the same y as 1.5.35 -
@@ -517,48 +912,84 @@ namespace SeneaLHudLayout
             float digitsRowH = SmallFont + 2f * _scale;
             float amountRowH = digitsRowH + NumbersPad;
 
-            float barX = PadX + levelWidth + InnerGap;
-            // The numbers plate spans the same left-to-right length as the row above it.
-            float cardW = barX + BarWidth + BarGap + percentWidth + PadX;
+            // 1.5.59: compact = one row, narrower gaps, and the shorter XpBarCompactBarWidth track.
+            // 1.5.60: barW arrives from Tick (it is part of the live change key, so sliding
+            // XpBarCompactBarWidth re-places the card - before 1.5.60 the knob did nothing, Place
+            // only ran on a text/anchor change). bottomPad is the condensed card's pad below the
+            // row, 0 for the two-row card (its NumbersPad already sits under the digits).
+            float gap = compact ? InnerGap * 0.5f : InnerGap;
+            float barGap = compact ? BarGap * 0.5f : BarGap;
+            _barW = barW;
 
-            // The CARD (frame) stays centred on the slots' mid height (the anchor the user set):
-            // the pad-free topRowH*0.25 + digitsRowH*0.5 is the 1.5.44 centring the user approved;
-            // the pad only ever grows the plate downwards, so the top row and bar never move.
-            float topCenterY = topRowH * 0.25f + digitsRowH * 0.5f;
-            float amountCenterY = topCenterY - topRowH * 0.5f - amountRowH * 0.5f;
+            float barX = PadX + levelWidth + gap;
+            // The numbers plate spans the same left-to-right length as the row above it.
+            float cardW = barX + barW + barGap + percentWidth + (compact ? gap + amountWidth : 0f) + PadX;
+
+            // 1.5.60 compact padding, straight from the report: "add 4 pixels to the padding
+            // bottom, remove 3 pixels from the padding top" (the row's ink sat ~1px above the
+            // bottom border and ~14px below the top one). bottomPad extends the plate DOWN; trim
+            // pulls the plate's TOP edge 3px toward the text. The TEXT AND BAR KEEP THE EXACT
+            // 1.5.59 y (textY = barOffsetY), so the row the user pinned under the food timers
+            // never shifts - only the borders move.
+            float trim = compact ? CompactTopTrim * _scale : 0f;
+
+            float topCenterY = compact ? 0f : topRowH * 0.25f + digitsRowH * 0.5f;
+            float amountCenterY = compact ? 0f : topCenterY - topRowH * 0.5f - amountRowH * 0.5f;
             // Bar 1 unit above the top plate's bottom edge; text rides at the bar's height so
             // "Level 37" and "37%" sit on the bar, not above it.
             float barOffsetY = -(topRowH - BarHeight) * 0.5f + 1f * _scale;
-            float cardTop = topCenterY + topRowH * 0.5f;
-            float cardBottom = amountCenterY - amountRowH * 0.5f;
+            float cardTop = topRowH * 0.5f + (compact ? -trim : topCenterY);
+            float cardBottom = compact ? -topRowH * 0.5f - bottomPad : amountCenterY - amountRowH * 0.5f;
             float cardCenterY = (cardTop + cardBottom) * 0.5f;
             float cardH = cardTop - cardBottom;
 
-            _plateTop.rectTransform.localPosition = new Vector3(cardW * 0.5f, topCenterY, 0f);
-            _plateTop.rectTransform.sizeDelta = new Vector2(cardW, topRowH);
+            // The top plate is the card's backdrop: the two-row card gives it just the row (the
+            // digits ride their own plate); the condensed card is ONE plate over row + pad, so
+            // the border's interior is plate, not a bare strip.
+            float plateTopH = compact ? topRowH + bottomPad - trim : topRowH;
+            float plateTopY = compact ? cardCenterY : topCenterY;
+            // Row content keeps its root-space y; the plate centre moved by the pad, so the
+            // labels shift the other way inside it. COMPACT: the row stays at barOffsetY (the
+            // 1.5.59 spot) - the plate moves around the text, not the text around the plate.
+            float textY = compact ? barOffsetY : barOffsetY + topCenterY - plateTopY;
+
+            _plateTop.rectTransform.localPosition = new Vector3(cardW * 0.5f, plateTopY, 0f);
+            _plateTop.rectTransform.sizeDelta = new Vector2(cardW, plateTopH);
 
             _level.rectTransform.localPosition = new Vector3(
-                -cardW * 0.5f + PadX + levelWidth * 0.5f, barOffsetY, 0f);
+                -cardW * 0.5f + PadX + levelWidth * 0.5f, textY, 0f);
             _level.rectTransform.sizeDelta = new Vector2(levelWidth, topRowH);
 
             _back.rectTransform.localPosition = new Vector3(
-                -cardW * 0.5f + barX + BarWidth * 0.5f, barOffsetY, 0f);
-            _back.rectTransform.sizeDelta = new Vector2(BarWidth, BarHeight);
+                -cardW * 0.5f + barX + barW * 0.5f, textY, 0f);
+            _back.rectTransform.sizeDelta = new Vector2(barW, BarHeight);
 
             _percent.rectTransform.localPosition = new Vector3(
-                -cardW * 0.5f + barX + BarWidth + BarGap + percentWidth * 0.5f, barOffsetY, 0f);
+                -cardW * 0.5f + barX + barW + barGap + percentWidth * 0.5f, textY, 0f);
             _percent.rectTransform.sizeDelta = new Vector2(percentWidth, topRowH);
 
-            _plateAmount.rectTransform.localPosition = new Vector3(cardW * 0.5f, amountCenterY, 0f);
-            _plateAmount.rectTransform.sizeDelta = new Vector2(cardW, amountRowH);
+            if (compact)
+            {
+                // 1.5.59: the condensed numbers ride the SAME row, right of the percent,
+                // left-aligned at their own start. _plateAmount is disabled by Tick.
+                _amount.rectTransform.localPosition = new Vector3(
+                    -cardW * 0.5f + barX + barW + barGap + percentWidth + gap + amountWidth * 0.5f,
+                    textY, 0f);
+                _amount.rectTransform.sizeDelta = new Vector2(amountWidth, topRowH);
+            }
+            else
+            {
+                _plateAmount.rectTransform.localPosition = new Vector3(cardW * 0.5f, amountCenterY, 0f);
+                _plateAmount.rectTransform.sizeDelta = new Vector2(cardW, amountRowH);
 
-            // Left-aligned at the bar's start (barX), not centred under the bar. 1.5.49: the plate
-            // grew DOWNWARD by NumbersPad, so its centre is pad/2 lower than the digits' old spot;
-            // the digits ride pad/2 ABOVE the plate centre, back at the 1.5.44 position, and all
-            // the pad stays under them.
-            _amount.rectTransform.localPosition = new Vector3(
-                -cardW * 0.5f + barX + amountWidth * 0.5f, NumbersPad * 0.5f, 0f);
-            _amount.rectTransform.sizeDelta = new Vector2(amountWidth, digitsRowH);
+                // Left-aligned at the bar's start (barX), not centred under the bar. 1.5.49: the plate
+                // grew DOWNWARD by NumbersPad, so its centre is pad/2 lower than the digits' old spot;
+                // the digits ride pad/2 ABOVE the plate centre, back at the 1.5.44 position, and all
+                // the pad stays under them.
+                _amount.rectTransform.localPosition = new Vector3(
+                    -cardW * 0.5f + barX + amountWidth * 0.5f, NumbersPad * 0.5f, 0f);
+                _amount.rectTransform.sizeDelta = new Vector2(amountWidth, digitsRowH);
+            }
 
             // The border outlines the CARD: x spans 0..cardW from the root origin, y spans
             // cardH around cardCenterY (centring it on the root origin left it half a card width
@@ -572,23 +1003,34 @@ namespace SeneaLHudLayout
             PlaceBorder();
         }
 
-        static bool Ensure(RectTransform shift)
+        static bool Ensure(RectTransform parent)
         {
-            if (_root != null && _root.parent == shift)
+            if (_root != null && _root.parent == parent)
             {
                 return true;
             }
 
-            Transform existing = shift.Find(RootName);
+            Transform existing = parent.Find(RootName);
             if (existing != null)
             {
                 UnityEngine.Object.Destroy(existing.gameObject);
             }
 
             GameObject go = new GameObject(RootName, typeof(RectTransform));
-            go.transform.SetParent(shift, false);
-            go.layer = shift.gameObject.layer;
+            go.transform.SetParent(parent, false);
+            go.layer = parent.gameObject.layer;
             _root = go.transform;
+
+            // 1.5.59: TopLeft / UnderFoodBar parent INSIDE SeneaL HUD nodes (the vitals box has
+            // layout groups for the food slots). ignoreLayout keeps a layout group from moving
+            // the card's root; RightOfSlots never had a layout group over its root.
+            LayoutElement layout = go.AddComponent<LayoutElement>();
+            layout.ignoreLayout = true;
+
+            // 1.5.59: a fresh card always starts as the FULL two-row build (_amount on its own
+            // plate, both plates enabled); Tick flips to compact when the anchor asks for it.
+            _compactApplied = false;
+            ReleaseCover();
 
             // Nested canvas, one step above the HUD canvas: other mods stretch overlays across
             // the whole hotbar (Skyheim Compat clones skyheim_cooldown onto every slot root and
@@ -596,7 +1038,7 @@ namespace SeneaLHudLayout
             // finished card - "the yellow is ON TOP of the whole bar". The card canvas sorts one
             // above the HUD canvas's own order, so it draws over those overlays; separate canvases
             // for popups/tooltips keep their normal order above the card.
-            Canvas parentCanvas = shift.GetComponentInParent<Canvas>();
+            Canvas parentCanvas = parent.GetComponentInParent<Canvas>();
             Canvas cardCanvas = go.AddComponent<Canvas>();
             cardCanvas.overrideSorting = true;
             cardCanvas.sortingOrder = (parentCanvas != null ? parentCanvas.sortingOrder : 0) + 1;
@@ -660,6 +1102,10 @@ namespace SeneaLHudLayout
             _placedAmountWidth = float.NaN;
             _placedPercentWidth = float.NaN;
             _placedScale = float.NaN;
+            _placedPadX = float.NaN;
+            _placedPadY = float.NaN;
+            _placedBarW = float.NaN;
+            _placedBottomPad = float.NaN;
             _placedText = "";
             _placedFill = float.NaN;
             _placedTrack = float.NaN;
@@ -871,6 +1317,29 @@ namespace SeneaLHudLayout
             if (CoverLogged.Add(message))
             {
                 Debug.Log("[SeneaL HUD Layout] XP cover: fixed " + message);
+            }
+        }
+
+        /// <summary>
+        /// 1.5.59: GuardCover only runs for the shipped RightOfSlots anchor. Leaving that anchor
+        /// (TopLeft / UnderFoodBar) must hand the HUD back what it painted or hid, and stop
+        /// re-applying the tint, so the fix never outlives the mode that asked for it.
+        /// </summary>
+        static void ReleaseCover()
+        {
+            if (_cover != null)
+            {
+                _cover = null;
+            }
+
+            if (_coverTop != null)
+            {
+                if (!_coverTop.gameObject.activeSelf)
+                {
+                    _coverTop.gameObject.SetActive(true);
+                }
+
+                _coverTop = null;
             }
         }
 

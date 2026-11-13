@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.5.62
+
+The one-at-a-time rule respects its own toggle, the mod's XP displays all ship OFF, and one EXPERIMENTAL knob folds the inventory's slot rows into one. All in F1.
+
+- **Fixed: `[HealthFood] ShowLevelFoodBar` was suppressed by `[Hotbar] XpBarOneAtATime`.** The 1.5.60 priority chain made the level plate under the food timers a member of the "only one XP bar" family, so with the chain ON and the action-slot card also ON, the plate never drew - the toggle looked dead again. The plate is INDEPENDENT now (1.5.62): it shows whenever its own toggle is on, OneAtATime never hides it. The chain arbitrates ONLY the action-slot card vs the character-window bar, and the log line says exactly that.
+- **The mod's XP displays default OFF: `[Character Window] ShowLevelXpBar` joins `[Hotbar] ShowXpBar` (already off) and `[HealthFood] ShowLevelFoodBar` (already off).** Your config, not the mod, decides what shows - the pack ships every display it wants ON explicitly. Existing configs keep their values (the settings file overrides the default; no key renamed, so the legacy-entry pruner deletes nothing).
+- **NEW EXPERIMENT `[Inventory] MergeSlotRows` (off by default): FOOD, ACTION and quiver ARROW slots on ONE row under the inventory grid.** Display-only Harmony postfixes on `SeneaLUI.Inv.InventoryView` (not slot math): pin cells and labels to `FooterTop`, reclaim the old action/quiver bands, keep the dock row stable, hide the trash can in Hide equipment, and tighten spacing only when the narrowed panel needs it. Action and Quiver titles align with their column starts like Food Slots. Items keep their real grid cells. Client-only; F1 or world re-load.
+- **Starter positions for the three XP displays** (new configs only; existing `cjayride.SeneaLHudLayout.cfg` values are untouched): `[Hotbar] XpBarPaddingX` default **222** for `RightOfSlots` (clears three quiver cells), `TopLeft` / `UnderFoodBar` padding **12**, food-timer plate offsets **12 / -11**, character-window bar beside the level line. Descriptions in F1 spell out each anchor.
+
+## 1.5.61
+
+The three-placement XP bar from 1.5.59, now with every knob you tested actually wired - plus one way to clear the slots' spot for the card. All live in F1, no restart.
+
+- **Fixed: `[HealthFood] ShowLevelFoodBar` did nothing when you enabled it.** The 1.5.60 draft bound that setting twice - once under a new `[XpBar]` section, once under `[HealthFood]` - and the F1 toggle flipped the copy the food-bar code never reads. One bind, one section, toggle works.
+- **Fixed: `[Hotbar] XpBarPaddingY` did nothing for `[Hotbar] XpBarAnchor = RightOfSlots`.** That anchor centred the card on the slots' mid height and ignored the knob entirely. Now: 12 (the default) IS the shipped centred look, every pixel above 12 moves the card UP, every pixel below moves it DOWN - so no existing config shifts on update.
+- **Fixed: `[Hotbar] XpBarCompact` did nothing on `UnderFoodBar`.** That anchor FORCED the condense, so the toggle had nothing left to do. The knob now drives one-row condense on EVERY anchor (`UnderFoodBar` keeps its automatic 0.75x size).
+- **Fixed: `[Hotbar] XpBarScale` looked dead on the XP card.** The font size was applied once, when the card was built; changing the scale re-applies it to the level / percent / amount labels and re-measures, live.
+- **One display at a time (`[Hotbar] XpBarOneAtATime`, ON default).** The action-slot card, the level plate under the food timers, and the character-window bar used to stack - three XP displays sharing one set of knobs. ON shows only the highest-priority enabled display (action-slot card, then food-timers plate, then character-window bar) and hides the rest; OFF restores the pre-1.5.60 stacked behaviour.
+- **Move the quick slots right (`[Hotbar] SlotsOffsetX` / `[Hotbar] SlotsOffsetY`, 0 default).** Slides ONLY the action-slot group and the QUIVER frame right (and up/down); the item bar and the food quick slots stay exactly where they are. Park the XP card in the spot the slots vacated with the card's own `[Hotbar] XpBarPaddingX` - the card anchors to the slots, so it rides the nudge and measures from the slots' NEW right edge.
+- **The condensed card's padding, your numbers: +4px bottom, -3px top.** `[Hotbar] XpBarCompactBottomPad` (4 default) opens the plate BELOW the text row - the pad grows the card downward only - and the condensed card trims a fixed 3px off its top. The text row keeps its exact 1.5.59 position, so a card pinned under the food timers (pack default `XpBarPaddingX = -100`, `XpBarPaddingY = 26`) does not shift.
+- **Config keys keep their `[Hotbar]` names.** An `[XpBar]` section rename in the 1.5.60 draft would have deleted tuned `[Hotbar] ShowXpBar` values on load (the legacy-entry pruner); it is reverted, `ShowXpBar` / `XpBarAnchor` / `XpBarPaddingX` / `XpBarPaddingY` / `XpBarCompact` all stay where your configs already have them.
+
+## 1.5.59
+
+- XP bar placement, three testable options, all live in F1 (no restart):
+  - `[Hotbar] XpBarPaddingX` (12 default) - the gap between the last action slot and the XP card is now a knob, so the card can be pushed FARTHER RIGHT, clear of the QUIVER frame. The quiver (arrows, when a bow is equipped) sits exactly where the card hung, which nobody noticed without a bow.
+  - `[Hotbar] XpBarAnchor = TopLeft` - the card pinned to the screen's TOP-LEFT corner, inset by `XpBarPaddingX` / `XpBarPaddingY` (12 default). The card parents to SeneaL's HUD root there, so the hotbar's nudge never moves it.
+  - `[Hotbar] XpBarAnchor = UnderFoodBar` - a CONDENSED one-row card hanging under the food timers: `Lv 42 · bar · 37% · 1234/3333` on a single plate, 0.75x smaller, the bar narrowed to `[Hotbar] XpBarCompactBarWidth` (70 default).
+  - `[Hotbar] XpBarCompact` (off default) turns that one-row condense on for the other anchors too.
+- The XP card's foreign-graphic cover guard (the Skyheim-Compat fix) now runs ONLY for the shipped RightOfSlots anchor - TopLeft and UnderFoodBar sit over the minimap and the food icons, where that scan would switch real HUD off; leaving the mode restores anything it had painted or hidden.
+
 ## 1.5.58
 
 - The XP card now hides itself during a portal trip. The card lives on its own nested canvas (order = HUD+1), which is exactly the element that drew over the custom loading screen; CustomLoadingScreens raises the HUD canvas for the duration of a trip, and hiding the card removes the overlap at the source. The card is not useful mid-trip. No per-frame cost (one teleporting check per tick).

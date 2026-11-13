@@ -1,6 +1,355 @@
 # Progress - SeneaLHudLayout
 
-## Current task (2026-11-11): 1.5.55 (VNEI button size) + CustomLoadingScreens 0.9.8 (portal screens)
+## Turn 19 (2026-11-14): label X + XP starter defaults
+
+Action/Quiver titles were TitlePad(22)+groupX, so they sat 22/44px into their groups.
+Now x = group start (same pitch as cells), left-aligned TMP. Food title still TitleAt x=22.
+XP: user keeps RightOfSlots PaddingX=-382. Bind defaults only for new configs:
+RightOfSlots padX 222, food plate 12/-11, TopLeft 12/12, character bar beside level.
+Did not write the Gale cfg. Installed DLL.
+
+## Turn 18 (2026-11-14): hide trash in Hide equipment
+
+User: dropping trash below the row shoved backpack/sort too far down. Hide equipment
+now SetActive(false) on the trash can; equipment shown restores it. DockTop extra
+removed. Log v1.5.62g.
+
+## Turn 17 (2026-11-14): less overlap + trash not under last arrow
+
+Hide-equipment 9x~57px overlapped 64px faces. Pitch now never below 64; if 9x70 +
+trash cannot fit, trash is moved to FooterTop+64 and DockTop += 64 so backpack
+clears it. Equipment-shown still 70px with trash on the row. Log v1.5.62f.
+
+## Turn 16 (2026-11-14): dock Y stable + hide-equipment pitch
+
+Backpack/sort use `DockTop`: quiver on = QuiverLast+74 (up), quiver off = H-12 (the
+position the user likes). AfterDockTop always H-12 when merged.
+Hide equipment shrinks W to ~598 so 9x70 overflows; Pitch() = min(70, (W-86)/cols)
+so the merged row stays inside the panel left of trash. Log v1.5.62e. Gale installed.
+
+## Turn 15 (2026-11-14): Food Slots label + no panel widen
+
+1) Unequip quiver -> SeneaL compact hides `_quickTitle` (`SetActive(!compact)`). AfterLabels
+   now turns Food Slots back on when slot labels are enabled.
+2) Stopped postfix on `W`. Panel stays SeneaL width. Relayout only sets `_gridHost` to
+   min(needed, stock W) so ammo uses leftover row space inside the existing window.
+Log `v1.5.62d`. Installed to Gale profile.
+
+## Turn 14 (2026-11-14): unequip quiver shifted food/action up+right
+
+SeneaL `_compact` = Equipment ON + MainRows>=5 + QuickCount<=3 + !QuiverRow.
+Unequipping quiver turns compact on: food Y = last grid row, X = _eqX-22.
+Merge followed QuickTop/CompactX0 and still subtracted QuiverExtra with no quiver
+(panel too short). v1.5.62c pins fork/grab/arrow + ActionTop/QuiverTop to FooterTop
+X=0; PanelH/W extra only while QuiverRow; FootEnd -= RowStep only if _foodRow.
+Installed to Gale profile. Log: `MergeSlotRows ON v1.5.62c`.
+
+## Turn 13 (2026-11-14): quiver ammo was HIDDEN, not off-screen
+
+User: merge feels on but no quiver ammo slots (guessed off-screen). Log confirmed
+`MergeSlotRows ON v1.5.62` and cfg true. Cause: `QuiverRow=false` is copied to
+`_quiverShown`; `Place` only emits Ghost "arrow" when `_quiverShown`. Forcing
+QuiverRow off deactivated ammo cells (and the Quiver title). Bbh `_qGrid` is a
+separate path; this pack uses player-grid arrows.
+
+v1.5.62b: do not patch QuiverRow. Reclaim height via FootEnd -= RowStep and
+PanelH -= QuiverExtra+_qKeyRoom. ExtraW = (3+3+3-8)*70 only. Installed to Gale
+profile (backup `.bak-before-v1.5.62b`). Log stamp `MergeSlotRows ON v1.5.62b`.
+
+## Turn 12 (2026-11-14): row-merge v5 - FOOD|ACTION|ARROWS on the food row
+
+Goal: Tab inventory shows FOOD(3)|ACTION(3)|QUIVER ARROWS(3) on ONE row where food sits;
+Action/Quiver labels over their groups; reclaim empty action row; compact (Hide equipment)
+keeps the row; display-only (no Slots cell-math). Knob `[Inventory] MergeSlotRows` default OFF.
+
+v4 in repo was wrong lever (arrows joined the ACTION row). Replaced `InventoryRowMerge.cs`:
+- `ActionTop`/`QuiverTop` -> `QuickTop` (compact Y matches cells; not FooterTop).
+- `Place` postfix: "grab" X += x0+QuickCount*70, Y=food; "arrow" X += x0+(qn+an)*70;
+  backpack display cell (7, QuickRow) drawn at last merged column. x0 = compact ? _eqX-22 : 0.
+- `QuiverPlace` X += x0+(qn+an)*70 (_qGrid is separate from Place).
+- `PlaceFootLabels`: `_actTitle.x = 22+x0+qn*70`, `_quiverTitle.x = 22+x0+(qn+an)*70`.
+- `QuiverRow` -> false, `GridBottom` -= 70 (buttons/trash follow up).
+- `W` += (qn+an+3+1-8)*70; `Relayout` sets `_gridHost` and `_qGrid` sizeDelta.x = W.
+- No SlotCell postfix (that is item lookup; backpack stays at real (7, QuickRow)).
+- Typed/numbered Harmony params, PatchOne try/catch, Safe() in Awake unchanged.
+
+Build: `dotnet build SeneaLHudLayout.csproj -c Release` exit 0, 0 errors.
+DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
+Did not copy to Gale / did not flip user cfg (stay inside mod repo). User: F1 MergeSlotRows=true,
+reload, accept ONE row + labels + Hide equipment. OFF = stock SeneaL.
+
+## Turn 11 (2026-11-14): row-merge v2 - DISPLAY ONLY, the right lever found
+
+User tested 1.5.62 hardened with MergeSlotRows ON: "they are not on one row, they are on the
+same column, left aligned. test failed. dragging items feels normal". Diagnosis (IL): the panel
+is DRAWN by `SeneaLUI.Inv.InventoryView::Place(GridSkin/Cellv) -> Placement{X,Y,Dead,Food,
+Number,Ghost,GhostSize,Key,NoMax}` - my v1 patched the cell MATH (`Inv.Slots`), which is not
+what positions the widgets (hence stacked-at-x0). `Place`'s branches (IL-verified): food cells
+Ghost "fork" Y=QuickTop-BodyTop X=(compact?_eqX-22:0)+x*70; action "grab" Y=ActionTop-BodyTop
+X=x*70; arrows "arrow" Y=QuiverTop-BodyTop X=x*70 x<3; keys "key"/wallet "coins" (doll row);
+backpack slot13 (7,QuickRow); rest Dead. v2 rewrite (InventoryRowMerge.cs fully replaced, v1's
+six Slots patches DELETED):
+- ONE postfix on `Place` (TYPED `ref Placement __result` - struct returns need exact types, the
+  v1 crash class): "grab" cells -> X = x0 + (QuickCount+x)*70, Y = food row; "arrow" cells ->
+  X = x0 + (max(qn+an,7)+x)*70, Y = food row; x0 = compact ? _eqX-22 : 0.
+- `InventoryView::W` postfix: +70px/cell beyond 8 (3+3+3+backpack@x7 = 11 cells -> panel 770px).
+  Row layout = FOOD 0-2 | ACTION 3-5 | BACKPACK 7 | ARROWS 8-10 (backpack stays at its cell).
+- `Relayout` postfix: _gridHost sizeDelta.x = W (SeneaL hard-codes 560; stop the clip).
+- DISPLAY ONLY - items keep their real grid cells; drags/sorts/saves untouched (user already
+  confirmed dragging felt normal under v1's ON state).
+- Reference: SeneaL-UI.dll added to `lib\` (md5 DF99C264…, Private=False, compile-time only,
+  not bundled) so `Placement` is typed. Build 1.5.62 333,824 B exit 0.
+- Installed to Gale profile md5 DC778F230D76210686D80139BC969ADA; profile cfg `MergeSlotRows =
+  true` (armed). Knob OFF in mod defaults; pack files untouched (user ban).
+- Awaited user test: one row FOOD|ACTION|BACKPACK|ARROWS, panel wider, drags normal; log
+  "MergeSlotRows ON (display only)". If arrows/widgets land off-row, ghost-name identify is
+  exact, so likely fix = Y base (QuickTop vs compact) per mode.
+
+## Previous: Turn 8 post-mortem (2026-11-13): 1.5.62 CRASHED the whole plugin - fixed + hardened
+
+User: "it completely broke the UI, the action bar isn't where it should be, the center messages
+are not right, the XP bar is gone, the wind and time display is visible again ... I only asked
+for re-rarranging inventory panel items ... never edit my manifest or changelog or readme for
+the cjaycraft modpack / server ... go back and undo what you broke, and re-adminster the changes
+i requested".
+
+**Root cause (LogOutput.log L284-317, profile):** `Failed to patch static int
+SeneaLUI.Inv.Slots::ActionRow(Inventory inv): Parameter __inv does not contain a valid index`.
+The InventoryRowMerge postfixes used NAMED Harmony params (`__inv`/`__x`/`__y`); the profile's
+HarmonyX build wants NUMBERED (`__0`/`__1`/`__2`). The exception escaped `Awake` -> BepInEx
+marked the plugin FAILED -> LateUpdate never ran -> EVERY feature died (hotbar shift, XP card,
+center-message route, wind/time hide, ...). Config was never reset; the mod was just OFF.
+
+**Fixes (this build, 1.5.62 hardened, 332,800 B, md5 87D7C122B25D9E2169E2329F8F971A65):**
+1. All six merge postfixes use numbered params.
+2. `InventoryRowMerge.PatchOne` try/caught per patch (logs, merge stays off).
+3. `SeneaLHudLayoutPlugin.Awake` registers EVERY feature through `Safe(feature, () => X.Apply)`
+   - one bad feature can NEVER take the plugin down again.
+
+**Process rules the user set (permanent):** NO zip builds unless asked; NEVER edit
+`beta_cjaycraft*` manifest.json / CHANGELOG.md / README.md (+server pack, progress.md). All pack
+edits from turn 6 REVERTED (dep back to 1.5.61, CHANGELOG line back to the 1.5.61 text, cfg
+MergeSlotRows block removed, progress.md 1.5.62 section removed). The user's 23:11 4.4.48.zip
+(cooking/WolfJerky fix, dep 1.5.62 inside - THEIR build) left untouched. Stale
+`dist\cjayride-SeneaLHudLayout-1.5.62.zip` (the CRASHING DLL) quarantined as
+`.zip.crash-stale-20261113`; NO new mod zip built.
+
+**Profile state:** hardened 1.5.62 DLL installed; user cfg = THEIR file (ShowXpBar=true,
+XpBarPaddingX=-382, XpBarAnchor=RightOfSlots, no MergeSlotRows key = merge OFF; backups
+`.bak-1.5.62` cfg + `.bak-1.5.62pre` DLL).
+
+**Requested changes re-administered IN THE MOD (not the pack):** Change 1 ShowLevelFoodBar
+independent of XpBarOneAtATime (kept); Changes 2+3 inventory row merge = `[Inventory]
+MergeSlotRows` OFF by default, user toggles in F1.
+
+## Previous task (2026-11-13): 1.5.62 - ShowLevelFoodBar freed from OneAtATime + XP displays default OFF + EXPERIMENTAL inventory row merge (CRASHED - see turn 8 post-mortem above)
+
+User (turn 6, verbatim): "Change 1: Allow ShowLevelFoodBar to be turned on, regardless if
+XpBarOneAtATime is off or on (keep ShowLevelFoodBar off by default)" + "my SeneaLHudLayout
+settings config now will be different than default ... that's why we want XP bars disabled by
+default". "Change 2: in the Seneal Inventory window, move the Action Slots to the right of the
+Food Slots, and share the same horizontal row on the larger inventory window ... the action
+slots sits below the food slots, and just pushes the window down farther than it needs to be".
+"Change 3: Put the Quiver slots to the right of the action slots" -> "now Foot slots, action
+slots, quiver slots, are all on the same 1 row of the larger Inventory panel".
+User green-lit the row merge as an EXPERIMENTAL knob (asked; chose "Yes - build the experimental
+knob").
+
+### Status: COMPLETE as a build (0 errors; DLL + cfgs + zips installed; in-game = user test)
+
+### Change 1 - the food plate is independent
+- `CharacterExtras.TickFoodLevel`: the `XpBarOwned(FoodBar)` gate DELETED. The plate under the
+  food timers answers ONLY to `[HealthFood] ShowLevelFoodBar`.
+- `SeneaLHudLayoutPlugin.ActiveXpBar()`: the FoodBar branch REMOVED; OneAtATime now arbitrates
+  ONLY card vs character-window bar; the log line says so. `XpBarOwner.FoodBar` kept in the enum
+  (harmless) so no cfg/legacy key moves.
+
+### Defaults OFF (user: "XP bars disabled by default")
+- `[Character Window] ShowLevelXpBar` default true -> FALSE (ShowXpBar and ShowLevelFoodBar were
+  already false). Pack cfg ships it true explicitly. No key renames -> the pruner deletes nothing.
+
+### Changes 2+3 - `InventoryRowMerge.cs` (NEW), `[Inventory] MergeSlotRows` (false default, pack
+### + Gale profile true). Design = 6 postfixes on `SeneaLUI.Inv.Slots` public statics, all IL-
+### verified 2026-11-13 against shipped SeneaL-UI.dll (md5 DF99C264677442E7F772A6951B94CE77):
+- Row model: `QuickRow=EqRow+1` (food x0..QuickCount-1, backpack slot13 x7), `ActionRow=EqRow+2`
+  (actions x0..ActionCount-1, quiver slot14 x7), `PouchRow=EqRow+3` (keys/wallet), `LinkRow=
+  EqRow+4` (mod slots row - quiver ARROW slots live here, untouched in v1).
+- Call-site walk (dump_callsites.ps1): SlotCell, CellSlot, Fits, IsQuickCell, IsActionCell,
+  ActionItem, QuickItem, Rearrange, Migrate, Pouch.* all read the row from those functions / the
+  x-band predicates -> patch the math, everything follows:
+  1 ActionRow->QuickRow; 2 IsActionCell band = QuickCount..+ActionCount-1; 3 Fits same band
+  (non-coin); 4 ActionItem(i) reads (QuickCount+i, QuickRow); 5 SlotCell(14) -> (QuiverX,QuickRow);
+  6 CellSlot inverse -> 14. QuiverX = min(QuickCount+ActionCount, 6).
+- Pack 3 food + 3 action = FOOD0-2 | ACTION3-5 | QUIVER6 | BACKPACK7, exactly 8 wide.
+- SAFE: Merged() returns false (vanilla rows) when QuickCount+ActionCount+2 > 8 (logs once);
+  knob off = every postfix returns; v1 KEEPS the panel's reserved 5 bottom rows (gap row stays) -
+  height reclaim is the next iteration after in-game item-safety test.
+- Reflection cached at Apply (QuickRow/IsCoin/QuickCount/ActionCount); no per-frame work.
+
+### Version + packaging (1.5.61 -> 1.5.62)
+- csproj 4 version tags + `VERSION` const -> 1.5.62. Build OK: `bin\Release\net480\SeneaLHudLayout.dll`
+  329,216 B. MSB3021 copy-to-game failure EXPECTED (read-only install), ignored.
+- Gale profile DLL installed 1.5.62 (backup `.bak-1.5.62pre` = 1.5.61); live cfg `[Inventory]
+  MergeSlotRows = true` inserted IN the [Inventory] section (backup `.bak-1.5.62`).
+- Mod zip flat: `dist\cjayride-SeneaLHudLayout-1.5.62.zip` 226,658 B, 5 entries all flat.
+  `Package\manifest.json` 1.5.62; root README/CHANGELOG written, Package copies = byte-equal.
+- Pack: client manifest dep 1.5.61 -> 1.5.62; pack cfg MergeSlotRows=true in [Inventory]
+  (verified INSIDE the rebuilt zip: MergeSlotRows=true, ShowXpBar=true, ShowLevelXpBar=true,
+  ShowLevelFoodBar=false); CHANGELOG 4.4.48 HudLayout line rewritten; client zip rebuilt
+  1,804,416 B / 923 entries (49 dirs, 30 .bak/.tmp excluded), old kept `.prev-20261113-150308`.
+  Server pack: no HudLayout dep/cfg (client-only) - untouched, its zip unchanged.
+- PackModZip.ps1 CANNOT run via scriptblock (`$PSScriptRoot` empty -> Join-Path throws);
+  `_tmp_scan\pack_client_zip.ps1` is the root-hardcoded working copy. Same for Cecil dumps:
+  run via `[ScriptBlock]::Create([IO.File]::ReadAllText(...))` + `& $sb` (files unsigned).
+
+### Verify in-game (user, F1, log stamp v1.5.62)
+- `[HealthFood] ShowLevelFoodBar = true` with OneAtATime ON and ShowXpBar ON -> plate AND card
+  both draw.
+- `[Inventory] MergeSlotRows = true` -> inventory: food+action+quiver ONE row; test drag,
+  right-click, stack, 1-3/Alt keys, arrows in quiver cell, close-reopen, death chest. Off =
+  shipped layout.
+
+### Next steps
+1. User in-game verdict on the merged row (item safety first).
+2. If safe: reclaim the panel height (kill the reserved action row - `MainRows`/`Resize`/`Tail`
+   work, the height math: SeneaL reserves bottom 5 grid rows).
+3. If the user wants the quiver ARROW (mod-slot/LinkRow) cells on the same row too: `Park` +
+   `HasLinkLeft` + the mod-slot x tables (`RowX` built in `get_RowKey` cache) are the surface.
+
+## Previous task (2026-11-13): 1.5.61 - XP bar decisions + the four broken knobs fixed
+
+User decisions: keep THREE optional placements - TopLeft (off), RightOfSlots (off), UnderFoodBar
+(ON in the cjaycraft beta pack/server/Gale profile). "only 1 of the 3 xp bars should display at
+any given time". Bug reports: ShowLevelFoodBar dead, XpBarPaddingY dead on RightOfSlots,
+XpBarCompact dead on UnderFoodBar. Feature ask: "move the quick action slots and quiver slots to
+the right, so I can position the XP bar in the location of the current quick bar slots location".
+Padding ask: "+4 pixels to the padding bottom, remove 3 pixels from the padding top" (compact card).
+Process: ALWAYS install the built DLL into the Gale profile (user had to copy 1.5.60 draft manually).
+
+### Status: COMPLETE (build + Gale profile DLL/cfg install + pack cfg + zips done; in-game look = user test)
+
+### Fixes (root causes)
+- **ShowLevelFoodBar dead**: the 1.5.60 draft bound ShowLevelFoodBar twice (`[XpBar] ShowFoodBarLevel`
+  + `[HealthFood] ShowLevelFoodBar`, same field). The F1 toggle edited the entry the code never
+  reads. Fix = delete the `[XpBar]` duplicate binds (same for ShowCharacterWindowBar).
+- **`[XpBar]` section rename REVERTED**: ConfigHousekeeping.PruneLegacyEntries deletes cfg lines for
+  keys the build no longer binds - the rename would have silently deleted players' `[Hotbar]
+  ShowXpBar` values. Legacy keys kept.
+- **XpBarPaddingY dead on RightOfSlots**: AttachPoint's RightOfSlots branch ignored padY
+  (`return new Vector2(rightLocal.x + padX, centerLocal.y)`). Now
+  `centerLocal.y + (padY - DefaultPaddingX)` - default 12 = the shipped centred look, so no config
+  shifts on update; + up / - down from there.
+- **XpBarCompact dead on UnderFoodBar**: `Compact(mode)` hard-forced true there. Now knob-driven
+  `Compact()` for ALL anchors (UnderFoodBar keeps its 0.75x auto-scale).
+- **XpBarScale looked dead**: fontSize set once at MakeLabel build. Tick now re-applies
+  LevelFont/SmallFont on scale change + `_placedText = null` forces re-measure/Place.
+- **Compact padding**: CompactRowHeight = Max(11*scale, LevelFont+3*scale) (full row 14/6 ->
+  "remove 3px top"); bottomPad (XpBarCompactBottomPad, default 4) extends the plate DOWNWARD only;
+  text keeps its exact 1.5.59 y (textY = barOffsetY in compact) so a pinned card never shifts.
+
+### New features
+- **`[Hotbar] XpBarOneAtATime` (true)**: enum XpBarOwner priority Hotbar card > FoodBar plate >
+  CharacterWindow bar; `XpBarOwned(who)` gates all three draws (ActionSlotXpBar.Tick, CharacterExtras
+  L333/L646); logs once when >1 enabled.
+- **`[Hotbar] SlotsOffsetX/SlotsOffsetY` (0)**: HudLayout.PlaceSlotGroups nudges ONLY HotbarActions +
+  HotbarQuiver (inside SeneaLHudLayout_HotbarShift). Base positions captured the frame a group
+  reparents (`_groupPending` -> `_groupBase`, same-frame write; legacy groups recover base as
+  current - offset). Restore() writes base back BEFORE reparenting to menuFade, so toggling the
+  mod off/on never stacks a nudge. The XP card rides the nudge (anchors to the slots' ContentRight);
+  park it in the vacated spot with negative XpBarPaddingX.
+
+### Build / install / packaging (all verified 2026-11-13)
+- Version 1.5.60 -> **1.5.61** (csproj + VERSION const) so the DLL stamp proves the fixes.
+- `dotnet build -c Release` exit 0; DLL v1.5.61 324,096 B (md5 BEAA25D4...). MSB3021 post-build
+  copy to the read-only game install fails as always - expected.
+- Gale profile DLL INSTALLED: `...\profiles\cjayride-beta_test_cjaycraft_ultimate_modpack-4.4.47\BepInEx\plugins\cjayride-SeneaLHudLayout\SeneaLHudLayout.dll` v1.5.61 md5 BEAA25D4... (draft backed up as `.bak-1.5.60`).
+- Profile cfg (backup `.bak-1.5.61`): ShowXpBar=true, XpBarAnchor=UnderFoodBar, XpBarPaddingX=-100,
+  XpBarPaddingY=26, XpBarCompact=true (+ your game-written XpBarScale=1.256, CompactBarWidth=130.198, CompactBottomPad=8.273 kept).
+- Pack cfg `beta_cjaycraft\config\cjayride.SeneaLHudLayout.cfg` (backup `.bak-1.5.61`): same 5 keys;
+  added `[Hotbar] XpBarOneAtATime=true, XpBarCompactBottomPad=4, SlotsOffsetX=0, SlotsOffsetY=0`
+  (appended keys moved into [Hotbar] - appending lands under the LAST section, [Wallet], where the
+  pruner would delete them).
+- Mod zip (flat, verified): `D:\AI-Agent-Projects\cjaycraft\Cjayride.SenealHudLayout\dist\cjayride-SeneaLHudLayout-1.5.61.zip` 223,989 B.
+- Pack 4.4.48 zips REBUILT from tree (rule: 4 top files + config/** minus .bak/.tmp, dir entries
+  `config/.../`; old zips kept as `4.4.48.zip.prev-20261113`):
+  client `beta_cjaycraft\4.4.48.zip` 1,804,631 B 923 entries (manifest dep -> SeneaLHudLayout-1.5.61,
+  CHANGELOG line rewritten, cfg values verified INSIDE the zip);
+  server `beta_cjaycraft-server\4.4.48.zip` 1,753,602 B 906 entries, entry-parity 0/0.
+- Reusable builder: `D:\AI-Agent-Projects\cjaycraft\scripts\PackModZip.ps1` (run INLINE: scripts
+  are unsigned, pwsh not on PATH).
+- README (root + Package, synced by copy) + CHANGELOG (root + Package) + manifest 1.5.61.
+
+### User test checklist (in-game, F1 live)
+1. Card under food timers at (-100, 26), compact; bottom pad 4 / top trim 3.
+2. XpBarScale slider on the card resizes text live.
+3. XpBarPaddingY: RightOfSlots anchor -> moves card up/down from centred.
+4. XpBarCompact false -> two-row card everywhere; true -> one row everywhere.
+5. ShowLevelFoodBar toggle (OneAtATime OFF so it can show) -> plate appears under food timers.
+6. SlotsOffsetX = 200 -> action slots + quiver slide right; item bar + food quick slots stay.
+7. OneAtATime ON: only the card shows (ShowXpBar=true wins).
+
+## Current task (2026-11-12): 1.5.59 - XP bar placement options (quiver collision)
+
+User: the QUIVER slots sit exactly where the XP bar hangs (right of the action slots), and they
+want three testable options: (1) a padding knob to move the bar farther right, (2) a top-left
+screen anchor, (3) a condensed card that fits under the food timers. "then i'll test how all 3
+of these look".
+
+### Status: COMPLETE (build + Gale install done; the in-game look is the user's test)
+
+### What changed (ActionSlotXpBar.cs, SeneaLHudLayoutPlugin.cs)
+- `[Hotbar] XpBarAnchor` (enum, default RightOfSlots): RightOfSlots / TopLeft / UnderFoodBar.
+- `[Hotbar] XpBarPaddingX` (12 default, live): RightOfSlots = gap right of the slots (the old
+  SlotGap constant, now a knob - option 1); TopLeft = inset from screen left; UnderFoodBar = inset
+  from the food cluster's left edge.
+- `[Hotbar] XpBarPaddingY` (12 default, live): TopLeft inset from screen top; UnderFoodBar drop
+  below the timers' bottom edge.
+- `[Hotbar] XpBarCompact` (off default, live): one-row card `Lv 42 | bar | 37% | 1234/3333`
+  (shorter level word, `a/b` no spaces, halved gaps, narrower bar).
+- `[Hotbar] XpBarCompactBarWidth` (70 default): the compact track width.
+- UnderFoodBar forces compact + multiplies the scale by 0.75; parents to SeneaL `Food/fx/vitals`;
+  hides when the food node is inactive. TopLeft parents to `SeneaLUI_Hud` (fixed screen corner,
+  the hotbar nudge never moves it). RightOfSlots keeps the HotbarShift parent (shipped behaviour).
+- AttachPoint is per-anchor; the root is a zero-size point, so TopLeft insets by half the card
+  height/width in the parent's space. `XpBarPaddingX/Y` join the placement change key -> live.
+- Compact flips `_amount` between plates ONCE per mode change (Tick, not Place); the numbers plate
+  is disabled (no second black strip).
+- GuardCover (the Skyheim foreign-graphic fix) runs ONLY for RightOfSlots; leaving the mode calls
+  ReleaseCover() (restores a hidden victim, stops repainting) - TopLeft/UnderFoodBar sit over the
+  minimap/food icons where that scan would switch real HUD off (the 1.5.56 map-bug class).
+- Ensure() names its param `parent` (TopLeft/UnderFoodBar are not the shift) and adds
+  LayoutElement ignoreLayout on the root (the vitals box has layout groups).
+
+### Build / install
+- `dotnet build -c Release` -> exit 0, 0 errors (11 pre-existing warnings). The post-build auto-copy
+  into `D:\SteamLibrary\...\BepInEx\plugins\` FAILS (MSB3021, read-only install per AGENTS rules) -
+  the compile is verified by the bin\Release\net480\SeneaLHudLayout.dll FileVersion.
+- DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SenealHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
+  v1.5.59, 317440 bytes.
+- Gale install DONE (with `.bak-1.5.58` backup):
+  `...profiles\cjayride-beta_test_cjaycraft_ultimate_modpack-4.4.47\BepInEx\plugins\cjayride-SeneaLHudLayout\SeneaLHudLayout.dll`
+  NOTE the profile renamed again: **-4.4.47** (a `_dedicated_server-4.4.47` sibling; the TalentPace
+  plugin DLLs are HARDLINKS between the profiles; the `...\profiles\default` in AGENTS.md does not exist).
+- Profile cfg edited (backup `.bak-1.5.58`): ShowXpBar = true + the 5 new keys at defaults.
+  TEST KNOBS (live, F1): Hotbar.XpBarAnchor = RightOfSlots|TopLeft|UnderFoodBar, Hotbar.XpBarPaddingX/Y.
+- Thunderstore zip (flat, verified): `dist\cjayride-SeneaLHudLayout-1.5.59.zip`.
+- README + CHANGELOG + Package copies updated; Package\manifest.json 1.5.59.
+
+### Modpacks (4.4.48, client + server zips rebuilt from the pack dirs, .bak entries dropped)
+- Client manifest: SeneaLHudLayout dep 1.5.58->1.5.59, TalentPace dep 1.3.7->1.3.8, version 4.4.48.
+- Server manifest: TalentPace 1.3.8, version 4.4.48 (no HudLayout dep - client-only, as before).
+- `config\cjayride.SeneaLHudLayout.cfg` (client): the 5 new keys added at defaults.
+- Zips: `beta_cjaycraft\4.4.48.zip`, `beta_cjaycraft-server\4.4.48.zip` (layout copied from 4.4.47,
+  932/906 entries, root README/CHANGELOG/icon/manifest + config tree, no .bak files).
+- Also in 4.4.48: grey dwarf resin 35->25% (drop_that Black Forest cfg, both packs), TalentPace
+  parry 0.35->0.55 (Plugin.cs default in 1.3.8 + pack cfgs + both Gale cfgs + the 1.3.8 DLL
+  installed in both profiles; 2x parry -> 1.55x).
+
+### Next steps
+1. User tests the 3 anchors + paddings in game (all live in F1; the card stamps `XP bar built, v1.5.59`).
+2. Pick a winner -> set pack defaults, ship 1.5.60 + repack.
+3. Publishing the Thunderstore zips (1.5.59, TalentPace 1.3.8) and the 4.4.48 pack zips is NOT done.
+
 
 User (turn 42): "sometimes when I open inventory with Tab button, while the crafting window
 appears, the VNEI button is bigger than it should be" -> 1.5.55.
@@ -50,6 +399,25 @@ mod" -> CustomLoadingScreens 0.9.8 (sibling repo CustomLoadingScreens_Fork).
   unchanged - installs THIS build.
 - Root CHANGELOG.md was stale (ended at 1.5.51); synced from Package (canonical, has 1.5.52-55).
   Both shas 633807B8D17E38519BD07AB6D89DA38D355C8D8A8F856D32BEACBDCF6C3CD844.
+
+### Turn 59: user hands CLS tips to another agent; HudLayout 1.5.58 RELEASED; full Thunderstore upload list settled
+- Tips on 0.9.18 still invisible in user's test -> user moved CLS to a different agent. Left
+  CustomLoadingScreens_Fork\HANDOFF-tips.md: all probe-proven facts (tip enabled+text, parent
+  <Loading> disabled, probe must fire post-fix, int16 sortingOrder, depth-first paint, PS BOM rule),
+  current state (0.9.18: ancestor activation + RaiseTipAboveImage + 1 Hz Tip live probe), next
+  diagnostic path (TMP canvasRenderer/rect/font, SetupLoadScreen full branch setup). Profile now
+  shows CLS v0.9.19 = the other agent already iterating. Fork working tree (0.9.18 uncommitted)
+  deliberately LEFT to them; no commits pushed to CLS from us.
+- SeneaLHudLayout 1.5.58 RELEASED: tools\Package1558.ps1 (same gates: flat 5, icon 256x256, BOM
+  check incl. extracted-archive audit). Package manifest had a UTF-8 BOM (Set-Content legacy) ->
+  stripped; zip dist\cjayride-SeneaLHudLayout-1.5.58.zip 218,107 b, all verified. Commit 1aaaae0
+  (9 files: ActionSlotXpBar CHANGELOG PROGRESS Package/CHANGELOG Package/manifest csproj plugin
+  TipItemIcon VneiSearch), annotated tag v1.5.58, pushed origin/main. gh release v1.5.58 = Latest
+  with zip asset. .gitignore keeps dist/ + Package/*.dll untracked (repo convention, unlike CSS).
+- Upload status sweep: CSS 0.2.3 zip = upload (0.2.2 was BOM-rejected); HudLayout 1.5.58 = upload;
+  RRC 1.2.16 = user uploaded (closed); Skyheim compat-v1.2.9 = Latest on GitHub, zip
+  dist/upload/SkyheimCompat-1.2.9.zip; CapeOnLogin v1.0.4 = Latest, clean tree. Skyheim +
+  CapeOnLogin fully pushed (0 unpushed). Shudnal bridge = no git repo, no release asked.
 
 ### Turn 58: tips STILL invisible -> probe was pre-fix (lied); 0.9.18 = ancestor activation + tip-above-image reorder + honest 1 Hz probe
 - User: still no Norse tips on portals; asked "should I be?" (answer: vanilla = spawn/death only;

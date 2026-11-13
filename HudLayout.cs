@@ -96,7 +96,18 @@ namespace SeneaLHudLayout
                 {
                     Transform group = shift.Find(name);
                     if (group != null && menu != null)
+                    {
+                        // Undo the slot-group nudge BEFORE going home, so the next Apply()
+                        // captures the group's true base position (Enabled toggled back on
+                        // must not stack a second nudge on the first).
+                        if (group is RectTransform grp
+                            && _groupBase.TryGetValue(name, out Vector2 grpBase))
+                        {
+                            grp.anchoredPosition = grpBase;
+                        }
+
                         group.SetParent(menu, true);
+                    }
                 }
 
                 Object.Destroy(shift.gameObject);
@@ -209,7 +220,17 @@ namespace SeneaLHudLayout
             {
                 Transform group = menu.Find(name);
                 if (group != null && group.parent != shift)
+                {
+                    // Fresh group: remember WHERE it joins the container so the slot-group nudge
+                    // below is base + offset, never compounding - PlaceHotbar runs every LateUpdate
+                    // and Move() ADDS. The capture happens in PlaceSlotGroups (this tick, AFTER
+                    // the container is placed) so base is in the same frame the writes use.
+                    if (!_groupBase.ContainsKey(name))
+                    {
+                        _groupPending.Add(name);
+                    }
                     group.SetParent(shift, true);
+                }
             }
 
             shift.anchoredPosition = Vector2.zero;
@@ -242,7 +263,55 @@ namespace SeneaLHudLayout
                     SeneaLHudLayoutPlugin.HotbarOffsetY.Value);
             }
 
+            PlaceSlotGroups(shift);
+
             return shift;
+        }
+
+        // 1.5.60: the ACTION SLOTS + QUIVER frames moved on their own. The user: "is it possible
+        // to move the quick action slots and quiver slots to the right, so I can position the XP
+        // bar in the location of the current quick bar slots location" - yes: slide the two slot
+        // groups right with [Hotbar] SlotsOffsetX (and SlotsOffsetY), then park the XP card in the
+        // vacated spot with the negative Hotbar.XpBarPaddingX the card already has. The card
+        // anchors to the slots' frame, so it rides this nudge and XpBarPaddingX measures from the
+        // slots' NEW right edge.
+        //
+        // SeneaL keeps these four groups as siblings in menuFade: Hotbar (the item bar),
+        // HotbarFood (food quick slots), HotbarActions, HotbarQuiver. Moving the last two leaves
+        // the item bar and the food quick slots exactly where they are.
+        static readonly Dictionary<string, Vector2> _groupBase = new Dictionary<string, Vector2>();
+        static readonly List<string> _groupPending = new List<string>();
+
+        static void PlaceSlotGroups(RectTransform shift)
+        {
+            float x = SeneaLHudLayoutPlugin.ShowHotbarSlotsOffsetX.Value;
+            float y = SeneaLHudLayoutPlugin.ShowHotbarSlotsOffsetY.Value;
+
+            string[] groups = { "HotbarActions", "HotbarQuiver" };
+            foreach (string name in groups)
+            {
+                if (!(shift.Find(name) is RectTransform rt))
+                    continue;
+
+                if (_groupPending.Contains(name))
+                {
+                    // Reparented from menuFade THIS frame: worldPositionStays leaves the group
+                    // exactly where SeneaL UI put it, so what we are looking at IS the base.
+                    // (Capturing here, not at SetParent time, keeps the write in the SAME frame
+                    // the shift container was placed, so the first nudge is never off by a tick.)
+                    _groupBase[name] = rt.anchoredPosition;
+                    _groupPending.Remove(name);
+                }
+                else if (!_groupBase.TryGetValue(name, out Vector2 basePos))
+                {
+                    // Group was already inside the container when this version loaded (HUD built
+                    // by an earlier build): strip the nudge that build applied to recover the base.
+                    basePos = rt.anchoredPosition - new Vector2(x, y);
+                    _groupBase[name] = basePos;
+                }
+
+                rt.anchoredPosition = _groupBase[name] + new Vector2(x, y);
+            }
         }
 
         static void PlaceHealthFood(RectTransform root, RectTransform hotbarShift)

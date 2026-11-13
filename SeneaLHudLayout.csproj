@@ -1,9 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>1.5.58</Version>
-    <AssemblyVersion>1.5.58</AssemblyVersion>
-    <FileVersion>1.5.58</FileVersion>
-    <InformationalVersion>1.5.58</InformationalVersion>
+    <Version>1.5.62</Version>
+    <AssemblyVersion>1.5.62</AssemblyVersion>
+    <FileVersion>1.5.62</FileVersion>
+    <InformationalVersion>1.5.62</InformationalVersion>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
@@ -12,5 +12,22 @@
   <ItemGroup>
     <Compile Remove="tools\**" />
     <None Include="tools\**" />
+  </ItemGroup>
+
+  <!--
+    SeneaL UI (client-side) - COMPILE-TIME reference ONLY (Private=False: never copied to the
+    output, never bundled; the DLL ships with the modpack the user runs). The inventory row
+    merge posts a Harmony postfix on SeneaLUI.Inv.InventoryView::Place, whose return type is
+    the public struct SeneaLUI.Inv.Placement. Harmony must bind "__result" to that exact type
+    (the field crash of 1.5.62 came from a patch parameter HarmonyX refused to bind, so the
+    signature is typed, not object). Referenced file: SeneaL-UI.dll md5
+    DF99C264677442E7F772A6951B94CE77, the exact build the pack ships.
+  -->
+  <ItemGroup>
+    <Reference Include="SeneaL-UI">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(MSBuildThisFileDirectory)lib\SeneaL-UI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
 </Project>
