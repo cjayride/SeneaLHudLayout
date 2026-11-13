@@ -1,6 +1,6 @@
 {
     "name": "SeneaLHudLayout",
-    "version_number": "1.5.62",
+    "version_number": "1.5.64",
     "website_url": "https://discord.gg/cjayride",
     "description": "Rearranges SeneaL UI HUD: hotbar, XP bars, and optional one-row inventory slots (MergeSlotRows).",
     "dependencies": [

@@ -40,7 +40,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.5.62";
+        public const string VERSION = "1.5.64";
 
         /// <summary>
         /// 1.5.60: the mod ships THREE XP displays - the action-slot card ([Hotbar] ShowXpBar),

@@ -1,5 +1,32 @@
 # Progress - SeneaLHudLayout
 
+## Shipped 1.5.64 (2026-11-14)
+
+User confirmed merge works (FOOD|ACTION|AMMO one row, gear clickable).
+No extra version bumps after this until a later ship request.
+Thunderstore zip: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.5.64.zip`
+DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
+
+## 1.5.64 (2026-11-14)
+
+Ammo missing with merge ON: 1.5.63 skipped Place "arrow" entirely. Those are LIVE
+player-grid cells (Y=_h-1, X<3). Without X shift they stack on food. Restored
+AfterPlace arrow for !Dead only. Dead skip kept. Install 4.4.48.
+
+## 1.5.63 hotfix (2026-11-14)
+
+Goal: 4.4.48 profile gear/backpack unusable with MergeSlotRows ON.
+Cause: AfterPlace moved Dead ghost widgets onto the merged row (player-grid arrows on backpack col 7; overlay from widened _qGrid).
+Fix: skip Dead in AfterPlace; never move Place arrow ghosts; drop Relayout size stretch.
+Recovery: MergeSlotRows was off so gear could be re-equipped; user confirmed gear back.
+MergeSlotRows turned ON again on 4.4.48 (1.5.63 still installed) so FOOD|ACTION|QUIVER share one row.
+
+## Shipped 1.5.62 (2026-11-14)
+
+Commit c1b83d4, tag v1.5.62, pushed main. GH release with zip asset.
+Thunderstore zip: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.5.62.zip` (5 flat entries).
+DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll` (335,360 B).
+
 ## Turn 19 (2026-11-14): label X + XP starter defaults
 
 Action/Quiver titles were TitlePad(22)+groupX, so they sat 22/44px into their groups.

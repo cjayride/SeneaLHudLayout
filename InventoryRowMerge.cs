@@ -30,7 +30,7 @@ namespace SeneaLHudLayout
         const int ArrowCols = 3;
 
         static FieldInfo _actTitle, _quiverTitle, _quickTitle, _gridHost, _qGrid, _foodRow, _qKeyRoom, _labelsOn, _trash, _slotRoot;
-        static MethodInfo _footerTop, _bodyTop, _h, _place, _quiverPlace, _relayout, _placeLabels;
+        static MethodInfo _footerTop, _bodyTop, _h, _place, _quiverPlace, _placeLabels;
         static MethodInfo _actionTop, _quiverTop, _width, _footEnd, _rowStep, _panelH, _quiverExtra;
         static MethodInfo _quiverRow, _customRow, _dockTop;
         static PropertyInfo _quickCount, _actionCount, _equipCfg, _trashCfg;
@@ -72,7 +72,6 @@ namespace SeneaLHudLayout
             _customRow = AccessTools.PropertyGetter(view, "CustomRow");
             _place = AccessTools.Method(view, "Place", new[] { cellv });
             _quiverPlace = AccessTools.Method(view, "QuiverPlace", new[] { cellv });
-            _relayout = AccessTools.Method(view, "Relayout");
             _placeLabels = AccessTools.Method(view, "PlaceFootLabels");
             MethodInfo placeTrash = AccessTools.Method(view, "PlaceTrash");
             _quickCount = AccessTools.Property(slots, "QuickCount");
@@ -86,7 +85,7 @@ namespace SeneaLHudLayout
                 _quiverTop == null || _width == null || _footEnd == null ||
                 _rowStep == null || _panelH == null || _quiverExtra == null ||
                 _quiverRow == null || _place == null || _quiverPlace == null ||
-                _relayout == null || _placeLabels == null || _quickTitle == null ||
+                _placeLabels == null || _quickTitle == null ||
                 _dockTop == null || _h == null || _quickCount == null ||
                 _actionCount == null)
             {
@@ -103,7 +102,6 @@ namespace SeneaLHudLayout
             PatchOne(harmony, _footEnd, nameof(AfterFootEnd), "InventoryView::FootEnd");
             PatchOne(harmony, _panelH, nameof(AfterPanelH), "InventoryView::PanelH");
             PatchOne(harmony, _dockTop, nameof(AfterDockTop), "InventoryView::DockTop");
-            PatchOne(harmony, _relayout, nameof(AfterRelayout), "InventoryView::Relayout");
             PatchOne(harmony, _placeLabels, nameof(AfterLabels), "InventoryView::PlaceFootLabels");
             if (placeTrash != null && _trash != null && _slotRoot != null)
             {
@@ -138,8 +136,8 @@ namespace SeneaLHudLayout
             {
                 _loggedOn = true;
                 Debug.Log(
-                    "[SeneaL HUD Layout] MergeSlotRows ON v1.5.62g: Hide equipment hides the " +
-                    "trash can (no extra dock shift). Pitch stays >= 64px.");
+                    "[SeneaL HUD Layout] MergeSlotRows ON v1.5.64: live player-grid arrows " +
+                    "shift after ACTION; Dead ghosts stay parked.");
             }
 
             return true;
@@ -258,6 +256,11 @@ namespace SeneaLHudLayout
                 }
 
                 Placement pl = __result;
+                if (pl.Dead)
+                {
+                    return;
+                }
+
                 float rowY = RowY();
                 float pitch = Pitch();
                 int qn = QuickCount();
@@ -279,6 +282,9 @@ namespace SeneaLHudLayout
                     return;
                 }
 
+                // Live quiver ammo is on the PLAYER grid (last row, X<3), not BBH _qGrid.
+                // Stock X is 0,1,2 — same as food. Shift after FOOD+ACTION so the three
+                // groups sit on one row. Dead ghosts stay parked (do not un-Dead).
                 if (pl.Ghost == "arrow")
                 {
                     pl.X = (__0.X + qn + an) * pitch;
@@ -418,43 +424,6 @@ namespace SeneaLHudLayout
             }
             catch
             {
-            }
-        }
-
-        static void AfterRelayout(object __instance)
-        {
-            try
-            {
-                if (!Merged() || __instance == null)
-                {
-                    return;
-                }
-
-                float w = F(_width);
-                float host = Mathf.Min(w, Mathf.Max(560f, RowCols() * Pitch()));
-                SetWidth(_gridHost.GetValue(__instance) as RectTransform, host);
-                object q = _qGrid != null ? _qGrid.GetValue(__instance) : null;
-                if (q is Component qc)
-                {
-                    SetWidth(qc.transform as RectTransform, host);
-                }
-            }
-            catch
-            {
-            }
-        }
-
-        static void SetWidth(RectTransform rt, float w)
-        {
-            if (rt == null)
-            {
-                return;
-            }
-
-            Vector2 s = rt.sizeDelta;
-            if (!Mathf.Approximately(s.x, w))
-            {
-                rt.sizeDelta = new Vector2(w, s.y);
             }
         }
 

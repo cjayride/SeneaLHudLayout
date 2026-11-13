@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.64
+
+- **Fixed MergeSlotRows hiding quiver ammo.** SeneaL draws ammo on the **player grid** last row (`Place` Ghost `arrow`, not BBH `_qGrid`). 1.5.63 left those live cells at X=0,1,2 on the food row, so ammo sat under food. Live arrows shift after FOOD+ACTION again. Dead ghosts stay parked so the doll/backpack keep receiving clicks.
+
+## 1.5.63
+
+- **Fixed `[Inventory] MergeSlotRows` stealing doll and backpack clicks.** Place postfix was moving SeneaL **Dead** ghost widgets (player-grid arrows, unused food/action faces) onto the merged row. Those ghosts sat on the backpack cell and over the equipment doll, so gear looked empty, clicks never reached the real slots, and the bag could not come off. Dead cells stay parked. Player-grid arrows are left to SeneaL; ammo uses the quiver grid only. Relayout no longer stretches `_qGrid` over the doll. Turn merge **off** to recover immediately, then re-equip if items were left in the bag.
+
 ## 1.5.62
 
 The one-at-a-time rule respects its own toggle, the mod's XP displays all ship OFF, and one EXPERIMENTAL knob folds the inventory's slot rows into one. All in F1.
