@@ -1,5 +1,11 @@
 # Progress - SeneaLHudLayout
 
+## Shipped 1.5.65 (2026-11-15)
+
+Ship hull bar + quiver mesh toggle. User-tested: bar level under wind UI; quiver label button.
+Thunderstore zip: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.5.65.zip`
+DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
+
 ## Shipped 1.5.64 (2026-11-14)
 
 User confirmed merge works (FOOD|ACTION|AMMO one row, gear clickable).

@@ -40,7 +40,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.5.64";
+        public const string VERSION = "1.5.65";
 
         /// <summary>
         /// 1.5.60: the mod ships THREE XP displays - the action-slot card ([Hotbar] ShowXpBar),
@@ -235,6 +235,8 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> ShowPieceHealthSize;
         public static ConfigEntry<bool> ShowPieceHealthPercent;
         public static ConfigEntry<float> ShowPieceHealthPercentSize;
+        public static ConfigEntry<bool> ShowShipHealth;
+        public static ConfigEntry<bool> ShowShipHealthNumbers;
         public static ConfigEntry<VitalsBarOrder> VitalsOrder;
         public static ConfigEntry<bool> HideStaminaNumber;
         public static ConfigEntry<bool> HideEitrNumber;
@@ -450,6 +452,10 @@ namespace SeneaLHudLayout
             ShowPieceHealthPercentSize = Config.Bind("Hover", "ShowPieceHealthPercentSize", 14f,
                 new ConfigDescription("Text size of the piece health percent.",
                     new AcceptableValueRange<float>(8f, 32f)));
+            ShowShipHealth = Config.Bind("Ship", "ShowHealth", false,
+                "While you are at the helm, show a hull health bar under the sailing wind disc (SeneaL's wind widget, or vanilla if that is off). Off by default. Client-only.");
+            ShowShipHealthNumbers = Config.Bind("Ship", "ShowNumbers", true,
+                "Show current/max hull health under that ship health bar. Only used while Ship.ShowHealth is on. Client-only.");
             CreatureHud = Config.Bind("Creature/Player HUD", "Enabled", true,
                 "Apply this mod's creature and player nameplate changes: health numbers, star size, name size, bar width, threat icons. Off leaves those nameplates entirely to SeneaL UI.");
             ShowHealthNumbers = Config.Bind("Creature/Player HUD", "ShowHealthNumbers", true,
@@ -719,6 +725,8 @@ namespace SeneaLHudLayout
                 "Put the wishbone in a SeneaL dungeon-key slot instead of the charm / utility cell. Off (default) keeps SeneaL's normal wishbone slot. Needs key slots enabled in SeneaL UI. The wishbone is stored there, not worn; this mod keeps its finder ping effect running while it sits in a key slot, as long as it is not equipped. Turn off to return it to the charm cell.");
             InventoryRowMerge.MergeSlotRows = Config.Bind("Inventory", "MergeSlotRows", false,
                 "EXPERIMENTAL (1.5.62): FOOD, ACTION and QUIVER ARROW cells on ONE row of the SeneaL inventory panel (where the food slots sit), labels above the action and arrow groups, empty action-row space reclaimed. Display only - items keep their real grid cells. OFF (default) is stock SeneaL. Client-only; world re-load / F1.");
+            QuiverMeshToggle.ShowQuiverMesh = Config.Bind("Inventory", "ShowQuiverMesh", true,
+                "Show the equipped quiver model on your character. Off hides only the 3D quiver; ammo slots and the equipped item stay. The small button to the right of the inventory QUIVER label flips this.");
             BuildPanelScale = Config.Bind("BuildPanel", "Scale", 0.8f,
                 new ConfigDescription(
                     "Size of SeneaL's selected-piece BuildPanel (the hammer piece card). 1 is SeneaL's current size. 0.8 is this mod's default. SeneaL's own [Sizes] BuildPanel stays at 1 unless you change that too.",
@@ -787,6 +795,7 @@ namespace SeneaLHudLayout
             Safe("EquipQueueMark", () => EquipQueueMark.Apply(harmony));
             Safe("WishboneKeySlot", () => WishboneKeySlot.Apply(harmony));
             Safe("InventoryRowMerge", () => InventoryRowMerge.Apply(harmony));
+            Safe("QuiverMeshToggle", () => QuiverMeshToggle.Apply(harmony));
             Safe("EpicLootShardWindow", () => EpicLootShardWindow.Apply(harmony));
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
         }
@@ -813,6 +822,7 @@ namespace SeneaLHudLayout
         void LateUpdate()
         {
             ResourceBars.Apply();
+            ShipHealthMeter.Tick();
             SlotCue.Tick();
             PotionCooldown.Tick();
             CharacterExtras.Tick();
@@ -830,6 +840,7 @@ namespace SeneaLHudLayout
             ChatFont.Tick();
             BossStars.Tick();
             WishboneKeySlot.Tick();
+            QuiverMeshToggle.Tick();
             if (Enabled == null || !Enabled.Value)
             {
                 HudLayout.Restore();

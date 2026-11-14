@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.65
+
+- **NEW `[Ship] ShowHealth` (off by default):** hull health bar under the sailing wind disc while at the helm. Uses SeneaL `ShipView.Wind` or vanilla wind if that is off. Bar stays level under the disc (does not spin with the wind ring). `[Ship] ShowNumbers` (on by default) prints current/max tight under the bar.
+- **NEW inventory quiver mesh button:** control to the right of the QUIVER label with **Show Quiver** / **Hide Quiver** (muted text). Toggles only the 3D quiver on the character; ammo slots stay. `[Inventory] ShowQuiverMesh` (on by default).
+
 ## 1.5.64
 
 - **Fixed MergeSlotRows hiding quiver ammo.** SeneaL draws ammo on the **player grid** last row (`Place` Ghost `arrow`, not BBH `_qGrid`). 1.5.63 left those live cells at X=0,1,2 on the food row, so ammo sat under food. Live arrows shift after FOOD+ACTION again. Dead ghosts stay parked so the doll/backpack keep receiving clicks.

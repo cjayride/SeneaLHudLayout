@@ -24,6 +24,7 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 - Shifts the minimap cluster to the left.
 - Positions Passive Powers icons beside the food column.
 - Optionally hides SeneaL UI's unused guardian power slot and F-key hint.
+- Optional hull health bar under the sailing wind disc while you are at the helm (`[Ship] ShowHealth`, off by default; `[Ship] ShowNumbers` prints current/max).
 ### Vitals
 
 - Optional always-visible stamina, Eitr, and adrenaline bars.
