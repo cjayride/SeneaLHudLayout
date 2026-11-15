@@ -284,8 +284,9 @@ namespace SeneaLHudLayout
 
         static void PlaceSlotGroups(RectTransform shift)
         {
-            float x = SeneaLHudLayoutPlugin.ShowHotbarSlotsOffsetX.Value;
-            float y = SeneaLHudLayoutPlugin.ShowHotbarSlotsOffsetY.Value;
+            bool xp = SeneaLHudLayoutPlugin.SkillsReworkedLoaded();
+            float x = xp ? SeneaLHudLayoutPlugin.ShowHotbarSlotsOffsetX.Value : 0f;
+            float y = xp ? SeneaLHudLayoutPlugin.ShowHotbarSlotsOffsetY.Value : 0f;
 
             string[] groups = { "HotbarActions", "HotbarQuiver" };
             foreach (string name in groups)

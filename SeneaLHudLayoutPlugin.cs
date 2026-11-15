@@ -1,5 +1,6 @@
 using System;
 using BepInEx;
+using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
@@ -40,7 +41,14 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.5.65";
+        public const string VERSION = "1.5.69";
+        const string SkillsReworkedGuid = "M2Valheim.SkillsReworked";
+
+        public static bool SkillsReworkedLoaded()
+        {
+            return Chainloader.PluginInfos != null &&
+                   Chainloader.PluginInfos.ContainsKey(SkillsReworkedGuid);
+        }
 
         /// <summary>
         /// 1.5.60: the mod ships THREE XP displays - the action-slot card ([Hotbar] ShowXpBar),
@@ -727,6 +735,8 @@ namespace SeneaLHudLayout
                 "EXPERIMENTAL (1.5.62): FOOD, ACTION and QUIVER ARROW cells on ONE row of the SeneaL inventory panel (where the food slots sit), labels above the action and arrow groups, empty action-row space reclaimed. Display only - items keep their real grid cells. OFF (default) is stock SeneaL. Client-only; world re-load / F1.");
             QuiverMeshToggle.ShowQuiverMesh = Config.Bind("Inventory", "ShowQuiverMesh", true,
                 "Show the equipped quiver model on your character. Off hides only the 3D quiver; ammo slots and the equipped item stay. The small button to the right of the inventory QUIVER label flips this.");
+            BackpackMeshToggle.ShowBackpackMesh = Config.Bind("Inventory", "ShowBackpackMesh", true,
+                "Show the equipped backpack model on your character. Off hides only the 3D backpack; the backpack slot, items inside, and cape stay. The small button to the right of the inventory BACKPACK title flips this.");
             BuildPanelScale = Config.Bind("BuildPanel", "Scale", 0.8f,
                 new ConfigDescription(
                     "Size of SeneaL's selected-piece BuildPanel (the hammer piece card). 1 is SeneaL's current size. 0.8 is this mod's default. SeneaL's own [Sizes] BuildPanel stays at 1 unless you change that too.",
@@ -796,6 +806,7 @@ namespace SeneaLHudLayout
             Safe("WishboneKeySlot", () => WishboneKeySlot.Apply(harmony));
             Safe("InventoryRowMerge", () => InventoryRowMerge.Apply(harmony));
             Safe("QuiverMeshToggle", () => QuiverMeshToggle.Apply(harmony));
+            Safe("BackpackMeshToggle", () => BackpackMeshToggle.Apply(harmony));
             Safe("EpicLootShardWindow", () => EpicLootShardWindow.Apply(harmony));
             Logger.LogInfo("SeneaL HUD Layout loaded. Offsets apply once you are in a world with SeneaL UI.");
         }
@@ -841,6 +852,7 @@ namespace SeneaLHudLayout
             BossStars.Tick();
             WishboneKeySlot.Tick();
             QuiverMeshToggle.Tick();
+            BackpackMeshToggle.Tick();
             if (Enabled == null || !Enabled.Value)
             {
                 HudLayout.Restore();

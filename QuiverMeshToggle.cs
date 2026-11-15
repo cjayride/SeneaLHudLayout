@@ -33,6 +33,7 @@ namespace SeneaLHudLayout
         static Image _icon;
         static TextMeshProUGUI _caption;
         static bool _appliedShow = true;
+        static int _playerId;
 
         public static void Apply(Harmony harmony)
         {
@@ -293,17 +294,31 @@ namespace SeneaLHudLayout
         static void ApplyMesh(bool force)
         {
             bool show = Shown();
+            Player player = Player.m_localPlayer;
+            if (!player)
+            {
+                if (_playerId != 0)
+                {
+                    _playerId = 0;
+                }
+
+                return;
+            }
+
+            int id = player.GetInstanceID();
+            if (id != _playerId)
+            {
+                _playerId = id;
+                _appliedShow = !show;
+                force = true;
+            }
+
             if (!force && show == _appliedShow && Time.frameCount % 8 != 0)
             {
                 return;
             }
 
             _appliedShow = show;
-            Player player = Player.m_localPlayer;
-            if (!player)
-            {
-                return;
-            }
 
             DiscoverBa();
             SetGo(_baGo != null ? _baGo.GetValue(null) as GameObject : null, show);

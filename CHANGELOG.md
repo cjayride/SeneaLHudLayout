@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.5.69
+
+- **Hide Backpack sits on the backpack name + slots-used row** (the Adventure Backpacks header, e.g. pack name and `8/24`), not the ACTION title and not a generic "Backpack" word that SeneaL often never draws.
+
+## 1.5.68
+
+- **Hide Backpack button actually shows.** SeneaL often has no BACKPACK title (the bag is a doll slot), so 1.5.67 parked the control on a hidden label. The button now anchors to the backpack title if present, else the backpack doll slot, else next to Hide Quiver.
+- **Action slots flush left without SkillsReworked.** `[Hotbar] SlotsOffsetX` was leaving a blank gap where the XP card would sit. With SkillsReworked not loaded, that offset is ignored so the action slots sit at the left.
+
+## 1.5.67
+
+- **NEW inventory backpack mesh button:** control to the right of the BACKPACK section title with **Show Backpack** / **Hide Backpack** (same style as the quiver button). Toggles only the 3D backpack on the character; slot, contents, and cape stay. `[Inventory] ShowBackpackMesh` (on by default). Saved in config and re-applied after relog.
+
+## 1.5.66
+
+- **Fixed `[Inventory] ShowQuiverMesh` ignored after relog.** The hide/show choice was saved to config, but on logout the mod believed the mesh was already hidden and skipped re-applying when BetterArchery respawned the 3D quiver. Your saved off/on setting now applies again each time your local player spawns.
+
 ## 1.5.65
 
 - **NEW `[Ship] ShowHealth` (off by default):** hull health bar under the sailing wind disc while at the helm. Uses SeneaL `ShipView.Wind` or vanilla wind if that is off. Bar stays level under the disc (does not spin with the wind ring). `[Ship] ShowNumbers` (on by default) prints current/max tight under the bar.

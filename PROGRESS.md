@@ -1,5 +1,30 @@
 # Progress - SeneaLHudLayout
 
+## In progress 1.5.69 (do not bump until ship)
+
+Hide Backpack on the pack **name + used/max slots** row (not ACTION, not a
+generic "Backpack" word). Version stays **1.5.69**.
+
+## Shipped 1.5.68 (2026-11-15)
+
+Hide Backpack visible: title/slot/search/next-to-quiver. SlotsOffsetX ignored
+without SkillsReworked so action slots sit left (no blank XP gap).
+Zip: `dist\cjayride-SeneaLHudLayout-1.5.68.zip`. Pack 4.4.54 dep 1.5.68.
+
+## Shipped 1.5.67 (2026-11-15)
+
+Hide Backpack inventory button (same style as quiver) + `[Inventory] ShowBackpackMesh`.
+`BackpackMeshToggle.cs`; pack **4.4.54** dep `1.5.67`.
+Thunderstore zip: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.5.67.zip`
+
+## Shipped 1.5.66 (2026-11-15)
+
+**FIX:** `[Inventory] ShowQuiverMesh` saved to config but 3D quiver reappeared after relog.
+`QuiverMeshToggle.cs`: track local player id; force re-apply on spawn; no `_appliedShow` while
+player is null. Pack **4.4.54** dep bump in `beta_cjaycraft`.
+Thunderstore zip: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.5.66.zip`
+DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
+
 ## Shipped 1.5.65 (2026-11-15)
 
 Ship hull bar + quiver mesh toggle. User-tested: bar level under wind UI; quiver label button.
