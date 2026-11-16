@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.70
+
+- **Character Stats lists what buffs actually do.** Status effects (Magic Barrier and the rest) now show their game tooltip under the name — absorption, duration, and similar — not just the title and remaining time.
+- **Only one Hide Backpack control.** Extra Show/Hide Backpack buttons over action keys 1 and 2 are removed; the control stays on the Adventure Backpacks title row (pack name + used/max slots).
+
 ## 1.5.69
 
 - **Character Stats lists what buffs actually do.** Status effects (Magic Barrier and the rest) now show their game tooltip under the name — e.g. *A magical shield that absorbs damage*, duration, and absorption — not just the title and remaining time.

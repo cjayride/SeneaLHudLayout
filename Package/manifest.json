@@ -1,6 +1,6 @@
 {
     "name": "SeneaLHudLayout",
-    "version_number": "1.5.69",
+    "version_number": "1.5.70",
     "website_url": "https://discord.gg/cjayride",
     "description": "Rearranges SeneaL UI HUD: hotbar, XP bars, ship hull health, quiver mesh toggle, optional one-row inventory (MergeSlotRows).",
     "dependencies": [
