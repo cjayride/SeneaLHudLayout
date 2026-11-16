@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.73
+
+- **FIX: Hide Backpack toggles once and stays on the pack title.** Removed the extra mouse poll that double-fired on click (flicker). Anchors to the docked Adventure Backpacks name + slot count again; still no duplicates on action keys 1–2.
+
 ## 1.5.72
 
 - **FIX: Hide Backpack button back on the pack title.** The 1.5.71 anti-duplicate pass was too strict and hid the real control. It is on the Adventure Backpacks header again; duplicates on action-bar keys 1–2 are still blocked.
