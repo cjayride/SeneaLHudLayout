@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
+using System.Text;
 using BepInEx.Configuration;
 using HarmonyLib;
 using TMPro;
@@ -1449,6 +1450,12 @@ namespace SeneaLHudLayout
                 }
 
                 Row("", line);
+                List<string> details = StatusEffectDetails(se, name);
+                for (int d = 0; d < details.Count; d++)
+                {
+                    Row("", "· " + details[d]);
+                }
+
                 shown++;
             }
 
@@ -1714,6 +1721,108 @@ namespace SeneaLHudLayout
         static string SkillLevel(Player player, Skills.SkillType skill)
         {
             return F0(player.GetSkillLevel(skill));
+        }
+
+        static List<string> StatusEffectDetails(StatusEffect se, string localizedName)
+        {
+            List<string> lines = new List<string>();
+            if (se == null)
+            {
+                return lines;
+            }
+
+            string tip = null;
+            try
+            {
+                tip = se.GetTooltipString();
+            }
+            catch (Exception)
+            {
+            }
+
+            if (string.IsNullOrWhiteSpace(tip) && !string.IsNullOrEmpty(se.m_tooltip))
+            {
+                tip = se.m_tooltip;
+            }
+
+            if (string.IsNullOrWhiteSpace(tip))
+            {
+                return lines;
+            }
+
+            if (Localization.instance != null)
+            {
+                tip = Localization.instance.Localize(tip);
+            }
+
+            tip = StripRichText(tip).Replace("\r\n", "\n").Replace('\r', '\n');
+            string[] parts = tip.Split('\n');
+            string name = localizedName ?? "";
+            for (int i = 0; i < parts.Length; i++)
+            {
+                string part = parts[i].Trim();
+                if (part.Length == 0)
+                {
+                    continue;
+                }
+
+                if (name.Length > 0 &&
+                    string.Equals(part, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (name.Length > 0 &&
+                    part.StartsWith(name, StringComparison.OrdinalIgnoreCase) &&
+                    (part.Length == name.Length || part[name.Length] == ':' || part[name.Length] == ','))
+                {
+                    part = part.Substring(name.Length).TrimStart(':', ',', ' ', '-');
+                    if (part.Length == 0)
+                    {
+                        continue;
+                    }
+                }
+
+                if (!lines.Contains(part))
+                {
+                    lines.Add(part);
+                }
+            }
+
+            return lines;
+        }
+
+        static string StripRichText(string text)
+        {
+            if (string.IsNullOrEmpty(text) || text.IndexOf('<') < 0)
+            {
+                return text;
+            }
+
+            StringBuilder sb = new StringBuilder(text.Length);
+            bool inTag = false;
+            for (int i = 0; i < text.Length; i++)
+            {
+                char c = text[i];
+                if (c == '<')
+                {
+                    inTag = true;
+                    continue;
+                }
+
+                if (c == '>' && inTag)
+                {
+                    inTag = false;
+                    continue;
+                }
+
+                if (!inTag)
+                {
+                    sb.Append(c);
+                }
+            }
+
+            return sb.ToString();
         }
 
         static float StatusTime(StatusEffect se)

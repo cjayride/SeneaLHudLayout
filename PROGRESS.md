@@ -1,9 +1,11 @@
 # Progress - SeneaLHudLayout
 
-## In progress 1.5.69 (do not bump until ship)
+## Shipped 1.5.69 (2026-11-17)
 
-Hide Backpack on the pack **name + used/max slots** row (not ACTION, not a
-generic "Backpack" word). Version stays **1.5.69**.
+One Hide Backpack on Adventure Backpacks header; Character Stats status tooltip
+lines; user-tested Gale 4.4.55 profile. Zip: `dist\cjayride-SeneaLHudLayout-1.5.69.zip`.
+Pack **4.4.56** changelog entry (client).
+DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
 
 ## Shipped 1.5.68 (2026-11-15)
 

@@ -2,6 +2,8 @@
 
 ## 1.5.69
 
+- **Character Stats lists what buffs actually do.** Status effects (Magic Barrier and the rest) now show their game tooltip under the name — e.g. *A magical shield that absorbs damage*, duration, and absorption — not just the title and remaining time.
+- **Only one Hide Backpack control.** The extra copies over action-bar keys 1 and 2 are gone. The button stays on the Adventure Backpacks title row (pack name + used/max slots). Stray buttons from the old fallback are destroyed.
 - **Hide Backpack sits on the backpack name + slots-used row** (the Adventure Backpacks header, e.g. pack name and `8/24`), not the ACTION title and not a generic "Backpack" word that SeneaL often never draws.
 
 ## 1.5.68
