@@ -1,9 +1,9 @@
 # Progress - SeneaLHudLayout
 
-## Shipped 1.5.71 (2026-11-17)
+## Shipped 1.5.72 (2026-11-17)
 
-Stats tab colors (status + guardian rows); PassivePowers reflection quiet.
-Zip: `dist\cjayride-SeneaLHudLayout-1.5.71.zip`. Pack 4.4.56 changelog.
+FIX Hide Backpack on pack title (1.5.71 regression); hotbar duplicates still off.
+Zip: `dist\cjayride-SeneaLHudLayout-1.5.72.zip`. beta_cjaycraft README + manifest.
 DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
 
 ## Shipped 1.5.68 (2026-11-15)
