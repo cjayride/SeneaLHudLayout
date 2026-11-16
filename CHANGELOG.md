@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.71
+
+- **Character Stats readability.** Status effects and equipped guardian (Passive Powers) rows use a gold title line and muted detail lines for tooltip / passive text.
+- **Quieter Passive Powers lookup.** Guardian power description reflection no longer spams HarmonyX `Could not find field` warnings when config shapes differ.
+
 ## 1.5.70
 
 - **Character Stats lists what buffs actually do.** Status effects (Magic Barrier and the rest) now show their game tooltip under the name — absorption, duration, and similar — not just the title and remaining time.

@@ -1,10 +1,9 @@
 # Progress - SeneaLHudLayout
 
-## Shipped 1.5.70 (2026-11-17)
+## Shipped 1.5.71 (2026-11-17)
 
-Thunderstore bump (1.5.69 already uploaded). Same build as tested 1.5.69 DLL
-features: one Hide Backpack, Character Stats status tooltip lines.
-Zip: `dist\cjayride-SeneaLHudLayout-1.5.70.zip`.
+Stats tab colors (status + guardian rows); PassivePowers reflection quiet.
+Zip: `dist\cjayride-SeneaLHudLayout-1.5.71.zip`. Pack 4.4.56 changelog.
 DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
 
 ## Shipped 1.5.68 (2026-11-15)

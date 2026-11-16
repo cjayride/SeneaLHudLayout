@@ -86,7 +86,9 @@ namespace SeneaLHudLayout
         enum RowKind
         {
             Header,
-            Data
+            Data,
+            StatusEffect,
+            StatusDetail
         }
 
         struct StatRow
@@ -96,6 +98,10 @@ namespace SeneaLHudLayout
             public string Value;
             public string Icon;
         }
+
+        static readonly Color ValueDefault = new Color(0.96f, 0.92f, 0.82f, 1f);
+        static readonly Color ValueStatusTitle = new Color(0.93f, 0.84f, 0.62f, 1f);
+        static readonly Color ValueStatusDetail = new Color(0.68f, 0.64f, 0.54f, 0.95f);
 
         static readonly List<StatRow> _rows = new List<StatRow>();
 
@@ -976,9 +982,28 @@ namespace SeneaLHudLayout
                 {
                     value.text = wantValue;
                 }
+
+                Color wantColor = ValueColor(data.Kind);
+                if (value.color != wantColor)
+                {
+                    value.color = wantColor;
+                }
             }
 
             return true;
+        }
+
+        static Color ValueColor(RowKind kind)
+        {
+            switch (kind)
+            {
+                case RowKind.StatusEffect:
+                    return ValueStatusTitle;
+                case RowKind.StatusDetail:
+                    return ValueStatusDetail;
+                default:
+                    return ValueDefault;
+            }
         }
 
         static string DisplayLabel(string label)
@@ -1156,8 +1181,8 @@ namespace SeneaLHudLayout
             valueGo.transform.SetParent(rowGo.transform, false);
             var valueTmp = valueGo.AddComponent<TextMeshProUGUI>();
             valueTmp.text = FormatRowValue(row);
-            valueTmp.fontSize = 13f;
-            valueTmp.color = new Color(0.96f, 0.92f, 0.82f, 1f);
+            valueTmp.fontSize = row.Kind == RowKind.StatusDetail ? 12f : 13f;
+            valueTmp.color = ValueColor(row.Kind);
             valueTmp.alignment = TextAlignmentOptions.MidlineLeft;
             valueTmp.enableWordWrapping = true;
             var valueLe = valueGo.AddComponent<LayoutElement>();
@@ -1244,6 +1269,16 @@ namespace SeneaLHudLayout
         static void Row(string label, string value)
         {
             _rows.Add(new StatRow { Kind = RowKind.Data, Label = label, Value = value ?? "—" });
+        }
+
+        static void RowStatus(string value)
+        {
+            _rows.Add(new StatRow { Kind = RowKind.StatusEffect, Label = "", Value = value ?? "—" });
+        }
+
+        static void RowStatusDetail(string value)
+        {
+            _rows.Add(new StatRow { Kind = RowKind.StatusDetail, Label = "", Value = value ?? "—" });
         }
 
         static string Pair(float current, float max, string suffix = "")
@@ -1449,11 +1484,11 @@ namespace SeneaLHudLayout
                     RowLabelOnly("Status effects");
                 }
 
-                Row("", line);
+                RowStatus(line);
                 List<string> details = StatusEffectDetails(se, name);
                 for (int d = 0; d < details.Count; d++)
                 {
-                    Row("", "· " + details[d]);
+                    RowStatusDetail("· " + details[d]);
                 }
 
                 shown++;
@@ -1540,11 +1575,11 @@ namespace SeneaLHudLayout
 
                 string key = powers[i];
                 string name = GuardianPowerName(key);
-                Row("", name + " · " + GuardianPowerState(player, key));
+                RowStatus(name + " · " + GuardianPowerState(player, key));
                 List<string> descs = GuardianPowerDescriptions(key, "passive");
                 for (int d = 0; d < descs.Count; d++)
                 {
-                    Row("", "· " + descs[d]);
+                    RowStatusDetail("· " + descs[d]);
                 }
             }
         }
@@ -1670,13 +1705,14 @@ namespace SeneaLHudLayout
             }
 
             Type type = target.GetType();
-            FieldInfo field = AccessTools.Field(type, name);
+            const BindingFlags inst = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+            FieldInfo field = type.GetField(name, inst);
             if (field != null)
             {
                 return field.GetValue(target);
             }
 
-            PropertyInfo property = AccessTools.Property(type, name);
+            PropertyInfo property = type.GetProperty(name, inst);
             return property != null ? property.GetValue(target, null) : null;
         }
 
