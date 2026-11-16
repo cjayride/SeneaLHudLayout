@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.72
+
+- **FIX: Hide Backpack button back on the pack title.** The 1.5.71 anti-duplicate pass was too strict and hid the real control. It is on the Adventure Backpacks header again; duplicates on action-bar keys 1–2 are still blocked.
+
 ## 1.5.71
 
 - **Character Stats readability.** Status effects and equipped guardian (Passive Powers) rows use a gold title line and muted detail lines for tooltip / passive text.

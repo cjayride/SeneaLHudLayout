@@ -211,15 +211,26 @@ namespace SeneaLHudLayout
 
         static void PlaceFromOpenUi()
         {
-            InventoryGui gui = InventoryGui.instance;
-            object cv = FindContainerView(gui);
+            if (InventoryGui.instance == null || !InventoryGui.IsVisible())
+            {
+                HideButton();
+                return;
+            }
+
+            object cv = FindContainerView();
             if (PlaceFromContainer(cv))
             {
                 return;
             }
 
-            HideButton();
-            DestroyStrays();
+            TextMeshProUGUI title = ScanPackTitle(InventoryGui.instance);
+            if (title == null || IsActionBar(title.transform))
+            {
+                HideButton();
+                return;
+            }
+
+            PlaceButton(title, SiblingSlotCount(title));
         }
 
         static bool PlaceFromContainer(object cv)
@@ -236,7 +247,13 @@ namespace SeneaLHudLayout
                 return false;
             }
 
-            PlaceButton(name ?? slots, slots);
+            TextMeshProUGUI title = name ?? slots;
+            if (title == null || IsActionBar(title.transform))
+            {
+                return false;
+            }
+
+            PlaceButton(title, slots);
             return true;
         }
 
@@ -247,7 +264,13 @@ namespace SeneaLHudLayout
 
         static bool IsBackpackHeader(object cv, TextMeshProUGUI name, TextMeshProUGUI slots)
         {
-            if (name != null && name.gameObject.activeInHierarchy && LooksLikePackName(name.text))
+            bool nameOn = name != null && name.gameObject.activeInHierarchy && !string.IsNullOrEmpty(name.text);
+            if (nameOn && LooksLikePackName(name.text))
+            {
+                return true;
+            }
+
+            if (Docked(cv) && nameOn && !IsActionBar(name.transform))
             {
                 return true;
             }
@@ -255,17 +278,36 @@ namespace SeneaLHudLayout
             return Docked(cv) &&
                    slots != null &&
                    slots.gameObject.activeInHierarchy &&
-                   IsSlotCount(slots.text);
+                   IsSlotCount(slots.text) &&
+                   !IsActionBar(slots.transform);
         }
 
-        static object FindContainerView(InventoryGui gui)
+        static object FindContainerView()
         {
-            if (gui == null || _containerView == null || !typeof(Component).IsAssignableFrom(_containerView))
+            if (_containerView == null || !typeof(Component).IsAssignableFrom(_containerView))
             {
                 return null;
             }
 
-            Component[] found = gui.GetComponentsInChildren(_containerView, true);
+            object best = PickContainer(InventoryGui.instance != null
+                ? InventoryGui.instance.GetComponentsInChildren(_containerView, true)
+                : null);
+            if (best != null)
+            {
+                return best;
+            }
+
+            Hud hud = Hud.instance;
+            if (hud == null || hud.m_rootObject == null)
+            {
+                return null;
+            }
+
+            return PickContainer(hud.m_rootObject.GetComponentsInChildren(_containerView, true));
+        }
+
+        static object PickContainer(Component[] found)
+        {
             if (found == null || found.Length == 0)
             {
                 return null;
@@ -283,8 +325,7 @@ namespace SeneaLHudLayout
                     continue;
                 }
 
-                bool docked = Docked(c);
-                if (docked)
+                if (Docked(c))
                 {
                     dockedPack = c;
                     break;
@@ -297,6 +338,50 @@ namespace SeneaLHudLayout
             }
 
             return dockedPack ?? namedPack;
+        }
+
+        static TextMeshProUGUI ScanPackTitle(Component host)
+        {
+            if (host == null)
+            {
+                return null;
+            }
+
+            TextMeshProUGUI[] tmps = host.GetComponentsInChildren<TextMeshProUGUI>(true);
+            for (int i = 0; i < tmps.Length; i++)
+            {
+                TextMeshProUGUI t = tmps[i];
+                if (t == null || !t.gameObject.activeInHierarchy || IsOurs(t.transform) || IsActionBar(t.transform))
+                {
+                    continue;
+                }
+
+                if (LooksLikePackName(t.text))
+                {
+                    return t;
+                }
+            }
+
+            return null;
+        }
+
+        static bool IsActionBar(Transform t)
+        {
+            for (int i = 0; i < 12 && t != null; i++)
+            {
+                string n = t.name ?? "";
+                if (n.IndexOf("HotKey", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    n.IndexOf("hotkey", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    n.IndexOf("QuickUse", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    n.IndexOf("GamepadGrid", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+
+                t = t.parent;
+            }
+
+            return false;
         }
 
         static object Field(object inst, FieldInfo field)
@@ -531,7 +616,7 @@ namespace SeneaLHudLayout
 
         static bool EnsureButton(RectTransform parent)
         {
-            if (parent == null)
+            if (parent == null || IsActionBar(parent))
             {
                 return false;
             }
