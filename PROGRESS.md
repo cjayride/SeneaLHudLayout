@@ -1,5 +1,11 @@
 # Progress - SeneaLHudLayout
 
+## Shipped 1.5.74 (2026-11-21)
+
+FIX Stats tab reorder: no negative ids in `TabsView._order` (ArgumentOutOfRangeException).
+Zip: `dist\cjayride-SeneaLHudLayout-1.5.74.zip` (flat 5 entries). Repo CHANGELOG/manifest left at 1.5.73 per user; zip stage has 1.5.74 metadata for upload.
+DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
+
 ## Shipped 1.5.72 (2026-11-17)
 
 FIX Hide Backpack on pack title (1.5.71 regression); hotbar duplicates still off.

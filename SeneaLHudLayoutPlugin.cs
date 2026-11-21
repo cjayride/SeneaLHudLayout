@@ -41,7 +41,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.5.73";
+        public const string VERSION = "1.5.74";
         const string SkillsReworkedGuid = "M2Valheim.SkillsReworked";
 
         public static bool SkillsReworkedLoaded()

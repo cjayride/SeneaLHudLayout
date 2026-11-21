@@ -141,21 +141,27 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            int id = -(extIndex + 1);
-            order.Remove(id);
+            // SeneaL _order holds tab widget indexes: 0-5 native, 6 VNEI, 7+ extra tabs.
+            // A negative id here was used as _tabs[index] and threw ArgumentOutOfRangeException.
+            int tabIndex = 7 + extIndex;
+            int found = order.IndexOf(tabIndex);
+            if (found < 0)
+            {
+                return;
+            }
+
+            order.RemoveAt(found);
             int insertAt = 0;
             for (int i = 0; i < order.Count; i++)
             {
-                if (order[i] >= 0)
+                if (order[i] == 0)
                 {
                     insertAt = i;
                     break;
                 }
-
-                insertAt = i + 1;
             }
 
-            order.Insert(Mathf.Clamp(insertAt, 0, order.Count), id);
+            order.Insert(Mathf.Clamp(insertAt, 0, order.Count), tabIndex);
         }
 
         static int TabExtIndex()
