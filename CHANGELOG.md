@@ -2,6 +2,7 @@
 
 ## 1.5.75
 
+- **One boss bar in raids.** `[BossBar] MaxVisible` (default 1) trims SeneaL's stacked boss cards. Hover target wins, otherwise nearest. Optional **+N** for hidden bosses (`ShowHiddenCount`).
 - **Character window XP bar shows with SkillsReworked.** `[Character Window] ShowLevelXpBar` is no longer hidden by `[Hotbar] XpBarOneAtATime` (HUD cards only).
 - **Stats tab on the right.** The person/Stats icon sits at the right end of the character tab strip.
 - Turning `WishboneInKeySlot` off Relocates the wishbone from a key cell back to Charm.

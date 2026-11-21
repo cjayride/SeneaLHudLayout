@@ -1,5 +1,9 @@
 # Progress - SeneaLHudLayout
 
+## 1.5.76 — cap raid boss HP bars
+
+`BossBarCap`: postfix `EnemyHud.UpdateHuds`. MaxVisible=1, hover then nearest alerted, (+N). Gale 4.4.62 DLL + cfg. Zip dist 1.5.76. Not committed.
+
 ## 1.5.75 — Thunderstore ship (after 1.5.74)
 
 XP bar + Stats tab right + wishbone Relocate to Charm when WishboneInKeySlot off.

@@ -137,6 +137,8 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> MinimapOffsetY;
         public static ConfigEntry<float> BossOffsetY;
         public static ConfigEntry<bool> HideBossStars;
+        public static ConfigEntry<int> BossBarMaxVisible;
+        public static ConfigEntry<bool> BossBarShowHiddenCount;
         public static ConfigEntry<float> CompassTop;
         public static ConfigEntry<bool> ShipsOnCompass;
         public static ConfigEntry<bool> CartsOnCompass;
@@ -407,6 +409,12 @@ namespace SeneaLHudLayout
                     new AcceptableValueRange<float>(-2000f, 2000f)));
             HideBossStars = Config.Bind("BossBar", "HideStars", true,
                 "Remove the star icons on the boss health card. Creature nameplate stars are a separate setting.");
+            BossBarMaxVisible = Config.Bind("BossBar", "MaxVisible", 1,
+                new ConfigDescription(
+                    "How many boss HP bars to show at once. Raid packs can spawn several boss-flagged creatures (ice golems) and vanilla stacks a bar for each. 1 keeps the hover target, or the nearest fighter. Client-only.",
+                    new AcceptableValueRange<int>(1, 8)));
+            BossBarShowHiddenCount = Config.Bind("BossBar", "ShowHiddenCount", true,
+                "Show SeneaL's +N under the remaining boss bar when extra bars are hidden. Off: one bar only, no +N.");
 
             CompassTop = Config.Bind("Compass", "Top", 8f,
                 new ConfigDescription("Pixels between the top of the screen and the compass. The hotbar and action slots never move it.",
@@ -773,6 +781,7 @@ namespace SeneaLHudLayout
             // now registered through Safe(): a feature that fails logs its name and the rest of
             // the mod keeps working exactly as configured.
             Safe("HealthBarCap", () => HealthBarCap.Apply(harmony));
+            Safe("BossBarCap", () => BossBarCap.Apply(harmony));
             Safe("ShudnalConfigBridge", () => ShudnalConfigBridge.Apply(harmony));
             Safe("CompassPin", () => CompassPin.Apply(harmony));
             Safe("CompassLivePins", () => CompassLivePins.Apply(harmony));
