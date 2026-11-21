@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.75
+
+- **Character window XP bar shows with SkillsReworked.** `[Character Window] ShowLevelXpBar` is no longer hidden by `[Hotbar] XpBarOneAtATime` (HUD cards only).
+- **Stats tab on the right.** The person/Stats icon sits at the right end of the character tab strip.
+- Turning `WishboneInKeySlot` off Relocates the wishbone from a key cell back to Charm.
+
 ## 1.5.73
 
 - **FIX: Hide Backpack toggles once and stays on the pack title.** Removed the extra mouse poll that double-fired on click (flicker). Anchors to the docked Adventure Backpacks name + slot count again; still no duplicates on action keys 1–2.

@@ -1,5 +1,18 @@
 # Progress - SeneaLHudLayout
 
+## 1.5.75 — Thunderstore ship (after 1.5.74)
+
+XP bar + Stats tab right + wishbone Relocate to Charm when WishboneInKeySlot off.
+Zip: `dist\cjayride-SeneaLHudLayout-1.5.75.zip`
+
+## 1.5.77 (2026-11-22) — character XP + Stats tab side
+
+Goal: character-window SkillsReworked XP bar/numbers back; Stats person tab on the right.
+- CharacterExtras.TickXpBar: no longer calls XpBarOwned (OneAtATime hid the inventory bar when HUD ShowXpBar was on).
+- StatsWindow.AfterTabsLayout: append tab to `_order` (right) instead of inserting at native tab 0 (left, 1.5.74 crash fix). Order prop 100.
+User will drop-in test the DLL later.
+DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
+
 ## Shipped 1.5.74 (2026-11-21)
 
 FIX Stats tab reorder: no negative ids in `TabsView._order` (ArgumentOutOfRangeException).

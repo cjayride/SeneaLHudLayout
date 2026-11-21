@@ -327,13 +327,9 @@ namespace SeneaLHudLayout
 
         static void TickXpBar(bool levelShown)
         {
+            // Character-window bar is inventory UI, not a HUD card. 1.5.77: do not hide it
+            // for [Hotbar] XpBarOneAtATime (that only arbitrates HUD XP displays).
             bool show = levelShown && SeneaLHudLayoutPlugin.ShowLevelXpBar != null && SeneaLHudLayoutPlugin.ShowLevelXpBar.Value;
-            // 1.5.60: one XP display at a time. The character-window bar is the lowest priority:
-            // the action-slot card and the food-timers plate both own the display over it.
-            if (show && !SeneaLHudLayoutPlugin.XpBarOwned(SeneaLHudLayoutPlugin.XpBarOwner.CharacterWindow))
-            {
-                show = false;
-            }
 
             float fraction = show ? ReadLevelFraction(Player.m_localPlayer) : -1f;
             if (fraction < 0f)

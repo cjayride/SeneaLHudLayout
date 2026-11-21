@@ -41,7 +41,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.5.74";
+        public const string VERSION = "1.5.75";
         const string SkillsReworkedGuid = "M2Valheim.SkillsReworked";
 
         public static bool SkillsReworkedLoaded()
@@ -300,7 +300,7 @@ namespace SeneaLHudLayout
                 ConfigDefault(Config, "Hotbar", "ShowXpBar", "Character", "ShowXpBar", false),
                 "Show your SkillsReworked level and XP bar on the HUD as a gold card (Hotbar.XpBarAnchor picks WHERE: RightOfSlots, TopLeft, or UnderFoodBar). All its knobs are the [Hotbar] XpBar* settings: anchor, padding, scale, compact, colours. OFF by default; the CJAYCRAFT pack ships it ON with XpBarAnchor = UnderFoodBar. With [Hotbar] XpBarOneAtATime on, this display wins over the food-timers plate and the character-window bar. Client-only.");
             ShowSlotXpBarOneAtATime = Config.Bind("Hotbar", "XpBarOneAtATime", true,
-                "Show only ONE of the mod's three XP displays at a time (1.5.60, ON default): the action-slot card ([Hotbar] ShowXpBar), the level plate under the food timers ([HealthFood] ShowLevelFoodBar), and the character window's bar ([Character Window] ShowLevelXpBar). Switching on more than one used to stack them, three cards sharing one set of knobs. ON: the highest-priority enabled one draws - action-slot card, then food-timers plate, then character-window bar - and the rest hide. OFF: all three show at once, the pre-1.5.60 behaviour. Applies live, no restart. Client-only.");
+                "Show only ONE HUD XP display at a time (1.5.60, ON default): the action-slot card ([Hotbar] ShowXpBar). 1.5.62: the food-timers plate follows its own toggle. 1.5.77: the character-window XP bar also follows its own toggle and is never hidden by this knob. OFF: HUD cards can all show at once. Applies live, no restart. Client-only.");
 
             Enabled = Config.Bind("General", "Enabled", true,
                 "Apply the layout offsets below. Turn this off to restore SeneaL UI's own placement.");
@@ -678,7 +678,7 @@ namespace SeneaLHudLayout
             bool showLevelXpBarDefault = ConfigDefault(
                 Config, "Character Window", "ShowLevelXpBar", "Character", "ShowLevelXpBar", false);
             ShowLevelXpBar = Config.Bind("Character Window", "ShowLevelXpBar", showLevelXpBarDefault,
-                "Show a 100 pixel SkillsReworked XP bar under the character-window level line (starter: immediately to the right of the level text). OFF by default; the pack may ship it ON. With [Hotbar] XpBarOneAtATime on, this bar yields to the action-slot card. Client-only.");
+                "Show a 100 pixel SkillsReworked XP bar under the character-window level line (starter: immediately to the right of the level text). OFF by default; the pack may ship it ON. Independent of [Hotbar] XpBarOneAtATime (1.5.77: that knob no longer hides this inventory bar). Client-only.");
             bool fixSkillRespendDefault = ConfigDefault(
                 Config, "Character Window", "FixSkillRespendAfterDeath", "Character", "FixSkillRespendAfterDeath", true);
             FixSkillRespendAfterDeath = Config.Bind("Character Window", "FixSkillRespendAfterDeath", fixSkillRespendDefault,
@@ -797,6 +797,7 @@ namespace SeneaLHudLayout
             Safe("TipItemIcon", () => TipItemIcon.Apply(harmony));
             Safe("TipColumnOverflow", () => TipColumnOverflow.Apply(harmony));
             Safe("CraftMaterials", () => CraftMaterials.Apply(harmony));
+            Safe("CraftToolCategory", () => CraftToolCategory.Apply(harmony));
             Safe("StatusEffectsPlace", () => StatusEffectsPlace.Apply(harmony));
             Safe("SkillRespendFix", () => SkillRespendFix.Apply(harmony));
             Safe("VanillaSkillsWindow", () => VanillaSkillsWindow.Apply(harmony));

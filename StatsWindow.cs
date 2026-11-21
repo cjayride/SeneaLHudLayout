@@ -151,17 +151,9 @@ namespace SeneaLHudLayout
             }
 
             order.RemoveAt(found);
-            int insertAt = 0;
-            for (int i = 0; i < order.Count; i++)
-            {
-                if (order[i] == 0)
-                {
-                    insertAt = i;
-                    break;
-                }
-            }
-
-            order.Insert(Mathf.Clamp(insertAt, 0, order.Count), tabIndex);
+            // 1.5.74 parked this next to native tab 0 (left of Skills). User wants the
+            // person/Stats icon on the RIGHT of the character tab strip.
+            order.Add(tabIndex);
         }
 
         static int TabExtIndex()
@@ -267,7 +259,7 @@ namespace SeneaLHudLayout
             }
 
             SetProp(tabType, "IconName", "user-circle");
-            SetProp(tabType, "Order", 12);
+            SetProp(tabType, "Order", 100);
             SetProp(tabType, "Tip", (Func<string>)(() => "Vitals, defense, buffs, and skills"));
             SetProp(tabType, "Visible", (Func<bool>)(() => Enabled()));
             SetProp(tabType, "Active", (Func<bool>)(() => _open && _window != null && _window.activeSelf));

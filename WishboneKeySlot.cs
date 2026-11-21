@@ -24,6 +24,7 @@ namespace SeneaLHudLayout
         static MethodInfo _isKeyCell;
         static MethodInfo _freeKey;
         static MethodInfo _changed;
+        static MethodInfo _relocate;
         static MethodInfo _setupDrag;
         static FieldInfo _manual;
         static FieldInfo _dragGo;
@@ -419,10 +420,61 @@ namespace SeneaLHudLayout
             return _manual != null && _manual.GetValue(null) is bool flag && flag;
         }
 
+        static void SendHome(Player player)
+        {
+            Lookup();
+            if (_relocate == null || _isKeyCell == null)
+            {
+                return;
+            }
+
+            Inventory inv = player.GetInventory();
+            if (inv == null)
+            {
+                return;
+            }
+
+            List<ItemDrop.ItemData> items = inv.GetAllItems();
+            if (items == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                ItemDrop.ItemData wish = items[i];
+                if (!IsWishbone(wish))
+                {
+                    continue;
+                }
+
+                if (!(bool)_isKeyCell.Invoke(null, new object[] { inv, wish.m_gridPos.x, wish.m_gridPos.y }))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    _relocate.Invoke(null, new object[] { inv, wish });
+                }
+                catch (Exception)
+                {
+                }
+
+                break;
+            }
+        }
+
         static void Place(Player player)
         {
-            if (_placing || !On() || player == null || ManualMove())
+            if (_placing || player == null || ManualMove())
             {
+                return;
+            }
+
+            if (!On())
+            {
+                SendHome(player);
                 return;
             }
 
@@ -510,6 +562,9 @@ namespace SeneaLHudLayout
             _changed = _pouch == null
                 ? null
                 : AccessTools.Method(_pouch, "Changed", new[] { typeof(Inventory) });
+            _relocate = _slots == null
+                ? null
+                : AccessTools.Method(_slots, "Relocate", new[] { typeof(Inventory), typeof(ItemDrop.ItemData) });
             _manual = _slots == null ? null : AccessTools.Field(_slots, "Manual");
             _setupDrag = AccessTools.Method(typeof(InventoryGui), "SetupDragItem");
             _dragGo = AccessTools.Field(typeof(InventoryGui), "m_dragGo");
