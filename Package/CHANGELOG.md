@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.77
+
+- **FIX: guardian power cooldown timers after a portal.** Walking through a portal used to hide the shared cooldown and the Passive Powers buff/depletion countdowns. The HUD is off mid-trip; the layout treated that as "no cooldown" and turned the labels off. Timers now stay put during teleport (no extra per-frame work) and for a short settle after you land.
+- **FPS (no layout change):** font fallback scans stay on a 2s miss cadence (a leftover full-project font scan no longer ran every frame); HUD-missing and vitals-missing warnings are throttled; power-slot lists are reused; slot cue font lookup prefers the HUD name text instead of a scene-wide search.
+
+## 1.5.76
+
+- **FIX: Kill XP notice on profiles without SkillsReworked.** Harmony's `Type:Method` lookup threw when `KillRewardFlow` was missing, so BepInEx logged `feature 'KillXpNotice' failed to start`. Optional SkillsReworked / ItemDrawers types are resolved without HarmonyX missing-type warnings. Death pins use the current `Minimap.AddPin` signature (`PlatformUserID`).
+
 ## 1.5.75
 
 - **One boss bar in raids.** `[BossBar] MaxVisible` (default 1) trims SeneaL's stacked boss cards. Hover target wins, otherwise nearest. Optional **+N** for hidden bosses (`ShowHiddenCount`).

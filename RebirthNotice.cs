@@ -21,8 +21,8 @@ namespace SeneaLHudLayout
 
         public static void Apply(Harmony harmony)
         {
-            Type flow = AccessTools.TypeByName("SkillsReworked.Systems.Rebirth.RebirthFlow");
-            Type ui = AccessTools.TypeByName("SkillsReworked.UI.SkillPanel.SkillUiController");
+            Type flow = ModTypes.Find("SkillsReworked", "SkillsReworked.Systems.Rebirth.RebirthFlow");
+            Type ui = ModTypes.Find("SkillsReworked", "SkillsReworked.UI.SkillPanel.SkillUiController");
             MethodInfo execute = flow == null ? null : AccessTools.Method(flow, "Execute");
             MethodInfo confirm = ui == null ? null : AccessTools.Method(ui, "OnRebirthConfirm");
             if (execute == null || confirm == null)
@@ -33,7 +33,7 @@ namespace SeneaLHudLayout
             harmony.Patch(execute, postfix: new HarmonyMethod(typeof(RebirthNotice), nameof(Remember)));
             harmony.Patch(confirm, postfix: new HarmonyMethod(typeof(RebirthNotice), nameof(AfterRebirth)));
 
-            Type prestige = AccessTools.TypeByName("SkillsReworked.Systems.Prestige.PrestigeFlow");
+            Type prestige = ModTypes.Find("SkillsReworked", "SkillsReworked.Systems.Prestige.PrestigeFlow");
             MethodInfo prestigeExecute = prestige == null ? null : AccessTools.Method(prestige, "Execute");
             MethodInfo prestigeConfirm = AccessTools.Method(ui, "OnPrestigeConfirm");
             if (prestigeExecute != null && prestigeConfirm != null)
@@ -110,7 +110,7 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            Type ui = AccessTools.TypeByName("SkillsReworked.UI.SkillPanel.SkillUiController");
+            Type ui = ModTypes.Find("SkillsReworked", "SkillsReworked.UI.SkillPanel.SkillUiController");
             FieldInfo field = ui == null ? null : AccessTools.Field(ui, rootField);
             GameObject root = field == null ? null : field.GetValue(null) as GameObject;
             if (root == null)

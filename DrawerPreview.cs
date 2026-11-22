@@ -30,7 +30,7 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            _drawer = AccessTools.TypeByName("ItemDrawers.Game.DrawerComponent");
+            _drawer = ModTypes.Find("ItemDrawers", "ItemDrawers.Game.DrawerComponent");
             _hoverView = AccessTools.TypeByName("SeneaLUI.Hud.HoverView");
             if (_hoverView == null)
             {

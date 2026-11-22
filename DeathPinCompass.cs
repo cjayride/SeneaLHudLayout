@@ -16,15 +16,9 @@ namespace SeneaLHudLayout
 
         public static void Apply(Harmony harmony)
         {
-            _addPin = AccessTools.Method(typeof(Minimap), nameof(Minimap.AddPin), new[]
-            {
-                AccessTools.TypeByName("UnityEngine.Vector3"),
-                typeof(Minimap.PinType),
-                typeof(string),
-                typeof(bool),
-                typeof(bool),
-                typeof(long)
-            });
+            // Current Valheim AddPin also takes Splatform.PlatformUserID. Match by name so a
+            // parameter list from an older game build cannot fail the lookup.
+            _addPin = AccessTools.Method(typeof(Minimap), nameof(Minimap.AddPin));
             if (_addPin != null)
             {
                 harmony.Patch(_addPin, postfix: new HarmonyMethod(typeof(DeathPinCompass), nameof(AfterAddPin)));

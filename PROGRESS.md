@@ -1,5 +1,25 @@
 # Progress - SeneaLHudLayout
 
+## 1.5.77 — guardian power timers after portal
+
+Goal: cooldown / buff / depletion numbers still show after a portal trip.
+- PowersLayout: skip PlacePowers while `IsTeleporting` (cheaper than scanning a disabled HUD). Hold hide for 2s after landing so Passive Powers SEs can return.
+- Do not disable `m_gpCooldown` when the icon is missing; skip icon scans on inactive slots (avoids GetComponentsInChildren miss cache during trips).
+- FPS pass (safe): TmpFont second FindObjectsOfTypeAll gated to 2s; HudLayout caches SeneaLUI_Hud and throttles missing logs; PowersLayout reuses Shown/BoundsStack; SlotCue RememberFont uses m_gpName then 2s FindObjectOfType.
+Build: `dotnet build -c Release` 0 errors (existing warnings only).
+DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
+Zip: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.5.77.zip` (flat 5 entries).
+
+## 1.5.76 — KillXpNotice without SkillsReworked
+
+Goal: Gale `test` profile logged `KillXpNotice` ArgumentNullException because `AccessTools.Method("KillRewardFlow:AwardXp")` throws when the type is missing.
+- KillXpNotice uses ModTypes.Find; optional SkillsReworked / ItemDrawers lookups no longer go through Harmony TypeByName.
+- DeathPinCompass matches Minimap.AddPin by name (7-arg PlatformUserID overload).
+Build: `dotnet build -c Release` 0 errors.
+DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll`
+Zip: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.5.76.zip` (flat 5 entries).
+Gale test copy blocked (DLL mapped / game running). Backup `.bak-1.5.75` may exist beside the locked 1.5.75 plugin.
+
 ## 1.5.76 — cap raid boss HP bars
 
 `BossBarCap`: postfix `EnemyHud.UpdateHuds`. MaxVisible=1, hover then nearest alerted, (+N). Gale 4.4.62 DLL + cfg. Zip dist 1.5.76. Not committed.

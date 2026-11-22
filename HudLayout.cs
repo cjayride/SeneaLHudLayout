@@ -22,6 +22,9 @@ namespace SeneaLHudLayout
         static Vector3 _buildPanelBaseScale;
         static bool _buildPanelKnown;
         static RectTransform _hotbarShift;
+        static RectTransform _senealRoot;
+        static float _nextMissingHudLog;
+        static float _nextVitalsWarn;
 
         /// <summary>
         /// The container the hotbar, food, action slots, and quiver live in after this plugin
@@ -36,14 +39,24 @@ namespace SeneaLHudLayout
             if (hud == null || hud.m_rootObject == null)
                 return;
 
-            Transform seneal = hud.m_rootObject.transform.Find("SeneaLUI_Hud");
-            if (seneal == null)
+            RectTransform root = _senealRoot;
+            if (!root)
             {
-                Debug.LogWarning("[SeneaL HUD Layout] SeneaLUI_Hud not found - waiting for SeneaL UI to initialize");
-                return;
-            }
+                Transform seneal = hud.m_rootObject.transform.Find("SeneaLUI_Hud");
+                if (seneal == null)
+                {
+                    if (Time.unscaledTime >= _nextMissingHudLog)
+                    {
+                        _nextMissingHudLog = Time.unscaledTime + 2f;
+                        Debug.LogWarning("[SeneaL HUD Layout] SeneaLUI_Hud not found - waiting for SeneaL UI to initialize");
+                    }
 
-            var root = (RectTransform)seneal;
+                    return;
+                }
+
+                root = (RectTransform)seneal;
+                _senealRoot = root;
+            }
 
             RectTransform hotbarShift = PlaceHotbar(root);
             _hotbarShift = hotbarShift;
@@ -994,7 +1007,12 @@ namespace SeneaLHudLayout
             if (staminaBar == null || eitrBar == null || adrenalineBar == null ||
                 staminaRoot == null || eitrRoot == null || adrenalineRoot == null)
             {
-                Debug.LogWarning("[Vitals] Could not find all required vitals nodes.");
+                if (Time.unscaledTime >= _nextVitalsWarn)
+                {
+                    _nextVitalsWarn = Time.unscaledTime + 2f;
+                    Debug.LogWarning("[Vitals] Could not find all required vitals nodes.");
+                }
+
                 return;
             }
 

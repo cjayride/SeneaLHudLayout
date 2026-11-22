@@ -54,6 +54,7 @@ namespace SeneaLHudLayout
         static float _sizeWas = -1f;
         static float _pipSizeWas = -1f;
         static float _scanUntil;
+        static float _nextFontScan;
 
         class Tracked
         {
@@ -1065,6 +1066,20 @@ namespace SeneaLHudLayout
                 return;
             }
 
+            Hud hud = Hud.instance;
+            if (hud != null && hud.m_gpName != null && hud.m_gpName.font != null)
+            {
+                _font = hud.m_gpName.font;
+                _fontMat = hud.m_gpName.fontSharedMaterial;
+                return;
+            }
+
+            if (Time.unscaledTime < _nextFontScan)
+            {
+                return;
+            }
+
+            _nextFontScan = Time.unscaledTime + 2f;
             TextMeshProUGUI any = UnityEngine.Object.FindObjectOfType<TextMeshProUGUI>();
             if (any != null && any.font != null)
             {

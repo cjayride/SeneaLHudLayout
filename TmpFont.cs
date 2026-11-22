@@ -52,19 +52,19 @@ namespace SeneaLHudLayout
                 {
                     StealFrom(texts[i]);
                 }
-            }
 
-            if (_font == null)
-            {
-                TMP_FontAsset[] fonts = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
-                for (int i = 0; i < fonts.Length; i++)
+                if (_font == null)
                 {
-                    TMP_FontAsset font = fonts[i];
-                    if (font != null && font && !IsLiberation(font.name))
+                    TMP_FontAsset[] fonts = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
+                    for (int i = 0; i < fonts.Length; i++)
                     {
-                        _font = font;
-                        _material = font.material;
-                        break;
+                        TMP_FontAsset font = fonts[i];
+                        if (font != null && font && !IsLiberation(font.name))
+                        {
+                            _font = font;
+                            _material = font.material;
+                            break;
+                        }
                     }
                 }
             }
@@ -85,7 +85,8 @@ namespace SeneaLHudLayout
 
         static void BindDefault()
         {
-            if (_font != null && _font && TMP_Settings.instance != null)
+            if (_font != null && _font && TMP_Settings.instance != null
+                && TMP_Settings.defaultFontAsset != _font)
             {
                 TMP_Settings.defaultFontAsset = _font;
             }

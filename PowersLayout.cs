@@ -27,11 +27,21 @@ namespace SeneaLHudLayout
         static readonly FieldInfo EffectTimeField = AccessTools.Field(typeof(StatusEffect), "m_time");
 
         static readonly List<GameObject> HiddenSlots = new List<GameObject>();
+        static readonly List<Transform> Shown = new List<Transform>(8);
+        static readonly Stack<Transform> BoundsStack = new Stack<Transform>(16);
         static TMP_FontAsset _font;
         static Material _fontMaterial;
+        // After a portal the HUD (and Passive Powers SEs) can lag a moment behind
+        // IsTeleporting. Do not hide timers in that window. Cheap unscaledTime compare.
+        static float _holdTimersUntil;
 
         public static void Apply(Hud hud, RectTransform senealRoot)
         {
+            if (FreezePowerTimers())
+            {
+                return;
+            }
+
             bool hideSlot = SeneaLHudLayoutPlugin.HideSenealPower != null
                 && SeneaLHudLayoutPlugin.HideSenealPower.Value;
             bool hasPassive = Chainloader.PluginInfos.TryGetValue(PassiveGuid, out PluginInfo plugin);
@@ -49,6 +59,18 @@ namespace SeneaLHudLayout
             {
                 PlacePowers(hud, senealRoot, plugin.Instance.Config);
             }
+        }
+
+        static bool FreezePowerTimers()
+        {
+            Player player = Player.m_localPlayer;
+            if (player != null && player.IsTeleporting())
+            {
+                _holdTimersUntil = Time.unscaledTime + 2f;
+                return true;
+            }
+
+            return false;
         }
 
         public static void Restore(RectTransform senealRoot)
@@ -135,6 +157,14 @@ namespace SeneaLHudLayout
 
         static void PlacePowers(Hud hud, RectTransform senealRoot, ConfigFile config)
         {
+            // Portal loading disables the HUD. Skip this frame (no scans, leave timers).
+            if (FreezePowerTimers())
+            {
+                return;
+            }
+
+            bool holdTimers = Time.unscaledTime < _holdTimersUntil;
+
             // ---------- Food (new SeneaL path) ----------
             RectTransform food = senealRoot.Find("Food/fx/vitals/food") as RectTransform;
             if (food == null) food = senealRoot.Find("Food/fx/vitals") as RectTransform;
@@ -153,14 +183,14 @@ namespace SeneaLHudLayout
             TmpFont.Ensure();
 
             // ---------- Collect power slots from SeneaL's GuardianPower ----------
-            var shown = new List<Transform>();
+            Shown.Clear();
+            List<Transform> shown = Shown;
 
             Transform gpRoot = senealRoot.Find("GuardianPower/fx/vitals");
-            /*if (gpRoot == null)
+            if (gpRoot == null)
             {
-                Debug.LogWarning("[SeneaLHudLayout] GuardianPower/fx/vitals not found");
                 return;
-            }*/
+            }
 
             // gp, gp1, gp2 ... gp6
             for (int i = 0; i < gpRoot.childCount; i++)
@@ -171,7 +201,7 @@ namespace SeneaLHudLayout
                 // Accept "gp", "gp1", "gp2", ...
                 if (name == "gp" || (name.StartsWith("gp") && name.Length <= 3))
                 {
-                    if (child.gameObject.activeInHierarchy)
+                    if (child.gameObject.activeSelf)
                         shown.Add(child);
                 }
             }
@@ -204,9 +234,18 @@ namespace SeneaLHudLayout
                 y = 180f + offsetY;
             }
 
-            // Debug.Log($"[SeneaLHudLayout] Powers settings → scale={scale}, gap={gap}, offsetX={offsetX}, offsetY={offsetY}");
-
             float shared = SharedCooldown();
+            if (shown.Count == 0)
+            {
+                if (!holdTimers)
+                {
+                    PlaceSharedCooldown(hud, null, shared, scale, holdTimers);
+                    HidePassiveWord(hud);
+                }
+
+                return;
+            }
+
             RefreshEffects();
             RectTransform rightIcon = null;
             float rightEdge = float.NegativeInfinity;
@@ -258,8 +297,8 @@ namespace SeneaLHudLayout
                 string power = PowerName(slot);
                 float buff = power == null ? 0f : EffectTimeLeft("PassivePowers " + power);
                 float down = power == null ? 0f : EffectTimeLeft("PassivePowers Depletion " + power);
-                SetTimer(shown[i], BuffName, buff, BuffColor, above: true);
-                SetTimer(shown[i], DownName, down, DownColor, above: false);
+                SetTimer(shown[i], BuffName, buff, BuffColor, above: true, holdTimers);
+                SetTimer(shown[i], DownName, down, DownColor, above: false, holdTimers);
 
                 RectTransform icon = FindPowerIcon(shown[i]);
                 if (icon != null)
@@ -273,7 +312,7 @@ namespace SeneaLHudLayout
                 }
             }
 
-            PlaceSharedCooldown(hud, rightIcon, shared, scale);
+            PlaceSharedCooldown(hud, rightIcon, shared, scale, holdTimers);
             HidePassiveWord(hud);
         }
 
@@ -408,21 +447,30 @@ namespace SeneaLHudLayout
         /// One shared activation cooldown for every boss power. Sit it to the
         /// right of the last icon, centered on that icon, and hide it when ready.
         /// </summary>
-        static void PlaceSharedCooldown(Hud hud, RectTransform icon, float seconds, float scale)
+        static void PlaceSharedCooldown(Hud hud, RectTransform icon, float seconds, float scale, bool hold)
         {
             if (hud.m_gpCooldown == null)
             {
                 return;
             }
 
-            if (seconds <= 0f || icon == null || !(hud.m_gpCooldown.transform is RectTransform cooldown))
+            if (seconds <= 0f)
             {
-                hud.m_gpCooldown.gameObject.SetActive(false);
+                if (!hold)
+                {
+                    hud.m_gpCooldown.gameObject.SetActive(false);
+                }
+
                 return;
             }
 
             hud.m_gpCooldown.gameObject.SetActive(true);
             hud.m_gpCooldown.text = StatusEffect.GetTimeString(seconds, false, false).ToLowerInvariant();
+            if (icon == null || !(hud.m_gpCooldown.transform is RectTransform cooldown))
+            {
+                return;
+            }
+
             cooldown.localScale = new Vector3(scale, scale, 1f);
             float iconMid = (HudLayout.EdgeY(icon, bottom: true) + HudLayout.EdgeY(icon, bottom: false)) * 0.5f;
             float iconRight = HudLayout.EdgeX(icon, left: false);
@@ -531,12 +579,16 @@ namespace SeneaLHudLayout
             }
         }
 
-        static void SetTimer(Transform container, string name, float seconds, Color color, bool above)
+        static void SetTimer(Transform container, string name, float seconds, Color color, bool above, bool hold)
         {
             TextMeshProUGUI label = EnsureLabel(container, name, color);
             if (seconds <= 0.05f)
             {
-                label.gameObject.SetActive(false);
+                if (!hold)
+                {
+                    label.gameObject.SetActive(false);
+                }
+
                 return;
             }
 
@@ -630,7 +682,8 @@ namespace SeneaLHudLayout
             maxX = float.NegativeInfinity;
             maxY = float.NegativeInfinity;
             bool any = false;
-            var stack = new Stack<Transform>();
+            BoundsStack.Clear();
+            Stack<Transform> stack = BoundsStack;
             stack.Push(root);
             while (stack.Count > 0)
             {
@@ -685,6 +738,11 @@ namespace SeneaLHudLayout
             if (_iconCache.TryGetValue(id, out RectTransform cached) && cached)
             {
                 return ResolveIconName(container, cached);
+            }
+
+            if (!container.gameObject.activeInHierarchy)
+            {
+                return null;
             }
 
             if (_iconMissAt.TryGetValue(id, out float missAt) && Time.unscaledTime < missAt)

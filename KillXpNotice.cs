@@ -36,7 +36,8 @@ namespace SeneaLHudLayout
                 harmony.Patch(death, prefix: new HarmonyMethod(typeof(KillXpNotice), nameof(BeforeDeath)));
             }
 
-            MethodInfo award = AccessTools.Method("SkillsReworked.Systems.Rewards.KillRewardFlow:AwardXp");
+            Type flow = ModTypes.Find("SkillsReworked", "SkillsReworked.Systems.Rewards.KillRewardFlow");
+            MethodInfo award = flow == null ? null : AccessTools.Method(flow, "AwardXp");
             if (award != null)
             {
                 harmony.Patch(award, postfix: new HarmonyMethod(typeof(KillXpNotice), nameof(AfterAwardXp)));
