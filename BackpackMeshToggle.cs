@@ -37,28 +37,36 @@ namespace SeneaLHudLayout
 
         public static void Apply(Harmony harmony)
         {
-            Type view = AccessTools.TypeByName("SeneaLUI.Inv.InventoryView");
+            Type view = ModTypes.Find("SeneaL-UI", "SeneaLUI.Inv.InventoryView") ??
+                        ModTypes.FindAny("SeneaLUI.Inv.InventoryView");
             if (view == null)
             {
+                ModTypes.LogMissing("BackpackMeshToggle", "SeneaLUI.Inv.InventoryView");
                 return;
             }
 
-            MethodInfo labels = AccessTools.Method(view, "PlaceFootLabels");
-            MethodInfo tick = AccessTools.Method(view, "Tick", new[] { typeof(bool) });
-            MethodInfo footer = AccessTools.Method(view, "PlaceFooter");
-            MethodInfo pov = AccessTools.Method(view, "PlacePovTitles");
+            MethodInfo labels = ModTypes.DeclaredMethod(view, "PlaceFootLabels");
+            MethodInfo tick = ModTypes.DeclaredMethod(view, "Tick", new[] { typeof(bool) }) ??
+                              ModTypes.DeclaredMethod(view, "Tick");
+            MethodInfo footer = ModTypes.FirstMethod(view, "PlaceFooter", "LayoutFooter");
+            MethodInfo pov = ModTypes.DeclaredMethod(view, "PlacePovTitles");
 
             Patch(harmony, labels, nameof(AfterLayout), "PlaceFootLabels");
-            Patch(harmony, footer, nameof(AfterLayout), "PlaceFooter");
+            Patch(harmony, footer, nameof(AfterLayout), footer != null ? footer.Name : "PlaceFooter");
             Patch(harmony, pov, nameof(AfterLayout), "PlacePovTitles");
             Patch(harmony, tick, nameof(AfterTick), "Tick");
+            if (labels == null && footer == null && pov == null)
+            {
+                ModTypes.LogMissing("BackpackMeshToggle", "InventoryView footer layout");
+            }
 
-            _containerView = AccessTools.TypeByName("SeneaLUI.Inv.ContainerView");
+            _containerView = ModTypes.Find("SeneaL-UI", "SeneaLUI.Inv.ContainerView") ??
+                             ModTypes.FindAny("SeneaLUI.Inv.ContainerView");
             if (_containerView != null)
             {
-                _title = AccessTools.Field(_containerView, "_title");
-                _sub = AccessTools.Field(_containerView, "_sub");
-                _docked = AccessTools.Field(_containerView, "_docked");
+                _title = ModTypes.DeclaredField(_containerView, "_title");
+                _sub = ModTypes.DeclaredField(_containerView, "_sub");
+                _docked = ModTypes.DeclaredField(_containerView, "_docked");
                 Debug.Log(
                     "[SeneaL HUD Layout] Backpack button: ContainerView title=" +
                     (_title != null) + " sub=" + (_sub != null) + " docked=" + (_docked != null));
@@ -74,7 +82,7 @@ namespace SeneaLHudLayout
                 }
             }
 
-            Type vis = AccessTools.TypeByName("VisEquipment");
+            Type vis = typeof(VisEquipment);
             if (vis != null)
             {
                 foreach (MethodInfo m in vis.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
@@ -95,15 +103,22 @@ namespace SeneaLHudLayout
                 }
             }
 
-            Type ab = AccessTools.TypeByName("AdventureBackpacks.AdventureBackpacks") ??
-                      AccessTools.TypeByName("AdventureBackpacks.Plugin");
-            if (ab == null)
+            Type boneReorder = ModTypes.Find("AdventureBackpacks", "Vapok.Common.Tools.BoneReorder");
+            Type ab = ModTypes.Find("AdventureBackpacks", "AdventureBackpacks.AdventureBackpacks") ??
+                      ModTypes.FindAny("AdventureBackpacks.AdventureBackpacks", "AdventureBackpacks.Plugin");
+            MethodInfo changed = ModTypes.DeclaredMethod(boneReorder, "ApplyOnEquipmentChanged") ??
+                                 ModTypes.FirstMethod(ab, "ApplyOnEquipmentChanged");
+            if (changed == null)
             {
+                if (ab != null || boneReorder != null)
+                {
+                    ModTypes.LogMissing("BackpackMeshToggle", "ApplyOnEquipmentChanged");
+                }
+
                 return;
             }
 
-            MethodInfo changed = AccessTools.Method(ab, "ApplyOnEquipmentChanged");
-            Patch(harmony, changed, nameof(AfterVis), "ApplyOnEquipmentChanged");
+            Patch(harmony, changed, nameof(AfterVis), changed.DeclaringType.Name + ".ApplyOnEquipmentChanged");
         }
 
         static void Patch(Harmony harmony, MethodInfo method, string postfix, string label)
@@ -715,8 +730,8 @@ namespace SeneaLHudLayout
 
         static void HideSlotVisuals(VisEquipment vis, string itemField, string instField, bool show)
         {
-            FieldInfo itemInfo = AccessTools.Field(typeof(VisEquipment), itemField);
-            FieldInfo instInfo = AccessTools.Field(typeof(VisEquipment), instField);
+            FieldInfo itemInfo = ModTypes.Field(typeof(VisEquipment), itemField);
+            FieldInfo instInfo = ModTypes.Field(typeof(VisEquipment), instField);
             string item = itemInfo != null ? itemInfo.GetValue(vis) as string : null;
             if (string.IsNullOrEmpty(item) ||
                 (item.IndexOf("backpack", StringComparison.OrdinalIgnoreCase) < 0 &&

@@ -1,5 +1,16 @@
 # Progress - SeneaLHudLayout
 
+## 1.5.78 — HarmonyX missing-member warnings
+
+Goal: no HarmonyX "Could not find" from this plugin at startup on Valheim 1.0.30 + SeneaL UI 1.2.8, Better Archery 2.0.5, Adventure Backpacks 2.4.7, Epic Loot 0.15.6.
+- Inspected Gale 4.4.70 assemblies: InventoryView has PlaceFootLabels/LayoutFooter (no PlaceFooter); BoneReorder.ApplyOnEquipmentChanged (not AdventureBackpacks plugin type); InventoryGui has no m_hoveredItem/m_hoverItem; BetterArchery.Patches has CreateOrUpdateQuiverVisual + QuiverInstances; BetterArchery.BetterArchery has QuiverGO.
+- ModTypes: silent DeclaredMethod/DeclaredField/FindAny (no AccessTools logs).
+- BackpackMeshToggle / QuiverMeshToggle / EpicLootShardWindow use those lookups; one log line if a target is absent.
+Build: `dotnet build -c Release` 0 errors (existing warnings only).
+DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll` (1.5.78)
+Gale: copied to `...\cjayride-beta_test_cjaycraft_ultimate_modpack-4.4.70\BepInEx\plugins\cjayride-SeneaLHudLayout\SeneaLHudLayout.dll` (backup `.bak-1.5.77`).
+In-game smoke (backpack footer, shard hover, quiver mesh) still needs a game session after this copy.
+
 ## 1.5.77 — guardian power timers after portal
 
 Goal: cooldown / buff / depletion numbers still show after a portal trip.

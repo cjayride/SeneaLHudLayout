@@ -37,17 +37,21 @@ namespace SeneaLHudLayout
 
         public static void Apply(Harmony harmony)
         {
-            Type view = AccessTools.TypeByName("SeneaLUI.Inv.InventoryView");
+            Type view = ModTypes.Find("SeneaL-UI", "SeneaLUI.Inv.InventoryView") ??
+                        ModTypes.FindAny("SeneaLUI.Inv.InventoryView");
             if (view == null)
             {
+                ModTypes.LogMissing("QuiverMeshToggle", "SeneaLUI.Inv.InventoryView");
                 return;
             }
 
-            _quiverTitle = AccessTools.Field(view, "_quiverTitle");
-            MethodInfo labels = AccessTools.Method(view, "PlaceFootLabels");
-            MethodInfo tick = AccessTools.Method(view, "Tick", new[] { typeof(bool) });
+            _quiverTitle = ModTypes.DeclaredField(view, "_quiverTitle");
+            MethodInfo labels = ModTypes.DeclaredMethod(view, "PlaceFootLabels");
+            MethodInfo tick = ModTypes.DeclaredMethod(view, "Tick", new[] { typeof(bool) }) ??
+                              ModTypes.DeclaredMethod(view, "Tick");
             if (_quiverTitle == null || labels == null)
             {
+                ModTypes.LogMissing("QuiverMeshToggle", "InventoryView._quiverTitle / PlaceFootLabels");
                 return;
             }
 
@@ -72,13 +76,18 @@ namespace SeneaLHudLayout
                 }
             }
 
-            Type ba = AccessTools.TypeByName("BetterArchery.BetterArchery");
-            if (ba == null)
+            Type ba = ModTypes.Find("BetterArchery", "BetterArchery.BetterArchery") ??
+                      ModTypes.FindAny("BetterArchery.BetterArchery");
+            Type patches = ModTypes.Find("BetterArchery", "BetterArchery.Patches") ??
+                           ModTypes.FindAny("BetterArchery.Patches");
+            Type visualHost = patches ?? ba;
+            if (visualHost == null)
             {
+                ModTypes.LogMissing("QuiverMeshToggle", "BetterArchery.BetterArchery");
                 return;
             }
 
-            foreach (MethodInfo m in ba.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+            foreach (MethodInfo m in visualHost.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
             {
                 if (m.Name != "CreateOrUpdateQuiverVisual" && m.Name != "ApplyQuiverTransform" &&
                     m.Name != "RefreshQuiverVisualTransforms")
@@ -382,14 +391,21 @@ namespace SeneaLHudLayout
             }
 
             _baLookup = true;
-            Type t = AccessTools.TypeByName("BetterArchery.BetterArchery");
-            if (t == null)
+            Type t = ModTypes.Find("BetterArchery", "BetterArchery.BetterArchery") ??
+                     ModTypes.FindAny("BetterArchery.BetterArchery");
+            Type patches = ModTypes.Find("BetterArchery", "BetterArchery.Patches") ??
+                           ModTypes.FindAny("BetterArchery.Patches");
+            if (t != null)
             {
-                return;
+                _baGo = ModTypes.FirstField(t, "QuiverGO", "QuiverInstance");
             }
 
-            _baGo = AccessTools.Field(t, "QuiverGO") ?? AccessTools.Field(t, "QuiverInstance");
-            _baInstances = AccessTools.Field(t, "QuiverInstances");
+            _baInstances = ModTypes.FirstField(patches, "QuiverInstances") ??
+                           ModTypes.FirstField(t, "QuiverInstances", "QuiverInstance");
+            if (_baGo == null && _baInstances == null && t != null)
+            {
+                ModTypes.LogMissing("QuiverMeshToggle", "QuiverGO / QuiverInstances");
+            }
         }
 
         static void SetCollection(object bag, bool show)

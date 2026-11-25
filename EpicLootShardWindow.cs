@@ -175,8 +175,11 @@ namespace SeneaLHudLayout
             _panelGet = AccessTools.Method(_panelType, "Get", new[] { typeof(InventoryGui) });
             _panelRoot = AccessTools.Field(_panelType, "_root");
             _elItem = AccessTools.Field(_shardUi, "_item");
-            _guiHover = AccessTools.Field(typeof(InventoryGui), "m_hoveredItem")
-                ?? AccessTools.Field(typeof(InventoryGui), "m_hoverItem");
+            _guiHover = ModTypes.FirstField(typeof(InventoryGui), "m_hoveredItem", "m_hoverItem", "m_hover");
+            if (_guiHover == null)
+            {
+                Debug.Log("[SeneaL HUD Layout] EpicLootShardWindow: InventoryGui hover field not present; using OnEnterElement / grid hover.");
+            }
             Type selection = AccessTools.TypeByName("SeneaLUI.Inv.Selection");
             _gatherCursor = AccessTools.Method(selection, "GatherAtCursor");
             _seneaLPressItem = AccessTools.Field(selection, "_pItem");

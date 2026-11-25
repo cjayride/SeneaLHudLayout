@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.78
+
+- **FIX: HarmonyX missing-member warnings on Valheim 1.0.30 / SeneaL UI 1.2.8 / Better Archery 2.0.5 / Adventure Backpacks 2.4.7.** Optional AccessTools lookups no longer log "Could not find". Backpack mesh follows `LayoutFooter` and `BoneReorder.ApplyOnEquipmentChanged`; quiver mesh uses `BetterArchery.Patches` (`CreateOrUpdateQuiverVisual`, `QuiverInstances`); shard window hover uses `OnEnterElement` when `InventoryGui` has no `m_hoveredItem`.
+
 ## 1.5.77
 
 - **FIX: guardian power cooldown timers after a portal.** Walking through a portal used to hide the shared cooldown and the Passive Powers buff/depletion countdowns. The HUD is off mid-trip; the layout treated that as "no cooldown" and turned the labels off. Timers now stay put during teleport (no extra per-frame work) and for a short settle after you land.
