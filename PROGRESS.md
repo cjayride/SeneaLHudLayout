@@ -1,5 +1,17 @@
 # Progress - SeneaLHudLayout
 
+## 1.5.79 — in-game Character Stats portrait
+
+Goal: Stats sheet portrait uses the local character's face with helmet/armor (SocialSystem 2.0 PortraitStudio approach), not the Steam avatar.
+- Decompiled `SocialSystem.UI.Portraits.PortraitStudio` from Gale cache `M2Valheim-SocialSystem` 2.0.0.
+- New `StatsCharacterPortrait.cs`: hidden player clone at y=-10000, layer 31, 128px camera on Head, dress VisEquipment from live hashes, 2-frame settle, ReadPixels.
+- `StatsWindow` requests that capture; Steam remains fallback if the rig cannot start.
+- `[Stats] StatsPortrait` description updated.
+Build: `dotnet build -c Release` succeeded (0 errors).
+DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll` (1.5.79)
+Zip: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.5.79.zip` (flat 5 entries).
+In-game: open Stats tab and confirm the square is the helmeted character, not Steam.
+
 ## 1.5.78 — HarmonyX missing-member warnings
 
 Goal: no HarmonyX "Could not find" from this plugin at startup on Valheim 1.0.30 + SeneaL UI 1.2.8, Better Archery 2.0.5, Adventure Backpacks 2.4.7, Epic Loot 0.15.6.

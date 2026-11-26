@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.79
+
+- **Character Stats portrait is the in-game face.** The sheet shows your character with hair, beard, helmet, and armor (the same hidden-studio capture SocialSystem 2.0 uses for party avatars). Steam avatar is only a fallback if that capture cannot run.
+
 ## 1.5.78
 
 - **FIX: HarmonyX missing-member warnings on Valheim 1.0.30 / SeneaL UI 1.2.8 / Better Archery 2.0.5 / Adventure Backpacks 2.4.7.** Optional AccessTools lookups no longer log "Could not find". Backpack mesh follows `LayoutFooter` and `BoneReorder.ApplyOnEquipmentChanged`; quiver mesh uses `BetterArchery.Patches` (`CreateOrUpdateQuiverVisual`, `QuiverInstances`); shard window hover uses `OnEnterElement` when `InventoryGui` has no `m_hoveredItem`.

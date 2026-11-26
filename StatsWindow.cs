@@ -1064,31 +1064,53 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            if (!forcePortrait && _portraitTex != null)
+            if (StatsCharacterPortrait.TryGet(player, out Texture2D captured))
             {
+                SetPortraitTexture(captured);
                 return;
             }
 
-            if (StatsSteamPortrait.TryGetLocal(out Texture2D tex))
+            if (StatsCharacterPortrait.Request(player, SetPortraitTexture))
             {
-                if (_portraitTex != null && _portraitTex != tex)
+                if (_portraitTex == null)
                 {
-                    UnityEngine.Object.Destroy(_portraitTex);
+                    _portrait.texture = null;
+                    _portrait.color = new Color(0.18f, 0.14f, 0.1f, 1f);
                 }
 
-                _portraitTex = tex;
-                _portrait.texture = tex;
-                _portrait.color = Color.white;
-                var fit = _portrait.GetComponent<AspectRatioFitter>();
-                if (fit != null && tex.height > 0)
-                {
-                    fit.aspectRatio = (float)tex.width / tex.height;
-                }
+                return;
+            }
+
+            if (StatsSteamPortrait.TryGetLocal(out Texture2D steam))
+            {
+                SetPortraitTexture(steam);
             }
             else if (_portraitTex == null)
             {
                 _portrait.texture = null;
                 _portrait.color = new Color(0.18f, 0.14f, 0.1f, 1f);
+            }
+        }
+
+        static void SetPortraitTexture(Texture2D tex)
+        {
+            if (_portrait == null || tex == null)
+            {
+                return;
+            }
+
+            if (_portraitTex != null && _portraitTex != tex && _portraitTex.name != "SeneaL_CharPortrait")
+            {
+                UnityEngine.Object.Destroy(_portraitTex);
+            }
+
+            _portraitTex = tex;
+            _portrait.texture = tex;
+            _portrait.color = Color.white;
+            var fit = _portrait.GetComponent<AspectRatioFitter>();
+            if (fit != null && tex.height > 0)
+            {
+                fit.aspectRatio = (float)tex.width / tex.height;
             }
         }
 

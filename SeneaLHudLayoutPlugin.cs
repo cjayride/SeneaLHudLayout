@@ -41,7 +41,7 @@ namespace SeneaLHudLayout
     {
         public const string NAME = "SeneaL HUD Layout";
         public const string GUID = "cjayride.SeneaLHudLayout";
-        public const string VERSION = "1.5.78";
+        public const string VERSION = "1.5.79";
         const string SkillsReworkedGuid = "M2Valheim.SkillsReworked";
 
         public static bool SkillsReworkedLoaded()
@@ -712,7 +712,7 @@ namespace SeneaLHudLayout
             StatsHotkey = Config.Bind("Stats", "StatsHotkey", new KeyboardShortcut(KeyCode.None),
                 "Open or close the Stats sheet while the inventory is open. Unbound by default.");
             StatsPortrait = Config.Bind("Stats", "StatsPortrait", true,
-                "Show a square Steam portrait next to your name on the Stats sheet.");
+                "Show a square character portrait (face with helmet and armor) next to your name on the Stats sheet. Uses the Steam avatar only if the in-game capture cannot run.");
             StatsGuardianPowers = Config.Bind("Stats", "GuardianPowers", true,
                 "Show a Guardian powers section on the Stats sheet: one row per equipped boss power with its passive state (Active with buff time, Depleted with lockout time, Passive at rest) and the passive effect lines from the Passive Powers config. Needs the Passive Powers mod; without it the section does not appear.");
             bool valuesBesideDefault = ConfigDefault(

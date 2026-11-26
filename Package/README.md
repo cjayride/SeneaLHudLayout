@@ -61,7 +61,7 @@ A client-side layout and quality-of-life companion for [SeneaL UI](https://thund
 
 ### Character & Skills
 
-- **Character Stats** tab on the SeneaL character panel: live health, stamina, eitr, armor, resists, food, status effects, weapon skills, and more (`[Stats] StatsTab`, optional hotkey and Steam portrait).
+- **Character Stats** tab on the SeneaL character panel: live health, stamina, eitr, armor, resists, food, status effects, weapon skills, and more (`[Stats] StatsTab`, optional hotkey and in-game character portrait).
 - Displays the SkillsReworked level in the character window (`[Character Window]`).
 - Optionally displays that level under the food timers (`[HealthFood] ShowLevelFoodBar` and offset keys). Off by default. This plate is INDEPENDENT of `[Hotbar] XpBarOneAtATime` (1.5.62) - turn it on and it shows, alongside the action-slot card.
 - On a creature kill, shows how much SkillsReworked Level XP you gained next to the damage-share percent (`[Notices] ShowKillXp`).
