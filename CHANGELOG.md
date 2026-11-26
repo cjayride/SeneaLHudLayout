@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.80
+
+- **Rebirth confirm explains scope and cost.** Opening Rebirth in the SkillsReworked window (including via SeneaL UI) now adds what is reset (SkillsReworked skills/attributes and Talent Tree when installed) and the configured level and item costs (for example Levels and Coins), using the same requirement lines SkillsReworked uses when you cannot afford Rebirth. Failed confirms still replace the dialog text with the reason; success still goes to chat.
+
 ## 1.5.79
 
 - **Character Stats portrait is the in-game face.** The sheet shows your character with hair, beard, helmet, and armor (the same hidden-studio capture SocialSystem 2.0 uses for party avatars). Steam avatar is only a fallback if that capture cannot run.
