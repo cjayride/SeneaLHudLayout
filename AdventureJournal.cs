@@ -186,8 +186,8 @@ namespace SeneaLHudLayout
             if (!_adventureChecked)
             {
                 _adventureChecked = true;
-                Type epic = AccessTools.TypeByName("EpicLoot.EpicLoot");
-                _adventureEnabled = AccessTools.Method(epic, "IsAdventureModeEnabled");
+                Type epic = ModTypes.FindAny("EpicLoot.EpicLoot");
+                _adventureEnabled = ModTypes.Method(epic, "IsAdventureModeEnabled");
             }
 
             if (_adventureEnabled == null)
@@ -860,20 +860,20 @@ namespace SeneaLHudLayout
             }
 
             _lookedUp = true;
-            Type players = AccessTools.TypeByName("EpicLoot.Adventure.PlayerExtensions_Adventure");
-            Type save = AccessTools.TypeByName("EpicLoot.Adventure.AdventureSaveData");
-            Type data = AccessTools.TypeByName("EpicLoot.Adventure.AdventureDataManager");
-            Type config = AccessTools.TypeByName("EpicLoot.Adventure.AdventureDataConfig");
-            Type treasure = AccessTools.TypeByName("EpicLoot.Adventure.TreasureMapConfig");
-            _saveData = AccessTools.Method(players, "GetAdventureSaveData", new[] { typeof(Player) });
-            _inProgress = AccessTools.Method(save, "GetInProgressBounties");
-            _claimable = AccessTools.Method(save, "GetClaimableBounties");
-            _unfound = AccessTools.Method(save, "GetUnfoundTreasureChests");
-            _bountyName = AccessTools.Method(data, "GetBountyName");
-            _monsterName = AccessTools.Method(data, "GetMonsterName");
-            _config = AccessTools.Method(data, "GetCFG");
-            _treasureConfig = AccessTools.Field(config, "TreasureMap");
-            _biomeInfo = AccessTools.Field(treasure, "BiomeInfo");
+            Type players = ModTypes.FindAny("EpicLoot.Adventure.PlayerExtensions_Adventure");
+            Type save = ModTypes.FindAny("EpicLoot.Adventure.AdventureSaveData");
+            Type data = ModTypes.FindAny("EpicLoot.Adventure.AdventureDataManager");
+            Type config = ModTypes.FindAny("EpicLoot.Adventure.AdventureDataConfig");
+            Type treasure = ModTypes.FindAny("EpicLoot.Adventure.TreasureMapConfig");
+            _saveData = ModTypes.Method(players, "GetAdventureSaveData", new[] { typeof(Player) });
+            _inProgress = ModTypes.Method(save, "GetInProgressBounties");
+            _claimable = ModTypes.Method(save, "GetClaimableBounties");
+            _unfound = ModTypes.Method(save, "GetUnfoundTreasureChests");
+            _bountyName = ModTypes.Method(data, "GetBountyName");
+            _monsterName = ModTypes.Method(data, "GetMonsterName");
+            _config = ModTypes.Method(data, "GetCFG");
+            _treasureConfig = ModTypes.DeclaredField(config, "TreasureMap");
+            _biomeInfo = ModTypes.DeclaredField(treasure, "BiomeInfo");
             return _saveData != null && _inProgress != null && _unfound != null;
         }
 

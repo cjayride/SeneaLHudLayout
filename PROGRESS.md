@@ -11,6 +11,7 @@ Build: `dotnet build -c Release` succeeded (0 errors).
 DLL: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\bin\Release\net480\SeneaLHudLayout.dll` (1.5.79)
 Zip: `D:\AI-Agent-Projects\cjaycraft\Cjayride.SeneaLHudLayout\dist\cjayride-SeneaLHudLayout-1.5.79.zip` (flat 5 entries).
 In-game: open Stats tab and confirm the square is the helmeted character, not Steam.
+- Pre-ship add-on: `AdventureJournal.AdventureOn` / `Lookup` use `ModTypes` so profiles without Epic Loot do not throw `ArgumentNullException` in `LateUpdate`.
 
 ## 1.5.78 — HarmonyX missing-member warnings
 

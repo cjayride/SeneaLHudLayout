@@ -3,6 +3,7 @@
 ## 1.5.79
 
 - **Character Stats portrait is the in-game face.** The sheet shows your character with hair, beard, helmet, and armor (the same hidden-studio capture SocialSystem 2.0 uses for party avatars). Steam avatar is only a fallback if that capture cannot run.
+- **FIX: ArgumentNullException without Epic Loot.** The Quests / adventure journal no longer calls Harmony with a missing `EpicLoot` type when Epic Loot is not installed (same safe lookup pattern as KillXpNotice in 1.5.76).
 
 ## 1.5.78
 
