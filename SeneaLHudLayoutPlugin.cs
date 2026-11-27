@@ -205,6 +205,7 @@ namespace SeneaLHudLayout
         public static ConfigEntry<float> QuestBackgroundAlpha;
         public static ConfigEntry<bool> ShowLevelXpBar;
         public static ConfigEntry<bool> FixSkillRespendAfterDeath;
+        public static ConfigEntry<bool> ShowRebirthCost;
         public static ConfigEntry<bool> ShowLevelFoodBar;
         public static ConfigEntry<bool> ShowSlotXpBar;
         public static ConfigEntry<float> ShowHotbarSlotsOffsetX;
@@ -691,6 +692,9 @@ namespace SeneaLHudLayout
                 Config, "Character Window", "FixSkillRespendAfterDeath", "Character", "FixSkillRespendAfterDeath", true);
             FixSkillRespendAfterDeath = Config.Bind("Character Window", "FixSkillRespendAfterDeath", fixSkillRespendDefault,
                 "Let you spend points again in a skill that lost a partial level on death, such as Tenacity going from 30 to 29.1. Fractional levels are rounded down when the Skills window opens. Only works when both Smoothbrain Tenacity and SkillsReworked are installed. Otherwise it does nothing.");
+            ShowRebirthCost = Config.Bind("Skills", "ShowRebirthCost", true,
+                "Show the Skills Reworked Rebirth cost (levels and items from cfg) beside the Rebirth button on SeneaL UI's skills window. Off hides the hint. Hidden automatically when the button says Reset. Client-only.");
+            ShowRebirthCost.SettingChanged += (_, __) => SeneaLRebirthCostHint.OnToggleChanged();
             HideMinimapStats = Config.Bind("Minimap", "HideWindAndServerDay", true,
                 "Hide the wind and day/time pills under the minimap. The biome name on the map stays.");
             StatusMove = Config.Bind("Status Effects", "MoveToCorner", false,
@@ -811,6 +815,7 @@ namespace SeneaLHudLayout
             Safe("SkillRespendFix", () => SkillRespendFix.Apply(harmony));
             Safe("VanillaSkillsWindow", () => VanillaSkillsWindow.Apply(harmony));
             Safe("RebirthNotice", () => RebirthNotice.Apply(harmony));
+            Safe("SeneaLRebirthCostHint", () => SeneaLRebirthCostHint.Apply(harmony));
             Safe("KillXpNotice", () => KillXpNotice.Apply(harmony));
             Safe("EquipQueueMark", () => EquipQueueMark.Apply(harmony));
             Safe("WishboneKeySlot", () => WishboneKeySlot.Apply(harmony));

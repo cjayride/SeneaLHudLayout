@@ -1,5 +1,17 @@
 # Progress - SeneaLHudLayout
 
+## 1.5.80 — shipped (SeneaL Rebirth cost hint)
+
+- `SeneaLRebirthCostHint.cs`; `[Skills] ShowRebirthCost`; zip `dist\cjayride-SeneaLHudLayout-1.5.80.zip`; tag `v1.5.80`.
+
+## 1.5.80 — Rebirth confirm scope/cost (test only, not shipped)
+
+Goal: Rebirth **cost** visible on SeneaL UI skills window (like Talent Pace under vanilla SR button); confirm popup stays short.
+- `SeneaLRebirthCostHint.cs`: postfix `SkillsView.LayoutButtons` (HarmonyX: `__instance` only). Do **not** require `Sr.TotalAllocated` at Awake (null until SeneaL `ModHub.Probe`). Cost to the right of Rebirth, or right of Prestige if that button is on. Hidden on Reset.
+- `RebirthNotice.cs`: chat / failed-dialog only (no confirm text bloating).
+- `[Skills] ShowRebirthCost` config; **no** Thunderstore zip until in-game pass.
+In-game: SeneaL skills panel, no pending points → Rebirth button shows cost on its right; Ask dialog unchanged.
+
 ## 1.5.79 — in-game Character Stats portrait
 
 Goal: Stats sheet portrait uses the local character's face with helmet/armor (SocialSystem 2.0 PortraitStudio approach), not the Steam avatar.

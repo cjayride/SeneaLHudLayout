@@ -2,7 +2,8 @@
 
 ## 1.5.80
 
-- **Rebirth confirm explains scope and cost.** Opening Rebirth in the SkillsReworked window (including via SeneaL UI) now adds what is reset (SkillsReworked skills/attributes and Talent Tree when installed) and the configured level and item costs (for example Levels and Coins), using the same requirement lines SkillsReworked uses when you cannot afford Rebirth. Failed confirms still replace the dialog text with the reason; success still goes to chat.
+- **Rebirth cost on SeneaL skills window.** With Skills Reworked + SeneaL UI’s skills panel, shows `Cost: …` to the **right** of the Rebirth button (same style as Talent Pace under the vanilla button). Hidden when the button says **Reset**. Pluralizes level count (`2 Levels`). Confirm popup text is unchanged; failed rebirth/prestige still surfaces on the dialog and in chat.
+- **Config:** `[Skills] ShowRebirthCost` — toggle the hint on or off (default **on**). Updates live when changed in Configuration Manager.
 
 ## 1.5.79
 
