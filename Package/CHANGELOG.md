@@ -2,7 +2,7 @@
 
 ## 1.5.80
 
-- **Rebirth cost on SeneaL skills window.** With Skills Reworked + SeneaL UI’s skills panel, shows `Cost: …` to the **right** of the Rebirth button (same style as Talent Pace under the vanilla button). Hidden when the button says **Reset**. Pluralizes level count (`2 Levels`). Confirm popup text is unchanged; failed rebirth/prestige still surfaces on the dialog and in chat.
+- **Rebirth cost on SeneaL skills window.** With Skills Reworked + SeneaL UI’s skills panel, shows `Cost: …` to the **right** of the Rebirth button (same style as Talent Pace under the vanilla button). Hidden when the button says **Reset**. Pluralizes level count (`2 Levels`). Stays on **one line** (auto-shrinks font if the panel is tight) with inset from the dialog edge. Confirm popup text is unchanged; failed rebirth/prestige still surfaces on the dialog and in chat.
 - **Config:** `[Skills] ShowRebirthCost` — toggle the hint on or off (default **on**). Updates live when changed in Configuration Manager.
 
 ## 1.5.79

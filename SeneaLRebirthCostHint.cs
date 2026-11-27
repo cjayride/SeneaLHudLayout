@@ -155,9 +155,9 @@ namespace SeneaLHudLayout
                 return;
             }
 
-            _label.text = cost;
             _labelRoot.gameObject.SetActive(true);
-            PlaceBeside(buttonRoot, PrestigeRoot(__instance));
+            float maxWidth = PlaceBeside(buttonRoot, PrestigeRoot(__instance));
+            FitSingleLine(cost, maxWidth, buttonRoot.sizeDelta.y);
 
             if (!_loggedShow)
             {
@@ -211,18 +211,63 @@ namespace SeneaLHudLayout
             return root;
         }
 
-        static void PlaceBeside(RectTransform rebirth, RectTransform prestige)
+        /// <summary>Dialog panel right inset matches SeneaL Dialog.PadX (28px) plus ~one character.</summary>
+        const float PanelRightPad = 36f;
+
+        static float PlaceBeside(RectTransform rebirth, RectTransform prestige)
         {
             RectTransform neighbor = prestige != null ? prestige : rebirth;
+            RectTransform panel = rebirth.parent as RectTransform;
             _labelRoot.SetParent(rebirth.parent, false);
             _labelRoot.anchorMin = neighbor.anchorMin;
             _labelRoot.anchorMax = neighbor.anchorMax;
             _labelRoot.pivot = new Vector2(0f, neighbor.pivot.y);
-            _labelRoot.anchoredPosition = new Vector2(
-                neighbor.anchoredPosition.x + neighbor.sizeDelta.x + 10f,
-                neighbor.anchoredPosition.y);
-            _labelRoot.sizeDelta = new Vector2(220f, neighbor.sizeDelta.y);
+            float leftX = neighbor.anchoredPosition.x + neighbor.sizeDelta.x + 10f;
+            _labelRoot.anchoredPosition = new Vector2(leftX, neighbor.anchoredPosition.y);
+            float maxWidth = 220f;
+            if (panel != null)
+            {
+                maxWidth = Mathf.Max(80f, panel.sizeDelta.x - leftX - PanelRightPad);
+            }
+
+            if (_label != null)
+            {
+                _label.margin = new Vector4(0f, 0f, 4f, 0f);
+            }
+
             _labelRoot.SetAsLastSibling();
+            return maxWidth;
+        }
+
+        static void FitSingleLine(string text, float maxWidth, float height)
+        {
+            const float maxFont = 16f;
+            const float minFont = 10f;
+
+            _label.textWrappingMode = TextWrappingModes.NoWrap;
+            _label.overflowMode = TextOverflowModes.Overflow;
+            _label.enableAutoSizing = false;
+            _label.text = text;
+
+            float size = maxFont;
+            _label.fontSize = size;
+            float preferred = MeasurePreferredWidth(text);
+
+            while (size > minFont && preferred > maxWidth)
+            {
+                size -= 0.5f;
+                _label.fontSize = size;
+                preferred = MeasurePreferredWidth(text);
+            }
+
+            float width = Mathf.Min(Mathf.Ceil(preferred + 2f), maxWidth);
+            _labelRoot.sizeDelta = new Vector2(width, height);
+        }
+
+        static float MeasurePreferredWidth(string text)
+        {
+            _label.ForceMeshUpdate(true);
+            return _label.GetPreferredValues(text, 10000f, 0f).x;
         }
 
         static void HideLabel()
@@ -256,9 +301,10 @@ namespace SeneaLHudLayout
             _label = go.AddComponent<TextMeshProUGUI>();
             _label.raycastTarget = false;
             _label.fontSize = 16f;
-            _label.textWrappingMode = TextWrappingModes.Normal;
+            _label.textWrappingMode = TextWrappingModes.NoWrap;
             _label.overflowMode = TextOverflowModes.Overflow;
             _label.alignment = TextAlignmentOptions.MidlineLeft;
+            _label.margin = new Vector4(0f, 0f, 4f, 0f);
             _label.color = new Color(0.92f, 0.78f, 0.42f, 1f);
             if (template != null)
             {
@@ -302,10 +348,6 @@ namespace SeneaLHudLayout
                 }
 
                 parts.Append(itemAmount).Append(' ').Append(itemName);
-                if (string.Equals(itemPrefab, "Coins", StringComparison.OrdinalIgnoreCase))
-                {
-                    parts.Append(' ');
-                }
             }
 
             if (parts.Length == 0)
